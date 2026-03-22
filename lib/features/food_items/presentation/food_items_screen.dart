@@ -389,6 +389,48 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
     }
   }
 
+  Future<void> _openAddMoreForm(FoodItem item) async {
+    final additionalItem = await Navigator.of(context).push<FoodItem>(
+      MaterialPageRoute(
+        builder: (_) => FoodItemFormScreen(
+          householdId: widget.household.id,
+          prefill: FoodItemPrefill(
+            name: item.name,
+            barcode: item.barcode,
+            category: item.category,
+            storageLocation: item.storageLocation,
+            quantity: 1,
+            unit: item.unit,
+            expirationDate: item.expirationDate,
+            lowStockThreshold: item.lowStockThreshold,
+          ),
+        ),
+      ),
+    );
+
+    if (additionalItem == null) {
+      return;
+    }
+
+    try {
+      final updatedItem = item.copyWith(
+        quantity: item.quantity + additionalItem.quantity,
+        updatedAt: DateTime.now().toUtc(),
+      );
+      await repository.editFoodItem(updatedItem);
+      await _reload();
+      widget.onPantryChanged();
+      if (!mounted) return;
+      showSuccessFeedback(
+        context,
+        'Added to existing ${updatedItem.name} (+${_formatCompactNumber(additionalItem.quantity)} ${additionalItem.unit}). Total: ${_formatCompactNumber(updatedItem.quantity)} ${updatedItem.unit}.',
+      );
+    } catch (_) {
+      if (!mounted) return;
+      showErrorFeedback(context, 'Failed to add more to pantry item.');
+    }
+  }
+
   Future<void> _deleteItem(FoodItem item) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -540,6 +582,54 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
           ),
         );
     }
+  }
+
+  Future<void> _showItemActions(FoodItem item) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.add_circle_outline),
+              title: const Text('Add more'),
+              subtitle: const Text('Increase the current quantity'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _openAddMoreForm(item);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.edit_outlined),
+              title: const Text('Edit'),
+              subtitle: const Text('Replace or update this item'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _openEditForm(item);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.remove_circle_outline),
+              title: const Text('Mark as used'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _markItemAsUsed(item);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline),
+              title: const Text('Delete'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _deleteItem(item);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   double? _parseQuantity(String value) {
@@ -1119,7 +1209,7 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
         side: const BorderSide(color: Color(0xFFE7EAE3)),
       ),
       child: ListTile(
-        onTap: () => _openEditForm(item),
+        onTap: () => _showItemActions(item),
         title: Row(
           children: [
             Expanded(
@@ -1155,24 +1245,10 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
             ],
           ],
         ),
-        trailing: SizedBox(
-          width: 96,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                onPressed: () => _markItemAsUsed(item),
-                tooltip: 'Mark as used',
-                icon: const Icon(Icons.remove_circle_outline),
-              ),
-              IconButton(
-                onPressed: () => _deleteItem(item),
-                tooltip: 'Delete',
-                icon: const Icon(Icons.delete_outline),
-              ),
-            ],
-          ),
+        trailing: IconButton(
+          onPressed: () => _showItemActions(item),
+          tooltip: 'More actions',
+          icon: const Icon(Icons.more_horiz_rounded),
         ),
       ),
     );

@@ -101,9 +101,12 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       var anyBought = primary.isBought;
 
       for (final duplicate in group.skip(1)) {
-        if (duplicate.quantity > mergedQuantity) {
-          mergedQuantity = duplicate.quantity;
-        }
+        final convertedQuantity = _convertQuantity(
+          quantity: duplicate.quantity,
+          fromUnit: duplicate.unit,
+          toUnit: primary.unit,
+        );
+        mergedQuantity += convertedQuantity ?? duplicate.quantity;
         mergedSource = ShoppingListItem.mergeSource(
           mergedSource,
           duplicate.source,
@@ -164,7 +167,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       if (result.wasMerged) {
         showSuccessFeedback(
           context,
-          'Updated existing ${result.item.name} (${_formatQuantity(result.item.quantity)} ${result.item.unit}).',
+          'Added to existing ${result.item.name} (+${_formatQuantity(createdItem.quantity)} ${createdItem.unit}). Total: ${_formatQuantity(result.item.quantity)} ${result.item.unit}.',
         );
       } else {
         showSuccessFeedback(context, 'Shopping item added.');
@@ -192,9 +195,18 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       return _ShoppingSaveResult(item: created, wasMerged: false);
     }
 
+    final convertedIncomingQuantity = _convertQuantity(
+      quantity: incomingItem.quantity,
+      fromUnit: incomingItem.unit,
+      toUnit: existing.unit,
+    );
+    final mergedQuantity =
+        existing.quantity +
+        (convertedIncomingQuantity ?? incomingItem.quantity);
+
     final updated = await repository.editShoppingListItem(
       existing.copyWith(
-        quantity: incomingItem.quantity,
+        quantity: mergedQuantity,
         isBought: false,
         source: ShoppingListItem.mergeSource(
           existing.source,
@@ -244,6 +256,148 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       if (!mounted) return;
       showErrorFeedback(context, 'Failed to update shopping item.');
     }
+  }
+
+  Future<void> _openAddMoreForm(ShoppingListItem item) async {
+    final quantityController = TextEditingController(text: '1');
+    final unitController = TextEditingController(text: item.unit);
+
+    final additionalItem = await showDialog<ShoppingListItem>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Add more ${item.name}'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: quantityController,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              decoration: const InputDecoration(labelText: 'Quantity'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: unitController,
+              decoration: const InputDecoration(labelText: 'Unit'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final quantity = double.tryParse(quantityController.text.trim());
+              final unit = unitController.text.trim();
+              if (quantity == null || quantity <= 0 || unit.isEmpty) {
+                return;
+              }
+              Navigator.of(context).pop(
+                item.copyWith(
+                  quantity: quantity,
+                  unit: unit,
+                  isBought: false,
+                  updatedAt: DateTime.now().toUtc(),
+                ),
+              );
+            },
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+
+    quantityController.dispose();
+    unitController.dispose();
+
+    if (additionalItem == null) {
+      return;
+    }
+
+    final confirmed = await _confirmProceedWithSafetyWarning(
+      additionalItem,
+      actionLabel: 'add this item to your shopping list',
+      preferences: null,
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    final additionalQuantity = _convertQuantity(
+      quantity: additionalItem.quantity,
+      fromUnit: additionalItem.unit,
+      toUnit: item.unit,
+    );
+    if (additionalQuantity == null) {
+      if (!mounted) return;
+      showErrorFeedback(
+        context,
+        'Unable to add more because the unit is not compatible with ${item.unit}.',
+      );
+      return;
+    }
+
+    try {
+      final updatedItem = await repository.editShoppingListItem(
+        item.copyWith(
+          quantity: item.quantity + additionalQuantity,
+          isBought: false,
+          updatedAt: DateTime.now().toUtc(),
+        ),
+      );
+      await _reload();
+      if (!mounted) return;
+      showSuccessFeedback(
+        context,
+        'Added to existing ${updatedItem.name} (+${_formatQuantity(additionalItem.quantity)} ${additionalItem.unit}). Total: ${_formatQuantity(updatedItem.quantity)} ${updatedItem.unit}.',
+      );
+    } catch (_) {
+      if (!mounted) return;
+      showErrorFeedback(context, 'Failed to add more to this shopping item.');
+    }
+  }
+
+  Future<void> _showItemActions(ShoppingListItem item) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.add_circle_outline),
+              title: const Text('Add more'),
+              subtitle: const Text('Increase the current quantity'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _openAddMoreForm(item);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.edit_outlined),
+              title: const Text('Edit'),
+              subtitle: const Text('Replace the current value'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _openEditForm(item);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline),
+              title: const Text('Delete'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _deleteItem(item);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _deleteItem(ShoppingListItem item) async {
@@ -406,7 +560,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                 final item = filteredItems[index - 1];
                 return Card(
                   child: ListTile(
-                    onTap: () => _openEditForm(item),
+                    onTap: () => _showItemActions(item),
                     leading: Checkbox(
                       value: item.isBought,
                       onChanged: (value) {
@@ -436,9 +590,24 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                         },
                       ],
                     ),
-                    trailing: IconButton(
-                      onPressed: () => _deleteItem(item),
-                      icon: const Icon(Icons.delete_outline),
+                    trailing: PopupMenuButton<String>(
+                      onSelected: (value) {
+                        if (value == 'add_more') {
+                          _openAddMoreForm(item);
+                        } else if (value == 'edit') {
+                          _openEditForm(item);
+                        } else if (value == 'delete') {
+                          _deleteItem(item);
+                        }
+                      },
+                      itemBuilder: (context) => const [
+                        PopupMenuItem(
+                          value: 'add_more',
+                          child: Text('Add more'),
+                        ),
+                        PopupMenuItem(value: 'edit', child: Text('Edit')),
+                        PopupMenuItem(value: 'delete', child: Text('Delete')),
+                      ],
                     ),
                   ),
                 );
@@ -474,7 +643,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
   }
 
   String _itemKey(String name, String unit) {
-    return '${name.trim().toLowerCase()}|${unit.trim().toLowerCase()}';
+    return '${name.trim().toLowerCase()}|${_unitMergeKey(unit)}';
   }
 
   String _formatQuantity(double value) {
@@ -523,13 +692,36 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
 
     final isAllergy = warning.type == _FoodSafetyWarningType.allergy;
     final title = isAllergy ? 'Allergy warning' : 'Intolerance warning';
+    final suggestions = _suggestSafeAlternatives(item, warning);
 
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(title),
-        content: Text(
-          'This item may conflict with your preferences because it contains ${warning.matchedSignals.join(', ')}.\n\nDo you still want to $actionLabel?',
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'This item may conflict with your preferences because it contains ${warning.matchedSignals.join(', ')}.\n\nDo you still want to $actionLabel?',
+              ),
+              if (suggestions.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                const Text(
+                  'Safer alternatives:',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 8),
+                ...suggestions.map(
+                  (suggestion) => Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Text('• $suggestion'),
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -711,6 +903,171 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       default:
         return value;
     }
+  }
+
+  String _unitMergeKey(String unit) {
+    final normalized = unit.trim().toLowerCase();
+    switch (normalized) {
+      case 'l':
+      case 'liter':
+      case 'litre':
+      case 'liters':
+      case 'litres':
+      case 'litrov':
+      case 'ml':
+      case 'milliliter':
+      case 'millilitre':
+      case 'milliliters':
+      case 'millilitres':
+        return 'volume';
+      case 'kg':
+      case 'kilogram':
+      case 'kilograms':
+      case 'kilogramy':
+      case 'kilogramov':
+      case 'g':
+      case 'gram':
+      case 'grams':
+      case 'gramy':
+      case 'gramov':
+        return 'mass';
+      case 'pcs':
+      case 'pc':
+      case 'piece':
+      case 'pieces':
+      case 'ks':
+      case 'kus':
+      case 'kusy':
+        return 'count';
+      default:
+        return normalized;
+    }
+  }
+
+  double? _convertQuantity({
+    required double quantity,
+    required String fromUnit,
+    required String toUnit,
+  }) {
+    final from = fromUnit.trim().toLowerCase();
+    final to = toUnit.trim().toLowerCase();
+    if (from == to) {
+      return quantity;
+    }
+
+    const toBaseFactor = <String, double>{
+      'kg': 1000,
+      'kilogram': 1000,
+      'kilograms': 1000,
+      'kilogramy': 1000,
+      'kilogramov': 1000,
+      'g': 1,
+      'gram': 1,
+      'grams': 1,
+      'gramy': 1,
+      'gramov': 1,
+      'l': 1000,
+      'liter': 1000,
+      'litre': 1000,
+      'liters': 1000,
+      'litres': 1000,
+      'litrov': 1000,
+      'ml': 1,
+      'milliliter': 1,
+      'millilitre': 1,
+      'milliliters': 1,
+      'millilitres': 1,
+      'pcs': 1,
+      'pc': 1,
+      'piece': 1,
+      'pieces': 1,
+      'ks': 1,
+      'kus': 1,
+      'kusy': 1,
+    };
+
+    final fromGroup = _unitMergeKey(from);
+    final toGroup = _unitMergeKey(to);
+    if (fromGroup != toGroup) {
+      return null;
+    }
+
+    final fromFactor = toBaseFactor[from];
+    final toFactor = toBaseFactor[to];
+    if (fromFactor == null || toFactor == null) {
+      return null;
+    }
+
+    final baseQuantity = quantity * fromFactor;
+    return baseQuantity / toFactor;
+  }
+
+  List<String> _suggestSafeAlternatives(
+    ShoppingListItem item,
+    _FoodSafetyWarning warning,
+  ) {
+    final normalizedName = _normalizeValue(item.name);
+    final suggestions = <String>{};
+
+    for (final signal in warning.matchedSignals) {
+      switch (signal) {
+        case 'lactose':
+          suggestions.add('a lactose-free alternative');
+          if (normalizedName.contains('milk') ||
+              normalizedName.contains('mlieko')) {
+            suggestions.add('lactose-free milk');
+            suggestions.add('oat milk');
+          } else if (normalizedName.contains('cheese') ||
+              normalizedName.contains('syr') ||
+              normalizedName.contains('gorgonzola') ||
+              normalizedName.contains('mozzarella')) {
+            suggestions.add('lactose-free cheese');
+            suggestions.add('plant-based cheese');
+          } else if (normalizedName.contains('yogurt') ||
+              normalizedName.contains('jogurt')) {
+            suggestions.add('lactose-free yogurt');
+            suggestions.add('coconut yogurt');
+          }
+          break;
+        case 'gluten':
+          suggestions.add('a gluten-free alternative');
+          if (normalizedName.contains('pasta') ||
+              normalizedName.contains('cestovin')) {
+            suggestions.add('gluten-free pasta');
+          } else if (normalizedName.contains('bread') ||
+              normalizedName.contains('chlieb') ||
+              normalizedName.contains('peciv')) {
+            suggestions.add('gluten-free bread');
+          } else if (normalizedName.contains('flour') ||
+              normalizedName.contains('muka')) {
+            suggestions.add('gluten-free flour');
+          }
+          break;
+        case 'eggs':
+          suggestions.add('an egg substitute');
+          suggestions.add('chia or flax replacement');
+          break;
+        case 'peanuts':
+          suggestions.add('sunflower seed butter');
+          break;
+        case 'tree_nuts':
+          suggestions.add('seed-based alternative');
+          break;
+        case 'soy':
+          suggestions.add('oat-based alternative');
+          suggestions.add('coconut-based alternative');
+          break;
+        case 'fish':
+        case 'shellfish':
+          suggestions.add('a non-seafood alternative');
+          break;
+        case 'sesame':
+          suggestions.add('a sesame-free alternative');
+          break;
+      }
+    }
+
+    return suggestions.toList();
   }
 }
 

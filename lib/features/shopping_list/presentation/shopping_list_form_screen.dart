@@ -6,11 +6,13 @@ import '../domain/shopping_list_item.dart';
 
 class ShoppingListFormScreen extends StatefulWidget {
   final ShoppingListItem? initialItem;
+  final ShoppingListItem? prefillItem;
   final String householdId;
 
   const ShoppingListFormScreen({
     super.key,
     this.initialItem,
+    this.prefillItem,
     required this.householdId,
   });
 
@@ -29,7 +31,7 @@ class _ShoppingListFormScreenState extends State<ShoppingListFormScreen> {
   @override
   void initState() {
     super.initState();
-    final item = widget.initialItem;
+    final item = widget.initialItem ?? widget.prefillItem;
     _nameController.text = item?.name ?? '';
     _quantityController.text = item?.quantity.toString() ?? '1';
     _unitController.text = item?.unit ?? 'pcs';
