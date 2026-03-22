@@ -13,13 +13,15 @@ import '../../meal_plan/domain/meal_plan_entry.dart';
 import '../../meal_plan/presentation/meal_plan_form_screen.dart';
 import '../../shopping_list/data/shopping_list_repository.dart';
 import '../../shopping_list/domain/shopping_list_item.dart';
+import '../../user_preferences/data/user_preferences_repository.dart';
+import '../../user_preferences/domain/user_preferences.dart';
 import '../data/recipes_repository.dart';
 import '../domain/recipe.dart';
 import '../domain/recipe_ingredient.dart';
 import '../domain/recipe_match_result.dart';
 import 'recipe_form_screen.dart';
 
-enum RecipeFilter { all, favorites, publicOnly, householdOnly }
+enum RecipeFilter { all, safeForMe, favorites, publicOnly, householdOnly }
 
 class RecipesScreen extends StatefulWidget {
   final Household household;
@@ -28,6 +30,7 @@ class RecipesScreen extends StatefulWidget {
   final VoidCallback onMealPlanChanged;
   final int refreshToken;
   final String? focusedRecipeId;
+  final RecipeFilter initialFilter;
 
   const RecipesScreen({
     super.key,
@@ -37,6 +40,7 @@ class RecipesScreen extends StatefulWidget {
     required this.onMealPlanChanged,
     required this.refreshToken,
     required this.focusedRecipeId,
+    required this.initialFilter,
   });
 
   @override
@@ -55,23 +59,49 @@ class _RecipesScreenState extends State<RecipesScreen> {
   late final MealPlanRepository _mealPlanRepository = MealPlanRepository(
     householdId: widget.household.id,
   );
+  late final UserPreferencesRepository _userPreferencesRepository =
+      UserPreferencesRepository();
 
-  late Future<List<FoodItem>> _foodItemsFuture = _foodItemsRepository
-      .getFoodItems();
-  late Future<List<Recipe>> _recipesFuture = _recipesRepository.getRecipes();
+  late Future<_RecipesViewData> _recipesViewFuture = _loadRecipesViewData();
 
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   RecipeFilter _selectedFilter = RecipeFilter.all;
   String _searchQuery = '';
   Timer? _searchDebounce;
+  String? _presentedFocusedRecipeId;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedFilter = widget.initialFilter;
+  }
 
   Future<void> _reload() async {
     setState(() {
-      _foodItemsFuture = _foodItemsRepository.getFoodItems();
-      _recipesFuture = _recipesRepository.getRecipes();
+      _recipesViewFuture = _loadRecipesViewData();
     });
-    await Future.wait([_foodItemsFuture, _recipesFuture]);
+    await _recipesViewFuture;
+  }
+
+  Future<_RecipesViewData> _loadRecipesViewData() async {
+    final pantryFuture = _foodItemsRepository.getFoodItems();
+    final recipesFuture = _recipesRepository.getRecipes();
+    UserPreferences? preferences;
+
+    try {
+      preferences = await _userPreferencesRepository
+          .getCurrentUserPreferences();
+    } catch (_) {
+      preferences = null;
+    }
+
+    final results = await Future.wait<Object>([pantryFuture, recipesFuture]);
+    return _RecipesViewData(
+      pantryItems: results[0] as List<FoodItem>,
+      recipes: results[1] as List<Recipe>,
+      preferences: preferences,
+    );
   }
 
   @override
@@ -84,9 +114,15 @@ class _RecipesScreenState extends State<RecipesScreen> {
         widget.focusedRecipeId != null) {
       _searchDebounce?.cancel();
       _searchController.clear();
+      _presentedFocusedRecipeId = null;
       setState(() {
         _selectedFilter = RecipeFilter.all;
         _searchQuery = '';
+      });
+    }
+    if (oldWidget.initialFilter != widget.initialFilter) {
+      setState(() {
+        _selectedFilter = widget.initialFilter;
       });
     }
   }
@@ -139,8 +175,8 @@ class _RecipesScreenState extends State<RecipesScreen> {
             ),
           ),
           Expanded(
-            child: FutureBuilder<List<Object>>(
-              future: Future.wait<Object>([_foodItemsFuture, _recipesFuture]),
+            child: FutureBuilder<_RecipesViewData>(
+              future: _recipesViewFuture,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const AppLoadingState();
@@ -153,13 +189,16 @@ class _RecipesScreenState extends State<RecipesScreen> {
                   );
                 }
 
-                final data = snapshot.data ?? const <Object>[];
-                final pantryItems = data.isNotEmpty
-                    ? data[0] as List<FoodItem>
-                    : <FoodItem>[];
-                final recipes = data.length > 1
-                    ? data[1] as List<Recipe>
-                    : <Recipe>[];
+                final viewData =
+                    snapshot.data ??
+                    const _RecipesViewData(
+                      pantryItems: <FoodItem>[],
+                      recipes: <Recipe>[],
+                      preferences: null,
+                    );
+                final pantryItems = viewData.pantryItems;
+                final recipes = viewData.recipes;
+                final preferences = viewData.preferences;
 
                 if (recipes.isEmpty) {
                   return AppEmptyState(
@@ -168,12 +207,49 @@ class _RecipesScreenState extends State<RecipesScreen> {
                   );
                 }
 
-                final filteredRecipes = _applyRecipeFilters(recipes);
+                final filteredRecipes = _applyRecipeFilters(
+                  recipes,
+                  preferences,
+                );
                 if (filteredRecipes.isEmpty) {
                   return AppEmptyState(
                     message: 'No recipes match your search.',
                     onRefresh: _reload,
                   );
+                }
+
+                Recipe? focusedRecipe;
+                final focusedRecipeId = widget.focusedRecipeId;
+                if (focusedRecipeId != null) {
+                  for (final recipe in filteredRecipes) {
+                    if (recipe.id == focusedRecipeId) {
+                      focusedRecipe = recipe;
+                      break;
+                    }
+                  }
+                }
+                if (focusedRecipe != null &&
+                    _presentedFocusedRecipeId != focusedRecipe.id) {
+                  final selectedRecipe = focusedRecipe;
+                  final focusedResult = _matchRecipe(
+                    selectedRecipe,
+                    pantryItems,
+                  );
+                  final focusedWarning = _buildRecipeSafetyWarning(
+                    selectedRecipe,
+                    preferences,
+                  );
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (!mounted) {
+                      return;
+                    }
+                    _presentedFocusedRecipeId = selectedRecipe.id;
+                    _showFocusedRecipeSheet(
+                      selectedRecipe,
+                      focusedResult,
+                      focusedWarning,
+                    );
+                  });
                 }
 
                 return RefreshIndicator(
@@ -185,6 +261,10 @@ class _RecipesScreenState extends State<RecipesScreen> {
                     itemBuilder: (context, index) {
                       final recipe = filteredRecipes[index];
                       final result = _matchRecipe(recipe, pantryItems);
+                      final warning = _buildRecipeSafetyWarning(
+                        recipe,
+                        preferences,
+                      );
                       final isFocused = recipe.id == widget.focusedRecipeId;
 
                       return Card(
@@ -271,6 +351,10 @@ class _RecipesScreenState extends State<RecipesScreen> {
                                   ),
                                 ],
                               ),
+                              if (warning != null) ...[
+                                const SizedBox(height: 12),
+                                _RecipeSafetyBadge(warning: warning),
+                              ],
                               const SizedBox(height: 16),
                               Text(
                                 'Available',
@@ -394,10 +478,110 @@ class _RecipesScreenState extends State<RecipesScreen> {
     );
   }
 
-  List<Recipe> _applyRecipeFilters(List<Recipe> recipes) {
+  Future<void> _showFocusedRecipeSheet(
+    Recipe recipe,
+    RecipeMatchResult result,
+    _FoodSafetyWarning? warning,
+  ) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (context) {
+        return SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  recipe.name,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(recipe.description),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _SummaryChip(
+                      label: '${result.available.length} available',
+                      color: const Color(0xFFE5F0DF),
+                    ),
+                    _SummaryChip(
+                      label: '${result.partial.length} partial',
+                      color: const Color(0xFFF4EDC8),
+                    ),
+                    _SummaryChip(
+                      label: '${result.missing.length} missing',
+                      color: const Color(0xFFF6E2CC),
+                    ),
+                  ],
+                ),
+                if (warning != null) ...[
+                  const SizedBox(height: 12),
+                  _RecipeSafetyBadge(warning: warning),
+                ],
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      _addRecipeToMealPlan(recipe);
+                    },
+                    child: const Text('Add to meal plan'),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed:
+                        (result.available.isEmpty && result.partial.isEmpty)
+                        ? null
+                        : () {
+                            Navigator.of(context).pop();
+                            _cookRecipe(result);
+                          },
+                    child: const Text('Cook now'),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.tonal(
+                    onPressed:
+                        (result.missing.isEmpty && result.partial.isEmpty)
+                        ? null
+                        : () {
+                            Navigator.of(context).pop();
+                            _addMissingToShoppingList(result);
+                          },
+                    child: const Text('Add missing to shopping list'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  List<Recipe> _applyRecipeFilters(
+    List<Recipe> recipes,
+    UserPreferences? preferences,
+  ) {
     final filtered = recipes.where((recipe) {
+      final warning = _buildRecipeSafetyWarning(recipe, preferences);
       final matchesFilter = switch (_selectedFilter) {
         RecipeFilter.all => true,
+        RecipeFilter.safeForMe => warning == null,
         RecipeFilter.favorites => recipe.isFavorite,
         RecipeFilter.publicOnly => recipe.isPublic,
         RecipeFilter.householdOnly => !recipe.isPublic,
@@ -423,6 +607,15 @@ class _RecipesScreenState extends State<RecipesScreen> {
     }
 
     filtered.sort((a, b) {
+      final aWarning = _buildRecipeSafetyWarning(a, preferences);
+      final bWarning = _buildRecipeSafetyWarning(b, preferences);
+      if (aWarning == null && bWarning != null) {
+        return -1;
+      }
+      if (aWarning != null && bWarning == null) {
+        return 1;
+      }
+
       if (a.id == focusedRecipeId) {
         return -1;
       }
@@ -483,7 +676,7 @@ class _RecipesScreenState extends State<RecipesScreen> {
   }
 
   Future<void> _deleteRecipe(Recipe recipe) async {
-    final confirmed = await showDialog<bool>(
+    final useConfirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete recipe'),
@@ -501,7 +694,7 @@ class _RecipesScreenState extends State<RecipesScreen> {
       ),
     );
 
-    if (confirmed != true) {
+    if (useConfirmed != true) {
       return;
     }
 
@@ -537,6 +730,15 @@ class _RecipesScreenState extends State<RecipesScreen> {
   }
 
   Future<void> _addRecipeToMealPlan(Recipe recipe) async {
+    final confirmed = await _confirmProceedWithSafetyWarning(
+      recipe: recipe,
+      preferences: null,
+      actionLabel: 'add this recipe to your meal plan',
+    );
+    if (!confirmed) {
+      return;
+    }
+
     final allRecipes = await _recipesRepository.getRecipes();
     if (!mounted) {
       return;
@@ -823,6 +1025,15 @@ class _RecipesScreenState extends State<RecipesScreen> {
   }
 
   Future<void> _addMissingToShoppingList(RecipeMatchResult result) async {
+    final confirmed = await _confirmProceedWithSafetyWarning(
+      recipe: result.recipe,
+      preferences: null,
+      actionLabel: 'add missing ingredients to your shopping list',
+    );
+    if (!confirmed) {
+      return;
+    }
+
     try {
       final freshResult = await _refreshRecipeMatch(result.recipe);
       final changedCount = await _addMissingToShoppingListInternal(freshResult);
@@ -847,9 +1058,18 @@ class _RecipesScreenState extends State<RecipesScreen> {
   }
 
   Future<void> _useAvailableFromPantry(RecipeMatchResult result) async {
+    final confirmed = await _confirmProceedWithSafetyWarning(
+      recipe: result.recipe,
+      preferences: null,
+      actionLabel: 'use ingredients from your pantry',
+    );
+    if (!confirmed) {
+      return;
+    }
+
     final freshResult = await _refreshRecipeMatch(result.recipe);
 
-    final confirmed = await showDialog<bool>(
+    final useConfirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Use ingredients from recipe'),
@@ -871,7 +1091,7 @@ class _RecipesScreenState extends State<RecipesScreen> {
       ),
     );
 
-    if (confirmed != true) {
+    if (useConfirmed != true) {
       return;
     }
 
@@ -896,6 +1116,15 @@ class _RecipesScreenState extends State<RecipesScreen> {
   }
 
   Future<void> _cookRecipe(RecipeMatchResult result) async {
+    final confirmed = await _confirmProceedWithSafetyWarning(
+      recipe: result.recipe,
+      preferences: null,
+      actionLabel: 'cook this recipe',
+    );
+    if (!confirmed) {
+      return;
+    }
+
     final freshResult = await _refreshRecipeMatch(result.recipe);
     final canConsume =
         freshResult.available.isNotEmpty || freshResult.partial.isNotEmpty;
@@ -908,7 +1137,7 @@ class _RecipesScreenState extends State<RecipesScreen> {
         freshResult.missing.isNotEmpty || freshResult.partial.isNotEmpty;
     var addMissingToShopping = canAddMissing;
 
-    final confirmed = await showDialog<bool>(
+    final cookConfirmed = await showDialog<bool>(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
@@ -953,7 +1182,7 @@ class _RecipesScreenState extends State<RecipesScreen> {
       ),
     );
 
-    if (confirmed != true) {
+    if (cookConfirmed != true) {
       return;
     }
 
@@ -1042,6 +1271,53 @@ class _RecipesScreenState extends State<RecipesScreen> {
   Future<RecipeMatchResult> _refreshRecipeMatch(Recipe recipe) async {
     final pantryItems = await _foodItemsRepository.getFoodItems();
     return _matchRecipe(recipe, pantryItems);
+  }
+
+  Future<bool> _confirmProceedWithSafetyWarning({
+    required Recipe recipe,
+    required UserPreferences? preferences,
+    required String actionLabel,
+  }) async {
+    UserPreferences? effectivePreferences = preferences;
+    if (effectivePreferences == null) {
+      try {
+        effectivePreferences = await _userPreferencesRepository
+            .getCurrentUserPreferences();
+      } catch (_) {
+        effectivePreferences = null;
+      }
+    }
+
+    final warning = _buildRecipeSafetyWarning(recipe, effectivePreferences);
+    if (warning == null || !mounted) {
+      return true;
+    }
+
+    final isAllergy = warning.type == _FoodSafetyWarningType.allergy;
+    final title = isAllergy ? 'Allergy warning' : 'Intolerance warning';
+    final warningText = warning.matchedSignals.join(', ');
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(
+          'This recipe may conflict with your preferences because it contains $warningText.\n\nDo you still want to $actionLabel?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Continue'),
+          ),
+        ],
+      ),
+    );
+
+    return confirmed == true;
   }
 
   Future<int> _addMissingToShoppingListInternal(
@@ -1271,6 +1547,139 @@ class _RecipesScreenState extends State<RecipesScreen> {
     existingItems.add(updated);
     return 1;
   }
+
+  _FoodSafetyWarning? _buildRecipeSafetyWarning(
+    Recipe recipe,
+    UserPreferences? preferences,
+  ) {
+    if (preferences == null) {
+      return null;
+    }
+
+    final matchedAllergies = _matchPreferenceSignals(
+      preferenceEntries: preferences.allergies,
+      candidateSignals: recipe.ingredients
+          .expand((ingredient) => _ingredientSignalSet(ingredient))
+          .toSet(),
+    );
+    if (matchedAllergies.isNotEmpty) {
+      return _FoodSafetyWarning(
+        type: _FoodSafetyWarningType.allergy,
+        matchedSignals: matchedAllergies,
+      );
+    }
+
+    final matchedIntolerances = _matchPreferenceSignals(
+      preferenceEntries: preferences.intolerances,
+      candidateSignals: recipe.ingredients
+          .expand((ingredient) => _ingredientSignalSet(ingredient))
+          .toSet(),
+    );
+    if (matchedIntolerances.isNotEmpty) {
+      return _FoodSafetyWarning(
+        type: _FoodSafetyWarningType.intolerance,
+        matchedSignals: matchedIntolerances,
+      );
+    }
+
+    return null;
+  }
+
+  Set<String> _ingredientSignalSet(RecipeIngredient ingredient) {
+    final signals = <String>{};
+    final normalizedName = _normalize(ingredient.name);
+    final canonicalKey = _canonicalIngredientKey(ingredient.name);
+
+    signals.add(canonicalKey);
+    signals.add(_canonicalFoodSignal(normalizedName));
+
+    if (canonicalKey == 'milk' || canonicalKey == 'cheese') {
+      signals.add('dairy');
+      signals.add('lactose');
+    }
+    if (canonicalKey == 'eggs') {
+      signals.add('eggs');
+      signals.add('egg');
+    }
+
+    return signals
+        .map(_canonicalFoodSignal)
+        .where((signal) => signal.isNotEmpty)
+        .toSet();
+  }
+
+  List<String> _matchPreferenceSignals({
+    required List<String> preferenceEntries,
+    required Set<String> candidateSignals,
+  }) {
+    final matches = <String>{};
+    for (final entry in preferenceEntries) {
+      final signal = _canonicalFoodSignal(_normalize(entry));
+      if (signal.isEmpty) {
+        continue;
+      }
+      if (candidateSignals.contains(signal)) {
+        matches.add(signal);
+      }
+    }
+    return matches.toList()..sort();
+  }
+
+  String _canonicalFoodSignal(String value) {
+    switch (value) {
+      case 'lactose':
+      case 'dairy':
+      case 'milk':
+      case 'cheese':
+      case 'mlieko':
+      case 'syr':
+        return 'lactose';
+      case 'gluten':
+      case 'wheat':
+      case 'pasta':
+      case 'bread':
+      case 'cestoviny':
+      case 'chlieb':
+      case 'pecivo':
+        return 'gluten';
+      case 'egg':
+      case 'eggs':
+      case 'vajce':
+      case 'vajcia':
+        return 'eggs';
+      case 'peanut':
+      case 'peanuts':
+      case 'arasidy':
+        return 'peanuts';
+      case 'nuts':
+      case 'nut':
+      case 'almond':
+      case 'walnut':
+      case 'hazelnut':
+      case 'mandla':
+      case 'orech':
+      case 'orechy':
+        return 'tree_nuts';
+      case 'soy':
+      case 'soya':
+      case 'sój':
+      case 'soj':
+        return 'soy';
+      case 'fish':
+      case 'ryba':
+        return 'fish';
+      case 'shellfish':
+      case 'shrimp':
+      case 'prawn':
+      case 'kreveta':
+        return 'shellfish';
+      case 'sesame':
+      case 'sezam':
+        return 'sesame';
+      default:
+        return value;
+    }
+  }
 }
 
 class _PantryConsumptionEntry {
@@ -1300,6 +1709,40 @@ class _SummaryChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
+    );
+  }
+}
+
+class _RecipeSafetyBadge extends StatelessWidget {
+  const _RecipeSafetyBadge({required this.warning});
+
+  final _FoodSafetyWarning warning;
+
+  @override
+  Widget build(BuildContext context) {
+    final isAllergy = warning.type == _FoodSafetyWarningType.allergy;
+    final backgroundColor = isAllergy
+        ? const Color(0xFFFDE7E9)
+        : const Color(0xFFFFF3D9);
+    final foregroundColor = isAllergy
+        ? const Color(0xFF9F1D2C)
+        : const Color(0xFF8A5A00);
+    final title = isAllergy ? 'Allergy warning' : 'Intolerance warning';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        '$title: contains ${warning.matchedSignals.join(', ')}.',
+        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+          color: foregroundColor,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
     );
   }
 }
@@ -1346,6 +1789,11 @@ class _RecipesSearchAndFilterBar extends StatelessWidget {
                   onSelected: (_) => onFilterChanged(RecipeFilter.all),
                 ),
                 FilterChip(
+                  label: const Text('Safe for me'),
+                  selected: selectedFilter == RecipeFilter.safeForMe,
+                  onSelected: (_) => onFilterChanged(RecipeFilter.safeForMe),
+                ),
+                FilterChip(
                   label: const Text('Favorites'),
                   selected: selectedFilter == RecipeFilter.favorites,
                   onSelected: (_) => onFilterChanged(RecipeFilter.favorites),
@@ -1368,4 +1816,25 @@ class _RecipesSearchAndFilterBar extends StatelessWidget {
       ),
     );
   }
+}
+
+class _RecipesViewData {
+  final List<FoodItem> pantryItems;
+  final List<Recipe> recipes;
+  final UserPreferences? preferences;
+
+  const _RecipesViewData({
+    required this.pantryItems,
+    required this.recipes,
+    required this.preferences,
+  });
+}
+
+enum _FoodSafetyWarningType { allergy, intolerance }
+
+class _FoodSafetyWarning {
+  final _FoodSafetyWarningType type;
+  final List<String> matchedSignals;
+
+  const _FoodSafetyWarning({required this.type, required this.matchedSignals});
 }

@@ -9,6 +9,7 @@ import '../../food_items/presentation/scan_history_screen.dart';
 import '../../households/domain/household.dart';
 import '../../recipes/data/recipes_repository.dart';
 import '../../recipes/domain/recipe.dart';
+import '../../recipes/domain/recipe_ingredient.dart';
 import '../../shopping_list/data/shopping_list_repository.dart';
 import '../../shopping_list/domain/shopping_list_item.dart';
 import '../../staples/data/staple_food_repository.dart';
@@ -17,6 +18,9 @@ import '../../staples/presentation/staple_foods_screen.dart';
 import '../../meal_plan/data/meal_plan_repository.dart';
 import '../../meal_plan/domain/meal_plan_entry.dart';
 import '../../meal_plan/presentation/meal_plan_screen.dart';
+import '../../user_preferences/data/user_preferences_repository.dart';
+import '../../user_preferences/domain/user_preferences.dart';
+import '../../user_preferences/presentation/user_preferences_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final Household household;
@@ -25,6 +29,7 @@ class DashboardScreen extends StatefulWidget {
   final VoidCallback onOpenPantry;
   final VoidCallback onOpenShoppingList;
   final VoidCallback onOpenRecipes;
+  final VoidCallback onOpenSafeRecipes;
   final ValueChanged<String> onOpenRecipe;
   final VoidCallback onShoppingListChanged;
   final int recipesRefreshToken;
@@ -38,6 +43,7 @@ class DashboardScreen extends StatefulWidget {
     required this.onOpenPantry,
     required this.onOpenShoppingList,
     required this.onOpenRecipes,
+    required this.onOpenSafeRecipes,
     required this.onOpenRecipe,
     required this.onShoppingListChanged,
     required this.recipesRefreshToken,
@@ -65,6 +71,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   late final MealPlanRepository _mealPlanRepository = MealPlanRepository(
     householdId: widget.household.id,
   );
+  late final UserPreferencesRepository _userPreferencesRepository =
+      UserPreferencesRepository();
 
   late Future<_DashboardData> _dashboardFuture = _loadDashboard();
 
@@ -118,6 +126,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
     await _reload();
   }
 
+  Future<void> _openPreferences() async {
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const UserPreferencesScreen()));
+
+    if (!mounted) {
+      return;
+    }
+    await _reload();
+  }
+
   Future<_DashboardData> _loadDashboard() async {
     final results = await Future.wait<dynamic>([
       _foodItemsRepository.getFoodItems(),
@@ -126,6 +145,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _stapleFoodRepository.getStapleFoods(),
       _scanSessionsRepository.getScanSessions(),
       _mealPlanRepository.getEntries(),
+      _loadPreferencesSafely(),
     ]);
 
     final pantryItems = results[0] as List<FoodItem>;
@@ -134,6 +154,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final stapleFoods = results[3] as List<StapleFood>;
     final scans = results[4] as List<ScanSession>;
     final mealPlanEntries = results[5] as List<MealPlanEntry>;
+    final preferences = results[6] as UserPreferences?;
 
     return _DashboardData(
       pantryItems: pantryItems,
@@ -142,13 +163,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
       stapleFoods: stapleFoods,
       scans: scans,
       mealPlanEntries: mealPlanEntries,
+      preferences: preferences,
     );
+  }
+
+  Future<UserPreferences?> _loadPreferencesSafely() async {
+    try {
+      return await _userPreferencesRepository.getCurrentUserPreferences();
+    } catch (_) {
+      return null;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Dashboard')),
+      appBar: AppBar(
+        title: const Text('Dashboard'),
+        actions: [
+          IconButton(
+            onPressed: _openPreferences,
+            icon: const Icon(Icons.tune_rounded),
+            tooltip: 'Preferences',
+          ),
+        ],
+      ),
       body: FutureBuilder<_DashboardData>(
         future: _dashboardFuture,
         builder: (context, snapshot) {
@@ -179,6 +218,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
               .where((item) => !item.isBought)
               .length;
           final recentScan = data.scans.isEmpty ? null : data.scans.first;
+          final hasSafetyPreferences =
+              data.preferences != null &&
+              (data.preferences!.allergies.isNotEmpty ||
+                  data.preferences!.intolerances.isNotEmpty);
+          final safeRecommendedRecipes = _recommendedSafeRecipes(
+            data.recipes,
+            data.pantryItems,
+            data.preferences,
+          ).take(4).toList();
+          final avoidedRecipes = _avoidedRecipes(
+            data.recipes,
+            data.preferences,
+          ).take(3).toList();
 
           final expiringItems = [...data.pantryItems]
             ..retainWhere((item) => _daysUntil(item.expirationDate) <= 3)
@@ -302,8 +354,85 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         icon: const Icon(Icons.event_note_outlined),
                         label: const Text('Meal plan'),
                       ),
+                      FilledButton.tonalIcon(
+                        onPressed: _openPreferences,
+                        icon: const Icon(Icons.tune_rounded),
+                        label: const Text('Preferences'),
+                      ),
                     ],
                   ),
+                ),
+                const SizedBox(height: 14),
+                _SectionCard(
+                  title: 'Safe for you',
+                  trailing: TextButton(
+                    onPressed: hasSafetyPreferences
+                        ? widget.onOpenSafeRecipes
+                        : _openPreferences,
+                    child: Text(
+                      hasSafetyPreferences ? 'Open recipes' : 'Set preferences',
+                    ),
+                  ),
+                  child: !hasSafetyPreferences
+                      ? const Text(
+                          'Add allergies or intolerances in Preferences to get personalized safe recipe recommendations.',
+                        )
+                      : safeRecommendedRecipes.isEmpty
+                      ? const Text(
+                          'No safe recipe recommendations yet. Try adding more recipes or updating your pantry.',
+                        )
+                      : Column(
+                          children: safeRecommendedRecipes.map((recipe) {
+                            final recipeMatch = _matchRecipeSummary(
+                              recipe,
+                              data.pantryItems,
+                            );
+                            return _DashboardRow(
+                              title: recipe.name,
+                              subtitle:
+                                  '${recipeMatch.available} available • ${recipeMatch.partial} partial • ${recipeMatch.missing} missing',
+                              onTap: () => widget.onOpenRecipe(recipe.id),
+                              actionLabel: 'Cook now',
+                              onActionTap: () => widget.onOpenRecipe(recipe.id),
+                            );
+                          }).toList(),
+                        ),
+                ),
+                const SizedBox(height: 14),
+                _SectionCard(
+                  title: 'Avoid for now',
+                  trailing: TextButton(
+                    onPressed: hasSafetyPreferences
+                        ? widget.onOpenRecipes
+                        : _openPreferences,
+                    child: Text(
+                      hasSafetyPreferences ? 'Open recipes' : 'Set preferences',
+                    ),
+                  ),
+                  child: !hasSafetyPreferences
+                      ? const Text(
+                          'Add allergies or intolerances in Preferences to see which recipes currently conflict with your needs.',
+                        )
+                      : avoidedRecipes.isEmpty
+                      ? const Text(
+                          'Nothing currently conflicts with your saved allergies or intolerances.',
+                        )
+                      : Column(
+                          children: avoidedRecipes.map((recipe) {
+                            final warning = _buildRecipeSafetyWarning(
+                              recipe,
+                              data.preferences,
+                            );
+                            final warningLabel = warning == null
+                                ? 'Potential conflict'
+                                : '${_warningTypeLabel(warning.type)}: contains ${warning.matchedSignals.join(', ')}';
+                            return _DashboardRow(
+                              title: recipe.name,
+                              subtitle: warningLabel,
+                              onTap: () => widget.onOpenRecipe(recipe.id),
+                            );
+                          }).toList(),
+                        ),
                 ),
                 const SizedBox(height: 14),
                 _SectionCard(
@@ -507,6 +636,7 @@ class _DashboardData {
   final List<StapleFood> stapleFoods;
   final List<ScanSession> scans;
   final List<MealPlanEntry> mealPlanEntries;
+  final UserPreferences? preferences;
 
   const _DashboardData({
     required this.pantryItems,
@@ -515,6 +645,7 @@ class _DashboardData {
     required this.stapleFoods,
     required this.scans,
     required this.mealPlanEntries,
+    required this.preferences,
   });
 }
 
@@ -535,6 +666,13 @@ class _RecipeMatchSummary {
     required this.partial,
     required this.missing,
   });
+}
+
+class _RecipeRecommendation {
+  final Recipe recipe;
+  final _RecipeMatchSummary match;
+
+  const _RecipeRecommendation({required this.recipe, required this.match});
 }
 
 class _MetricCard extends StatelessWidget {
@@ -606,6 +744,21 @@ class _SectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final trailingWidget = trailing;
+    final headerChildren = <Widget>[
+      Expanded(
+        child: Text(
+          title,
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+        ),
+      ),
+    ];
+    if (trailingWidget != null) {
+      headerChildren.add(trailingWidget);
+    }
+
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -616,19 +769,7 @@ class _SectionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              if (trailing != null) trailing!,
-            ],
-          ),
+          Row(children: headerChildren),
           const SizedBox(height: 12),
           child,
         ],
@@ -757,6 +898,239 @@ _RecipeMatchSummary _matchRecipeSummary(Recipe recipe, List<FoodItem> pantry) {
     partial: partial,
     missing: missing,
   );
+}
+
+List<Recipe> _recommendedSafeRecipes(
+  List<Recipe> recipes,
+  List<FoodItem> pantry,
+  UserPreferences? preferences,
+) {
+  final recommendations =
+      recipes
+          .where(
+            (recipe) => _buildRecipeSafetyWarning(recipe, preferences) == null,
+          )
+          .map(
+            (recipe) => _RecipeRecommendation(
+              recipe: recipe,
+              match: _matchRecipeSummary(recipe, pantry),
+            ),
+          )
+          .toList()
+        ..sort((a, b) {
+          final availabilityScoreA =
+              (a.match.available * 2) + a.match.partial - (a.match.missing * 2);
+          final availabilityScoreB =
+              (b.match.available * 2) + b.match.partial - (b.match.missing * 2);
+          final scoreComparison = availabilityScoreB.compareTo(
+            availabilityScoreA,
+          );
+          if (scoreComparison != 0) {
+            return scoreComparison;
+          }
+          return a.recipe.name.toLowerCase().compareTo(
+            b.recipe.name.toLowerCase(),
+          );
+        });
+
+  return recommendations.map((item) => item.recipe).toList();
+}
+
+List<Recipe> _avoidedRecipes(
+  List<Recipe> recipes,
+  UserPreferences? preferences,
+) {
+  final avoided =
+      recipes
+          .where(
+            (recipe) => _buildRecipeSafetyWarning(recipe, preferences) != null,
+          )
+          .toList()
+        ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+
+  return avoided;
+}
+
+_FoodSafetyWarning? _buildRecipeSafetyWarning(
+  Recipe recipe,
+  UserPreferences? preferences,
+) {
+  if (preferences == null) {
+    return null;
+  }
+
+  final candidateSignals = recipe.ingredients
+      .expand((ingredient) => _ingredientSignalSet(ingredient))
+      .toSet();
+
+  final allergyMatches = _matchPreferenceSignals(
+    preferenceEntries: preferences.allergies,
+    candidateSignals: candidateSignals,
+  );
+  if (allergyMatches.isNotEmpty) {
+    return _FoodSafetyWarning(
+      type: _FoodSafetyWarningType.allergy,
+      matchedSignals: allergyMatches,
+    );
+  }
+
+  final intoleranceMatches = _matchPreferenceSignals(
+    preferenceEntries: preferences.intolerances,
+    candidateSignals: candidateSignals,
+  );
+  if (intoleranceMatches.isNotEmpty) {
+    return _FoodSafetyWarning(
+      type: _FoodSafetyWarningType.intolerance,
+      matchedSignals: intoleranceMatches,
+    );
+  }
+
+  return null;
+}
+
+Set<String> _ingredientSignalSet(RecipeIngredient ingredient) {
+  final signals = <String>{};
+  final normalizedName = _normalizeName(ingredient.name);
+  final canonicalKey = _canonicalIngredientKey(ingredient.name);
+
+  signals.add(canonicalKey);
+  signals.add(_canonicalFoodSignal(normalizedName));
+
+  if (canonicalKey == 'milk' || canonicalKey == 'cheese') {
+    signals.add('dairy');
+    signals.add('lactose');
+  }
+  if (canonicalKey == 'eggs') {
+    signals.add('eggs');
+    signals.add('egg');
+  }
+
+  return signals
+      .map(_canonicalFoodSignal)
+      .where((signal) => signal.isNotEmpty)
+      .toSet();
+}
+
+List<String> _matchPreferenceSignals({
+  required List<String> preferenceEntries,
+  required Set<String> candidateSignals,
+}) {
+  final matches = <String>{};
+  for (final entry in preferenceEntries) {
+    final signal = _canonicalFoodSignal(_normalizeName(entry));
+    if (signal.isEmpty) {
+      continue;
+    }
+    if (candidateSignals.contains(signal)) {
+      matches.add(signal);
+    }
+  }
+  return matches.toList()..sort();
+}
+
+String _canonicalIngredientKey(String value) {
+  final normalized = _normalizeName(value);
+
+  const canonicalMap = {
+    'eggs': 'eggs',
+    'egg': 'eggs',
+    'vajce': 'eggs',
+    'vajcia': 'eggs',
+    'milk': 'milk',
+    'mlieko': 'milk',
+    'cheese': 'cheese',
+    'syr': 'cheese',
+    'pasta': 'pasta',
+    'cestoviny': 'pasta',
+    'bread': 'bread',
+    'chlieb': 'bread',
+    'pecivo': 'bread',
+    'fish': 'fish',
+    'ryba': 'fish',
+    'soy': 'soy',
+    'soya': 'soy',
+    'peanuts': 'peanuts',
+    'peanut': 'peanuts',
+    'arasidy': 'peanuts',
+    'sesame': 'sesame',
+    'sezam': 'sesame',
+  };
+
+  return canonicalMap[normalized] ?? normalized;
+}
+
+String _canonicalFoodSignal(String value) {
+  switch (value) {
+    case 'lactose':
+    case 'dairy':
+    case 'milk':
+    case 'cheese':
+    case 'mlieko':
+    case 'syr':
+      return 'lactose';
+    case 'gluten':
+    case 'wheat':
+    case 'pasta':
+    case 'bread':
+    case 'cestoviny':
+    case 'chlieb':
+    case 'pecivo':
+      return 'gluten';
+    case 'egg':
+    case 'eggs':
+    case 'vajce':
+    case 'vajcia':
+      return 'eggs';
+    case 'peanut':
+    case 'peanuts':
+    case 'arasidy':
+      return 'peanuts';
+    case 'nuts':
+    case 'nut':
+    case 'almond':
+    case 'walnut':
+    case 'hazelnut':
+    case 'mandla':
+    case 'orech':
+    case 'orechy':
+      return 'tree_nuts';
+    case 'soy':
+    case 'soya':
+    case 'sój':
+    case 'soj':
+      return 'soy';
+    case 'fish':
+    case 'ryba':
+      return 'fish';
+    case 'shellfish':
+    case 'shrimp':
+    case 'prawn':
+    case 'kreveta':
+      return 'shellfish';
+    case 'sesame':
+    case 'sezam':
+      return 'sesame';
+    default:
+      return value;
+  }
+}
+
+String _warningTypeLabel(_FoodSafetyWarningType type) {
+  switch (type) {
+    case _FoodSafetyWarningType.allergy:
+      return 'Allergy warning';
+    case _FoodSafetyWarningType.intolerance:
+      return 'Intolerance warning';
+  }
+}
+
+enum _FoodSafetyWarningType { allergy, intolerance }
+
+class _FoodSafetyWarning {
+  final _FoodSafetyWarningType type;
+  final List<String> matchedSignals;
+
+  const _FoodSafetyWarning({required this.type, required this.matchedSignals});
 }
 
 double _calculateMissingStapleQuantity(

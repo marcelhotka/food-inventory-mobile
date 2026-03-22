@@ -7,6 +7,8 @@ import '../../households/domain/household.dart';
 import '../../households/presentation/household_screen.dart';
 import '../../shopping_list/data/shopping_list_repository.dart';
 import '../../shopping_list/domain/shopping_list_item.dart';
+import '../../user_preferences/data/user_preferences_repository.dart';
+import '../../user_preferences/domain/user_preferences.dart';
 import '../data/food_item_remote_data_source.dart';
 import '../data/food_items_repository.dart';
 import '../domain/food_item.dart';
@@ -44,15 +46,17 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
   );
   late final ShoppingListRepository _shoppingListRepository =
       ShoppingListRepository(householdId: widget.household.id);
+  late final UserPreferencesRepository _userPreferencesRepository =
+      UserPreferencesRepository();
   final TextEditingController _searchController = TextEditingController();
 
-  late Future<List<FoodItem>> _foodItemsFuture;
+  late Future<_PantryViewData> _pantryFuture;
   PantryFilter _selectedFilter = PantryFilter.all;
 
   @override
   void initState() {
     super.initState();
-    _foodItemsFuture = repository.getFoodItems();
+    _pantryFuture = _loadPantryViewData();
   }
 
   @override
@@ -71,10 +75,22 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
 
   Future<void> _reload() async {
     setState(() {
-      _foodItemsFuture = repository.getFoodItems();
+      _pantryFuture = _loadPantryViewData();
     });
 
-    await _foodItemsFuture;
+    await _pantryFuture;
+  }
+
+  Future<_PantryViewData> _loadPantryViewData() async {
+    final items = await repository.getFoodItems();
+    UserPreferences? preferences;
+    try {
+      preferences = await _userPreferencesRepository
+          .getCurrentUserPreferences();
+    } catch (_) {
+      preferences = null;
+    }
+    return _PantryViewData(items: items, preferences: preferences);
   }
 
   Future<void> _openCreateForm() async {
@@ -494,7 +510,7 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
       }
       if (!mounted) return;
       setState(() {
-        _foodItemsFuture = repository.getFoodItems();
+        _pantryFuture = _loadPantryViewData();
       });
       widget.onPantryChanged();
       messenger
@@ -711,8 +727,8 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
         icon: const Icon(Icons.add),
         label: const Text('Add item'),
       ),
-      body: FutureBuilder<List<FoodItem>>(
-        future: _foodItemsFuture,
+      body: FutureBuilder<_PantryViewData>(
+        future: _pantryFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const AppLoadingState();
@@ -725,7 +741,8 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
             );
           }
 
-          final items = snapshot.data ?? [];
+          final items = snapshot.data?.items ?? [];
+          final preferences = snapshot.data?.preferences;
           if (items.isEmpty) {
             return AppEmptyState(
               message: 'No pantry items yet.',
@@ -763,91 +780,93 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
 
           final expiringSoonCount = items.where(_isExpiringSoon).length;
           final lowStockCount = items.where(_isLowStock).length;
-          final fridgeCount = items
-              .where((item) => item.storageLocation == 'fridge')
-              .length;
-          final duplicateGroups = _findMergeableDuplicateGroups(items);
+          final shouldShowDuplicateMerge =
+              _selectedFilter == PantryFilter.all &&
+              _searchController.text.trim().isEmpty;
+          final duplicateGroups = shouldShowDuplicateMerge
+              ? _findMergeableDuplicateGroups(items)
+              : const <List<FoodItem>>[];
           final duplicateItemCount = duplicateGroups.fold<int>(
             0,
             (sum, group) => sum + group.length - 1,
           );
-          final groupedSections = _buildGroupedSections(filteredItems);
+          final groupedEntries = _buildGroupedEntries(filteredItems);
+
+          final headerWidgets = <Widget>[
+            _PantrySummary(
+              totalItems: items.length,
+              expiringSoonCount: expiringSoonCount,
+              lowStockCount: lowStockCount,
+            ),
+            const SizedBox(height: 12),
+            _SearchAndFilterBar(
+              controller: _searchController,
+              selectedFilter: _selectedFilter,
+              onSearchChanged: (_) => setState(() {}),
+              onFilterChanged: (value) {
+                setState(() {
+                  _selectedFilter = value;
+                });
+              },
+            ),
+            const SizedBox(height: 16),
+            if (lowStockCount > 0)
+              SizedBox(
+                width: double.infinity,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton.tonal(
+                        onPressed: () =>
+                            _openLowStockScreen(items, preferences),
+                        child: Text(
+                          'View $lowStockCount low stock item${lowStockCount == 1 ? '' : 's'}',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton.tonal(
+                        onPressed: () => _addLowStockItemsToShoppingList(items),
+                        child: const Text('Add to shopping list'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            if (lowStockCount > 0) const SizedBox(height: 16),
+            if (duplicateItemCount > 0)
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.tonal(
+                  onPressed: () => _mergeDuplicateItems(duplicateGroups),
+                  child: Text(
+                    'Merge $duplicateItemCount duplicate item${duplicateItemCount == 1 ? '' : 's'}',
+                  ),
+                ),
+              ),
+            if (duplicateItemCount > 0) const SizedBox(height: 16),
+          ];
 
           return RefreshIndicator(
             onRefresh: _reload,
-            child: ListView(
+            child: ListView.builder(
+              physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
-              children: [
-                _PantrySummary(
-                  totalItems: items.length,
-                  expiringSoonCount: expiringSoonCount,
-                  fridgeCount: fridgeCount,
-                ),
-                const SizedBox(height: 12),
-                _SearchAndFilterBar(
-                  controller: _searchController,
-                  selectedFilter: _selectedFilter,
-                  onSearchChanged: (_) => setState(() {}),
-                  onFilterChanged: (value) {
-                    setState(() {
-                      _selectedFilter = value;
-                    });
-                  },
-                ),
-                const SizedBox(height: 16),
-                if (lowStockCount > 0) ...[
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.tonal(
-                      onPressed: () => _addLowStockItemsToShoppingList(items),
-                      child: Text(
-                        'Add $lowStockCount low stock item${lowStockCount == 1 ? '' : 's'} to shopping list',
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                ],
-                if (duplicateItemCount > 0) ...[
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.tonal(
-                      onPressed: () => _mergeDuplicateItems(duplicateGroups),
-                      child: Text(
-                        'Merge $duplicateItemCount duplicate item${duplicateItemCount == 1 ? '' : 's'}',
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                ],
-                ...groupedSections,
-              ],
+              itemCount: headerWidgets.length + groupedEntries.length,
+              itemBuilder: (context, index) {
+                if (index < headerWidgets.length) {
+                  return headerWidgets[index];
+                }
+
+                final entry = groupedEntries[index - headerWidgets.length];
+                return _buildGroupedEntry(entry, preferences);
+              },
             ),
           );
         },
       ),
     );
-  }
-
-  String _buildSubtitle(FoodItem item) {
-    final base = '${item.quantity} ${item.unit}';
-    final meta =
-        '${_storageLocationLabel(item.storageLocation)} • ${_categoryLabel(item.category)}';
-    final barcode = item.barcode == null ? '' : ' • Code ${item.barcode}';
-    if (item.expirationDate == null) {
-      return '$base • $meta${_lowStockText(item)}$barcode';
-    }
-    return '$base • $meta${_lowStockText(item)}$barcode • ${_expiryDetailText(item.expirationDate!)}';
-  }
-
-  String _lowStockText(FoodItem item) {
-    if (!_isLowStock(item)) {
-      return '';
-    }
-    final threshold = item.lowStockThreshold;
-    if (threshold == null) {
-      return '';
-    }
-    return ' • Low stock (limit ${_formatCompactNumber(threshold)} ${item.unit})';
   }
 
   List<FoodItem> _applyFilters(List<FoodItem> items) {
@@ -996,9 +1015,45 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
     }
   }
 
-  List<Widget> _buildGroupedSections(List<FoodItem> items) {
+  Future<void> _openLowStockScreen(
+    List<FoodItem> items,
+    UserPreferences? preferences,
+  ) async {
+    final lowStockItems = items.where(_isLowStock).toList()
+      ..sort(_compareFoodItemsForDisplay);
+
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          appBar: AppBar(title: const Text('Low stock')),
+          body: lowStockItems.isEmpty
+              ? AppEmptyState(
+                  message: 'No low stock items.',
+                  onRefresh: _reload,
+                )
+              : ListView.separated(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: lowStockItems.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final item = lowStockItems[index];
+                    return _buildFoodItemCard(
+                      item,
+                      subtitle:
+                          '${_formatCompactNumber(item.quantity)} ${item.unit} • ${_categoryLabel(item.category)} • ${_storageLocationLabel(item.storageLocation)}'
+                          '${item.lowStockThreshold == null ? '' : ' • Limit ${_formatCompactNumber(item.lowStockThreshold!)} ${item.unit}'}',
+                      warning: _buildFoodSafetyWarning(item, preferences),
+                    );
+                  },
+                ),
+        ),
+      ),
+    );
+  }
+
+  List<_PantryListEntry> _buildGroupedEntries(List<FoodItem> items) {
     const orderedLocations = ['fridge', 'freezer', 'pantry'];
-    final widgets = <Widget>[];
+    final entries = <_PantryListEntry>[];
 
     for (final location in orderedLocations) {
       final locationItems =
@@ -1009,60 +1064,288 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
         continue;
       }
 
-      widgets.add(
-        _StorageSectionHeader(
+      entries.add(
+        _PantrySectionEntry(
           title: _storageLocationLabel(location),
           count: locationItems.length,
         ),
       );
-      widgets.add(const SizedBox(height: 8));
 
       for (var index = 0; index < locationItems.length; index++) {
-        final item = locationItems[index];
-        widgets.add(
-          Card(
-            child: ListTile(
-              onTap: () => _openEditForm(item),
-              title: Row(
-                children: [
-                  Expanded(child: Text(item.name)),
-                  if (item.expirationDate != null)
-                    _ExpiryBadge(
-                      label: _expiryShortLabel(item.expirationDate!),
-                      state: _expiryState(item.expirationDate!),
-                    ),
-                ],
-              ),
-              subtitle: Text(_buildSubtitle(item)),
-              trailing: SizedBox(
-                width: 96,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      onPressed: () => _markItemAsUsed(item),
-                      tooltip: 'Mark as used',
-                      icon: const Icon(Icons.remove_circle_outline),
-                    ),
-                    IconButton(
-                      onPressed: () => _deleteItem(item),
-                      tooltip: 'Delete',
-                      icon: const Icon(Icons.delete_outline),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+        entries.add(
+          _PantryItemEntry(
+            item: locationItems[index],
+            isLastInSection: index == locationItems.length - 1,
           ),
         );
-
-        final isLastInSection = index == locationItems.length - 1;
-        widgets.add(SizedBox(height: isLastInSection ? 16 : 12));
       }
     }
 
-    return widgets;
+    return entries;
+  }
+
+  Widget _buildGroupedEntry(
+    _PantryListEntry entry,
+    UserPreferences? preferences,
+  ) {
+    return switch (entry) {
+      _PantrySectionEntry(:final title, :final count) => Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: _StorageSectionHeader(title: title, count: count),
+      ),
+      _PantryItemEntry(:final item, :final isLastInSection) => Padding(
+        padding: EdgeInsets.only(bottom: isLastInSection ? 16 : 12),
+        child: _buildFoodItemCard(
+          item,
+          subtitle:
+              '${_formatCompactNumber(item.quantity)} ${item.unit} • ${_categoryLabel(item.category)}'
+              '${_isLowStock(item) ? ' • Low stock' : ''}',
+          warning: _buildFoodSafetyWarning(item, preferences),
+        ),
+      ),
+    };
+  }
+
+  Widget _buildFoodItemCard(
+    FoodItem item, {
+    required String subtitle,
+    _FoodSafetyWarning? warning,
+  }) {
+    return Card(
+      color: Colors.white,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+        side: const BorderSide(color: Color(0xFFE7EAE3)),
+      ),
+      child: ListTile(
+        onTap: () => _openEditForm(item),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                item.name,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: const Color(0xFF1B2A41),
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+            if (item.expirationDate != null)
+              _ExpiryBadge(
+                label: _expiryShortLabel(item.expirationDate!),
+                state: _expiryState(item.expirationDate!),
+              ),
+          ],
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              subtitle,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: const Color(0xFF6B7785),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            if (warning != null) ...[
+              const SizedBox(height: 8),
+              _FoodSafetyBadge(warning: warning),
+            ],
+          ],
+        ),
+        trailing: SizedBox(
+          width: 96,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                onPressed: () => _markItemAsUsed(item),
+                tooltip: 'Mark as used',
+                icon: const Icon(Icons.remove_circle_outline),
+              ),
+              IconButton(
+                onPressed: () => _deleteItem(item),
+                tooltip: 'Delete',
+                icon: const Icon(Icons.delete_outline),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  _FoodSafetyWarning? _buildFoodSafetyWarning(
+    FoodItem item,
+    UserPreferences? preferences,
+  ) {
+    if (preferences == null) {
+      return null;
+    }
+
+    final signals = _foodSignalSet(item);
+    if (signals.isEmpty) {
+      return null;
+    }
+
+    final allergyMatches = _matchPreferenceSignals(
+      preferences.allergies,
+      signals,
+    );
+    if (allergyMatches.isNotEmpty) {
+      return _FoodSafetyWarning(
+        type: _FoodSafetyWarningType.allergy,
+        matches: allergyMatches,
+      );
+    }
+
+    final intoleranceMatches = _matchPreferenceSignals(
+      preferences.intolerances,
+      signals,
+    );
+    if (intoleranceMatches.isNotEmpty) {
+      return _FoodSafetyWarning(
+        type: _FoodSafetyWarningType.intolerance,
+        matches: intoleranceMatches,
+      );
+    }
+
+    return null;
+  }
+
+  Set<String> _foodSignalSet(FoodItem item) {
+    final haystack = '${item.name.toLowerCase()} ${item.category.toLowerCase()}'
+        .trim();
+    final signals = <String>{};
+
+    void addIfMatches(String signal, List<String> keywords) {
+      if (keywords.any((keyword) => haystack.contains(keyword))) {
+        signals.add(signal);
+      }
+    }
+
+    addIfMatches('lactose', [
+      'milk',
+      'cheese',
+      'yogurt',
+      'cream',
+      'butter',
+      'dairy',
+      'mozzarella',
+      'cheddar',
+      'gouda',
+      'parmesan',
+      'syr',
+      'mlieko',
+      'jogurt',
+      'smotana',
+      'maslo',
+    ]);
+    addIfMatches('gluten', [
+      'bread',
+      'pasta',
+      'flour',
+      'wheat',
+      'couscous',
+      'noodle',
+      'toast',
+      'pecivo',
+      'pečivo',
+      'chlieb',
+      'muka',
+      'múka',
+      'cestoviny',
+    ]);
+    addIfMatches('eggs', ['egg', 'eggs', 'vajce', 'vajcia']);
+    addIfMatches('peanuts', ['peanut', 'arasid', 'arašid']);
+    addIfMatches('tree nuts', [
+      'almond',
+      'hazelnut',
+      'walnut',
+      'cashew',
+      'pistachio',
+      'pecan',
+      'mandla',
+      'orech',
+    ]);
+    addIfMatches('soy', ['soy', 'soya', 'tofu']);
+    addIfMatches('fish', [
+      'fish',
+      'salmon',
+      'tuna',
+      'cod',
+      'losos',
+      'tuniak',
+      'ryba',
+    ]);
+    addIfMatches('shellfish', [
+      'shrimp',
+      'prawn',
+      'crab',
+      'lobster',
+      'mussel',
+      'kreveta',
+      'krab',
+      'homar',
+      'slavka',
+      'slávka',
+    ]);
+    addIfMatches('sesame', ['sesame', 'sezam']);
+
+    return signals;
+  }
+
+  List<String> _matchPreferenceSignals(
+    List<String> preferences,
+    Set<String> itemSignals,
+  ) {
+    final matches = <String>{};
+    for (final preference in preferences) {
+      final canonical = _canonicalFoodSignal(preference.trim().toLowerCase());
+      if (canonical != null && itemSignals.contains(canonical)) {
+        matches.add(canonical);
+      }
+    }
+    return matches.toList()..sort();
+  }
+
+  String? _canonicalFoodSignal(String raw) {
+    const aliases = {
+      'lactose': 'lactose',
+      'dairy': 'lactose',
+      'milk': 'lactose',
+      'mlieko': 'lactose',
+      'gluten': 'gluten',
+      'wheat': 'gluten',
+      'celiac': 'gluten',
+      'celiak': 'gluten',
+      'egg': 'eggs',
+      'eggs': 'eggs',
+      'vajce': 'eggs',
+      'vajcia': 'eggs',
+      'peanut': 'peanuts',
+      'peanuts': 'peanuts',
+      'arasidy': 'peanuts',
+      'arašidy': 'peanuts',
+      'nuts': 'tree nuts',
+      'tree nuts': 'tree nuts',
+      'orechy': 'tree nuts',
+      'orech': 'tree nuts',
+      'soy': 'soy',
+      'soya': 'soy',
+      'fish': 'fish',
+      'ryba': 'fish',
+      'ryby': 'fish',
+      'shellfish': 'shellfish',
+      'seafood': 'shellfish',
+      'krevety': 'shellfish',
+      'sesame': 'sesame',
+      'sezam': 'sesame',
+    };
+    return aliases[raw];
   }
 
   bool _isExpiringSoon(FoodItem item) {
@@ -1115,11 +1398,6 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
     return 'In $days days';
   }
 
-  String _expiryDetailText(DateTime expirationDate) {
-    final short = _expiryShortLabel(expirationDate);
-    return '$short • Expires ${_formatDate(expirationDate)}';
-  }
-
   _ExpiryState _expiryState(DateTime expirationDate) {
     final days = _daysUntilExpiration(expirationDate);
     if (days < 0) {
@@ -1132,13 +1410,6 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
       return _ExpiryState.soon;
     }
     return _ExpiryState.normal;
-  }
-
-  String _formatDate(DateTime date) {
-    final day = date.day.toString().padLeft(2, '0');
-    final month = date.month.toString().padLeft(2, '0');
-    final year = date.year.toString();
-    return '$day.$month.$year';
   }
 
   String _formatCompactNumber(double value) {
@@ -1259,15 +1530,40 @@ class _PantrySaveResult {
   });
 }
 
+class _PantryViewData {
+  final List<FoodItem> items;
+  final UserPreferences? preferences;
+
+  const _PantryViewData({required this.items, required this.preferences});
+}
+
+sealed class _PantryListEntry {
+  const _PantryListEntry();
+}
+
+class _PantrySectionEntry extends _PantryListEntry {
+  final String title;
+  final int count;
+
+  const _PantrySectionEntry({required this.title, required this.count});
+}
+
+class _PantryItemEntry extends _PantryListEntry {
+  final FoodItem item;
+  final bool isLastInSection;
+
+  const _PantryItemEntry({required this.item, required this.isLastInSection});
+}
+
 class _PantrySummary extends StatelessWidget {
   final int totalItems;
   final int expiringSoonCount;
-  final int fridgeCount;
+  final int lowStockCount;
 
   const _PantrySummary({
     required this.totalItems,
     required this.expiringSoonCount,
-    required this.fridgeCount,
+    required this.lowStockCount,
   });
 
   @override
@@ -1278,7 +1574,6 @@ class _PantrySummary extends StatelessWidget {
           child: _SummaryCard(
             label: 'Total items',
             value: totalItems.toString(),
-            icon: Icons.inventory_2_outlined,
           ),
         ),
         const SizedBox(width: 12),
@@ -1286,15 +1581,13 @@ class _PantrySummary extends StatelessWidget {
           child: _SummaryCard(
             label: 'Expiring soon',
             value: expiringSoonCount.toString(),
-            icon: Icons.schedule_outlined,
           ),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: _SummaryCard(
-            label: 'In fridge',
-            value: fridgeCount.toString(),
-            icon: Icons.kitchen_outlined,
+            label: 'Low stock',
+            value: lowStockCount.toString(),
           ),
         ),
       ],
@@ -1303,6 +1596,15 @@ class _PantrySummary extends StatelessWidget {
 }
 
 enum _ExpiryState { expired, urgent, soon, normal }
+
+enum _FoodSafetyWarningType { allergy, intolerance }
+
+class _FoodSafetyWarning {
+  final _FoodSafetyWarningType type;
+  final List<String> matches;
+
+  const _FoodSafetyWarning({required this.type, required this.matches});
+}
 
 class _ExpiryBadge extends StatelessWidget {
   final String label;
@@ -1351,8 +1653,13 @@ class _ExpiryBadge extends StatelessWidget {
 class _StorageSectionHeader extends StatelessWidget {
   final String title;
   final int count;
+  final bool hideCount;
 
-  const _StorageSectionHeader({required this.title, required this.count});
+  const _StorageSectionHeader({
+    required this.title,
+    required this.count,
+    this.hideCount = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1360,19 +1667,28 @@ class _StorageSectionHeader extends StatelessWidget {
       children: [
         Text(
           title,
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-        ),
-        const SizedBox(width: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(999),
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            color: const Color(0xFF1B2A41),
+            fontWeight: FontWeight.w800,
           ),
-          child: Text('$count', style: Theme.of(context).textTheme.labelMedium),
         ),
+        if (!hideCount) ...[
+          const Spacer(),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE8F7EE),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              '$count',
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: const Color(0xFF1F7A43),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -1381,38 +1697,88 @@ class _StorageSectionHeader extends StatelessWidget {
 class _SummaryCard extends StatelessWidget {
   final String label;
   final String value;
-  final IconData icon;
 
-  const _SummaryCard({
-    required this.label,
-    required this.value,
-    required this.icon,
-  });
+  const _SummaryCard({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(18),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFE7EAE3)),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 20),
-          const SizedBox(height: 12),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: const Color(0xFF1B2A41),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
           Text(
             value,
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              color: const Color(0xFF1B2A41),
+              fontWeight: FontWeight.w800,
+            ),
           ),
-          const SizedBox(height: 4),
-          Text(label, style: Theme.of(context).textTheme.bodySmall),
         ],
       ),
     );
+  }
+}
+
+class _FoodSafetyBadge extends StatelessWidget {
+  final _FoodSafetyWarning warning;
+
+  const _FoodSafetyBadge({required this.warning});
+
+  @override
+  Widget build(BuildContext context) {
+    final isAllergy = warning.type == _FoodSafetyWarningType.allergy;
+    final background = isAllergy
+        ? const Color(0xFFFCE8D8)
+        : const Color(0xFFF4EDC8);
+    final foreground = isAllergy
+        ? const Color(0xFF8A4B00)
+        : const Color(0xFF745A00);
+    final prefix = isAllergy ? 'Allergy warning' : 'Intolerance warning';
+    final labels = warning.matches.map(_warningLabel).join(', ');
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        '$prefix: contains $labels',
+        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+          color: foreground,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+
+  String _warningLabel(String signal) {
+    return switch (signal) {
+      'lactose' => 'lactose/dairy',
+      'gluten' => 'gluten',
+      'eggs' => 'eggs',
+      'peanuts' => 'peanuts',
+      'tree nuts' => 'tree nuts',
+      'soy' => 'soy',
+      'fish' => 'fish',
+      'shellfish' => 'shellfish',
+      'sesame' => 'sesame',
+      _ => signal,
+    };
   }
 }
 
@@ -1432,41 +1798,101 @@ class _SearchAndFilterBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         TextField(
           controller: controller,
           onChanged: onSearchChanged,
-          decoration: const InputDecoration(
-            hintText: 'Search by name or barcode',
-            prefixIcon: Icon(Icons.search_rounded),
+          decoration: InputDecoration(
+            hintText: 'Search pantry items',
+            hintStyle: const TextStyle(
+              color: Color(0xFF6B7785),
+              fontWeight: FontWeight.w500,
+            ),
+            prefixIcon: const Icon(
+              Icons.search_rounded,
+              color: Color(0xFF6B7785),
+            ),
+            filled: true,
+            fillColor: Colors.white,
+            contentPadding: const EdgeInsets.symmetric(vertical: 18),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(20),
+              borderSide: const BorderSide(color: Color(0xFFE7EAE3)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(20),
+              borderSide: const BorderSide(color: Color(0xFFE7EAE3)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(20),
+              borderSide: const BorderSide(
+                color: Color(0xFF2ECC71),
+                width: 1.5,
+              ),
+            ),
           ),
         ),
         const SizedBox(height: 12),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              FilterChip(
-                label: const Text('All'),
-                selected: selectedFilter == PantryFilter.all,
-                onSelected: (_) => onFilterChanged(PantryFilter.all),
-              ),
-              FilterChip(
-                label: const Text('Expiring soon'),
-                selected: selectedFilter == PantryFilter.expiringSoon,
-                onSelected: (_) => onFilterChanged(PantryFilter.expiringSoon),
-              ),
-              FilterChip(
-                label: const Text('No expiry'),
-                selected: selectedFilter == PantryFilter.noExpiry,
-                onSelected: (_) => onFilterChanged(PantryFilter.noExpiry),
-              ),
-            ],
-          ),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _PantryFilterChip(
+              label: 'All',
+              selected: selectedFilter == PantryFilter.all,
+              onTap: () => onFilterChanged(PantryFilter.all),
+            ),
+            _PantryFilterChip(
+              label: 'Expiring soon',
+              selected: selectedFilter == PantryFilter.expiringSoon,
+              onTap: () => onFilterChanged(PantryFilter.expiringSoon),
+            ),
+            _PantryFilterChip(
+              label: 'No expiry',
+              selected: selectedFilter == PantryFilter.noExpiry,
+              onTap: () => onFilterChanged(PantryFilter.noExpiry),
+            ),
+          ],
         ),
       ],
+    );
+  }
+}
+
+class _PantryFilterChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _PantryFilterChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: Ink(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xFF2ECC71) : Colors.white,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: selected ? const Color(0xFF2ECC71) : const Color(0xFFE7EAE3),
+          ),
+        ),
+        child: Text(
+          label,
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: selected ? Colors.white : const Color(0xFF1B2A41),
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
     );
   }
 }

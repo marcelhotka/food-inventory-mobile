@@ -5,6 +5,8 @@ import '../../../core/widgets/app_feedback.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../households/domain/household.dart';
 import '../../households/presentation/household_screen.dart';
+import '../../user_preferences/data/user_preferences_repository.dart';
+import '../../user_preferences/domain/user_preferences.dart';
 import '../data/shopping_list_remote_data_source.dart';
 import '../data/shopping_list_repository.dart';
 import '../domain/shopping_list_item.dart';
@@ -32,9 +34,11 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
   late final ShoppingListRepository repository = ShoppingListRepository(
     householdId: widget.household.id,
   );
+  late final UserPreferencesRepository _userPreferencesRepository =
+      UserPreferencesRepository();
   final TextEditingController _searchController = TextEditingController();
 
-  late Future<List<ShoppingListItem>> _shoppingListFuture;
+  late Future<_ShoppingListViewData> _shoppingListFuture;
   ShoppingListFilter _selectedFilter = ShoppingListFilter.all;
 
   @override
@@ -65,8 +69,17 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     await _shoppingListFuture;
   }
 
-  Future<List<ShoppingListItem>> _loadShoppingListItems() async {
+  Future<_ShoppingListViewData> _loadShoppingListItems() async {
     var items = await repository.getShoppingListItems();
+    UserPreferences? preferences;
+
+    try {
+      preferences = await _userPreferencesRepository
+          .getCurrentUserPreferences();
+    } catch (_) {
+      preferences = null;
+    }
+
     final groups = <String, List<ShoppingListItem>>{};
 
     for (final item in items) {
@@ -116,7 +129,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       items = await repository.getShoppingListItems();
     }
 
-    return items;
+    return _ShoppingListViewData(items: items, preferences: preferences);
   }
 
   Future<void> _openCreateForm() async {
@@ -128,6 +141,15 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     );
 
     if (createdItem == null) {
+      return;
+    }
+
+    final confirmed = await _confirmProceedWithSafetyWarning(
+      createdItem,
+      actionLabel: 'add this item to your shopping list',
+      preferences: null,
+    );
+    if (!confirmed) {
       return;
     }
 
@@ -201,6 +223,15 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     );
 
     if (updatedItem == null) {
+      return;
+    }
+
+    final confirmed = await _confirmProceedWithSafetyWarning(
+      updatedItem,
+      actionLabel: 'save this shopping item',
+      preferences: null,
+    );
+    if (!confirmed) {
       return;
     }
 
@@ -295,7 +326,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
         icon: const Icon(Icons.add),
         label: const Text('Add item'),
       ),
-      body: FutureBuilder<List<ShoppingListItem>>(
+      body: FutureBuilder<_ShoppingListViewData>(
         future: _shoppingListFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -309,7 +340,14 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
             );
           }
 
-          final items = snapshot.data ?? [];
+          final viewData =
+              snapshot.data ??
+              const _ShoppingListViewData(
+                items: <ShoppingListItem>[],
+                preferences: null,
+              );
+          final items = viewData.items;
+          final preferences = viewData.preferences;
           if (items.isEmpty) {
             return AppEmptyState(
               message: 'No shopping list items yet.',
@@ -384,7 +422,20 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                             : null,
                       ),
                     ),
-                    subtitle: Text(_buildSubtitle(item)),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(_buildSubtitle(item)),
+                        ...switch (_buildFoodSafetyWarning(item, preferences)) {
+                          final _FoodSafetyWarning warning => [
+                            const SizedBox(height: 6),
+                            _ShoppingSafetyBadge(warning: warning),
+                          ],
+                          null => const [],
+                        },
+                      ],
+                    ),
                     trailing: IconButton(
                       onPressed: () => _deleteItem(item),
                       icon: const Icon(Icons.delete_outline),
@@ -449,6 +500,218 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       _ => 'Manual',
     };
   }
+
+  Future<UserPreferences?> _loadCurrentPreferencesSafely() async {
+    try {
+      return await _userPreferencesRepository.getCurrentUserPreferences();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<bool> _confirmProceedWithSafetyWarning(
+    ShoppingListItem item, {
+    required String actionLabel,
+    required UserPreferences? preferences,
+  }) async {
+    final effectivePreferences =
+        preferences ?? await _loadCurrentPreferencesSafely();
+    final warning = _buildFoodSafetyWarning(item, effectivePreferences);
+    if (warning == null || !mounted) {
+      return true;
+    }
+
+    final isAllergy = warning.type == _FoodSafetyWarningType.allergy;
+    final title = isAllergy ? 'Allergy warning' : 'Intolerance warning';
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(
+          'This item may conflict with your preferences because it contains ${warning.matchedSignals.join(', ')}.\n\nDo you still want to $actionLabel?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Continue'),
+          ),
+        ],
+      ),
+    );
+
+    return confirmed == true;
+  }
+
+  _FoodSafetyWarning? _buildFoodSafetyWarning(
+    ShoppingListItem item,
+    UserPreferences? preferences,
+  ) {
+    if (preferences == null) {
+      return null;
+    }
+
+    final candidateSignals = _foodSignalSet(item.name);
+    final allergyMatches = _matchPreferenceSignals(
+      preferenceEntries: preferences.allergies,
+      candidateSignals: candidateSignals,
+    );
+    if (allergyMatches.isNotEmpty) {
+      return _FoodSafetyWarning(
+        type: _FoodSafetyWarningType.allergy,
+        matchedSignals: allergyMatches,
+      );
+    }
+
+    final intoleranceMatches = _matchPreferenceSignals(
+      preferenceEntries: preferences.intolerances,
+      candidateSignals: candidateSignals,
+    );
+    if (intoleranceMatches.isNotEmpty) {
+      return _FoodSafetyWarning(
+        type: _FoodSafetyWarningType.intolerance,
+        matchedSignals: intoleranceMatches,
+      );
+    }
+
+    return null;
+  }
+
+  Set<String> _foodSignalSet(String value) {
+    final normalized = _normalizeValue(value);
+    final signals = <String>{normalized, _canonicalFoodSignal(normalized)};
+
+    if (normalized.contains('milk') ||
+        normalized.contains('mlieko') ||
+        normalized.contains('cheese') ||
+        normalized.contains('syr')) {
+      signals.add('dairy');
+      signals.add('lactose');
+    }
+    if (normalized.contains('egg') || normalized.contains('vajc')) {
+      signals.add('eggs');
+    }
+    if (normalized.contains('pasta') ||
+        normalized.contains('cestovin') ||
+        normalized.contains('bread') ||
+        normalized.contains('chlieb') ||
+        normalized.contains('peciv')) {
+      signals.add('gluten');
+    }
+
+    return signals
+        .map(_canonicalFoodSignal)
+        .where((signal) => signal.isNotEmpty)
+        .toSet();
+  }
+
+  List<String> _matchPreferenceSignals({
+    required List<String> preferenceEntries,
+    required Set<String> candidateSignals,
+  }) {
+    final matches = <String>{};
+    for (final entry in preferenceEntries) {
+      final signal = _canonicalFoodSignal(_normalizeValue(entry));
+      if (signal.isEmpty) {
+        continue;
+      }
+      if (candidateSignals.contains(signal)) {
+        matches.add(signal);
+      }
+    }
+    return matches.toList()..sort();
+  }
+
+  String _normalizeValue(String value) {
+    const replacements = {
+      'á': 'a',
+      'ä': 'a',
+      'č': 'c',
+      'ď': 'd',
+      'é': 'e',
+      'ě': 'e',
+      'í': 'i',
+      'ĺ': 'l',
+      'ľ': 'l',
+      'ň': 'n',
+      'ó': 'o',
+      'ô': 'o',
+      'ŕ': 'r',
+      'ř': 'r',
+      'š': 's',
+      'ť': 't',
+      'ú': 'u',
+      'ů': 'u',
+      'ý': 'y',
+      'ž': 'z',
+    };
+
+    var normalized = value.toLowerCase().trim();
+    replacements.forEach((from, to) {
+      normalized = normalized.replaceAll(from, to);
+    });
+    return normalized.replaceAll(RegExp(r'[^a-z0-9]'), '');
+  }
+
+  String _canonicalFoodSignal(String value) {
+    switch (value) {
+      case 'lactose':
+      case 'dairy':
+      case 'milk':
+      case 'cheese':
+      case 'mlieko':
+      case 'syr':
+        return 'lactose';
+      case 'gluten':
+      case 'wheat':
+      case 'pasta':
+      case 'bread':
+      case 'cestoviny':
+      case 'chlieb':
+      case 'pecivo':
+        return 'gluten';
+      case 'egg':
+      case 'eggs':
+      case 'vajce':
+      case 'vajcia':
+        return 'eggs';
+      case 'peanut':
+      case 'peanuts':
+      case 'arasidy':
+        return 'peanuts';
+      case 'nuts':
+      case 'nut':
+      case 'almond':
+      case 'walnut':
+      case 'hazelnut':
+      case 'mandla':
+      case 'orech':
+      case 'orechy':
+        return 'tree_nuts';
+      case 'soy':
+      case 'soya':
+      case 'sój':
+      case 'soj':
+        return 'soy';
+      case 'fish':
+      case 'ryba':
+        return 'fish';
+      case 'shellfish':
+      case 'shrimp':
+      case 'prawn':
+      case 'kreveta':
+        return 'shellfish';
+      case 'sesame':
+      case 'sezam':
+        return 'sesame';
+      default:
+        return value;
+    }
+  }
 }
 
 class _ShoppingSaveResult {
@@ -511,4 +774,53 @@ class _ShoppingSearchAndFilterBar extends StatelessWidget {
       ],
     );
   }
+}
+
+class _ShoppingSafetyBadge extends StatelessWidget {
+  const _ShoppingSafetyBadge({required this.warning});
+
+  final _FoodSafetyWarning warning;
+
+  @override
+  Widget build(BuildContext context) {
+    final isAllergy = warning.type == _FoodSafetyWarningType.allergy;
+    final backgroundColor = isAllergy
+        ? const Color(0xFFFDE7E9)
+        : const Color(0xFFFFF3D9);
+    final foregroundColor = isAllergy
+        ? const Color(0xFF9F1D2C)
+        : const Color(0xFF8A5A00);
+    final title = isAllergy ? 'Allergy warning' : 'Intolerance warning';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        '$title: contains ${warning.matchedSignals.join(', ')}.',
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: foregroundColor,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
+class _ShoppingListViewData {
+  final List<ShoppingListItem> items;
+  final UserPreferences? preferences;
+
+  const _ShoppingListViewData({required this.items, required this.preferences});
+}
+
+enum _FoodSafetyWarningType { allergy, intolerance }
+
+class _FoodSafetyWarning {
+  final _FoodSafetyWarningType type;
+  final List<String> matchedSignals;
+
+  const _FoodSafetyWarning({required this.type, required this.matchedSignals});
 }

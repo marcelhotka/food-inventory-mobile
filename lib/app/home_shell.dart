@@ -28,12 +28,14 @@ class _HomeShellState extends State<HomeShell> {
   int _recipesRefreshToken = 0;
   int _mealPlanRefreshToken = 0;
   String? _focusedRecipeId;
+  RecipeFilter _recipesInitialFilter = RecipeFilter.all;
 
   void _openTab(int index) {
     setState(() {
       _selectedIndex = index;
       if (index != 3) {
         _focusedRecipeId = null;
+        _recipesInitialFilter = RecipeFilter.all;
       }
     });
   }
@@ -42,6 +44,15 @@ class _HomeShellState extends State<HomeShell> {
     setState(() {
       _selectedIndex = 3;
       _focusedRecipeId = recipeId;
+      _recipesInitialFilter = RecipeFilter.all;
+    });
+  }
+
+  void _openSafeRecipes() {
+    setState(() {
+      _selectedIndex = 3;
+      _focusedRecipeId = null;
+      _recipesInitialFilter = RecipeFilter.safeForMe;
     });
   }
 
@@ -74,6 +85,7 @@ class _HomeShellState extends State<HomeShell> {
         onOpenPantry: () => _openTab(1),
         onOpenShoppingList: () => _openTab(2),
         onOpenRecipes: () => _openTab(3),
+        onOpenSafeRecipes: _openSafeRecipes,
         onOpenRecipe: _openRecipe,
         onShoppingListChanged: _notifyShoppingListChanged,
         recipesRefreshToken: _recipesRefreshToken,
@@ -98,11 +110,12 @@ class _HomeShellState extends State<HomeShell> {
         onMealPlanChanged: _notifyMealPlanChanged,
         refreshToken: _recipesRefreshToken,
         focusedRecipeId: _focusedRecipeId,
+        initialFilter: _recipesInitialFilter,
       ),
     ];
 
     return Scaffold(
-      body: IndexedStack(index: _selectedIndex, children: screens),
+      body: screens[_selectedIndex],
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (value) {
@@ -110,6 +123,7 @@ class _HomeShellState extends State<HomeShell> {
             _selectedIndex = value;
             if (value != 3) {
               _focusedRecipeId = null;
+              _recipesInitialFilter = RecipeFilter.all;
             }
           });
         },

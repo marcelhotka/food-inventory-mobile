@@ -7,8 +7,11 @@ import '../../food_items/data/food_items_repository.dart';
 import '../../food_items/domain/food_item.dart';
 import '../../recipes/data/recipes_repository.dart';
 import '../../recipes/domain/recipe.dart';
+import '../../recipes/domain/recipe_ingredient.dart';
 import '../../shopping_list/data/shopping_list_repository.dart';
 import '../../shopping_list/domain/shopping_list_item.dart';
+import '../../user_preferences/data/user_preferences_repository.dart';
+import '../../user_preferences/domain/user_preferences.dart';
 import '../data/meal_plan_repository.dart';
 import '../domain/meal_plan_entry.dart';
 import 'meal_plan_form_screen.dart';
@@ -40,15 +43,36 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
   );
   late final ShoppingListRepository _shoppingListRepository =
       ShoppingListRepository(householdId: widget.householdId);
+  late final UserPreferencesRepository _userPreferencesRepository =
+      UserPreferencesRepository();
 
-  late Future<List<MealPlanEntry>> _entriesFuture = _mealPlanRepository
-      .getEntries();
+  late Future<_MealPlanViewData> _viewFuture = _loadViewData();
 
   Future<void> _reload() async {
     setState(() {
-      _entriesFuture = _mealPlanRepository.getEntries();
+      _viewFuture = _loadViewData();
     });
-    await _entriesFuture;
+    await _viewFuture;
+  }
+
+  Future<_MealPlanViewData> _loadViewData() async {
+    final entriesFuture = _mealPlanRepository.getEntries();
+    final recipesFuture = _recipesRepository.getRecipes();
+    UserPreferences? preferences;
+
+    try {
+      preferences = await _userPreferencesRepository
+          .getCurrentUserPreferences();
+    } catch (_) {
+      preferences = null;
+    }
+
+    final results = await Future.wait<Object>([entriesFuture, recipesFuture]);
+    return _MealPlanViewData(
+      entries: results[0] as List<MealPlanEntry>,
+      recipes: results[1] as List<Recipe>,
+      preferences: preferences,
+    );
   }
 
   Future<void> _openCreateForm() async {
@@ -66,6 +90,16 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     );
 
     if (entry == null) {
+      return;
+    }
+
+    final confirmed = await _confirmMealPlanSafetyForEntry(
+      entry,
+      actionLabel: 'add this meal to your plan',
+      recipes: recipes,
+      preferences: null,
+    );
+    if (!confirmed) {
       return;
     }
 
@@ -97,6 +131,16 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         );
 
     if (importedEntries == null || importedEntries.isEmpty) {
+      return;
+    }
+
+    final confirmed = await _confirmMealPlanSafetyForEntries(
+      importedEntries,
+      actionLabel: 'import these meals into your plan',
+      recipes: recipes,
+      preferences: null,
+    );
+    if (!confirmed) {
       return;
     }
 
@@ -132,6 +176,16 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     );
 
     if (updated == null) {
+      return;
+    }
+
+    final confirmed = await _confirmMealPlanSafetyForEntry(
+      updated,
+      actionLabel: 'save this meal plan entry',
+      recipes: recipes,
+      preferences: null,
+    );
+    if (!confirmed) {
       return;
     }
 
@@ -317,6 +371,114 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     return 1;
   }
 
+  Future<UserPreferences?> _loadCurrentPreferencesSafely() async {
+    try {
+      return await _userPreferencesRepository.getCurrentUserPreferences();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<bool> _confirmMealPlanSafetyForEntry(
+    MealPlanEntry entry, {
+    required String actionLabel,
+    required List<Recipe> recipes,
+    required UserPreferences? preferences,
+  }) async {
+    final recipe = _findRecipeById(recipes, entry.recipeId);
+    if (recipe == null) {
+      return true;
+    }
+
+    final effectivePreferences =
+        preferences ?? await _loadCurrentPreferencesSafely();
+    final warning = _buildRecipeSafetyWarning(recipe, effectivePreferences);
+    if (warning == null || !mounted) {
+      return true;
+    }
+
+    return _showMealPlanSafetyDialog(
+      warning: warning,
+      actionLabel: actionLabel,
+      affectedMealNames: [entry.recipeName],
+    );
+  }
+
+  Future<bool> _confirmMealPlanSafetyForEntries(
+    List<MealPlanEntry> entries, {
+    required String actionLabel,
+    required List<Recipe> recipes,
+    required UserPreferences? preferences,
+  }) async {
+    final effectivePreferences =
+        preferences ?? await _loadCurrentPreferencesSafely();
+    final unsafeEntries = <MealPlanEntry>[];
+    final matchedSignals = <String>{};
+    _FoodSafetyWarningType? warningType;
+
+    for (final entry in entries) {
+      final recipe = _findRecipeById(recipes, entry.recipeId);
+      final warning = _buildRecipeSafetyWarning(recipe, effectivePreferences);
+      if (warning == null) {
+        continue;
+      }
+      unsafeEntries.add(entry);
+      warningType ??= warning.type;
+      matchedSignals.addAll(warning.matchedSignals);
+    }
+
+    if (unsafeEntries.isEmpty || !mounted) {
+      return true;
+    }
+
+    return _showMealPlanSafetyDialog(
+      warning: _FoodSafetyWarning(
+        type: warningType ?? _FoodSafetyWarningType.intolerance,
+        matchedSignals: matchedSignals.toList()..sort(),
+      ),
+      actionLabel: actionLabel,
+      affectedMealNames: unsafeEntries
+          .map((entry) => entry.recipeName)
+          .toList(),
+    );
+  }
+
+  Future<bool> _showMealPlanSafetyDialog({
+    required _FoodSafetyWarning warning,
+    required String actionLabel,
+    required List<String> affectedMealNames,
+  }) async {
+    final isAllergy = warning.type == _FoodSafetyWarningType.allergy;
+    final title = isAllergy ? 'Allergy warning' : 'Intolerance warning';
+    final mealPreview = affectedMealNames.take(3).join(', ');
+    final hasMoreMeals = affectedMealNames.length > 3;
+    final affectedMealsText = hasMoreMeals
+        ? '$mealPreview and ${affectedMealNames.length - 3} more'
+        : mealPreview;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(
+          'Some planned meals may conflict with your preferences because they contain ${warning.matchedSignals.join(', ')}.\n\nAffected meals: $affectedMealsText.\n\nDo you still want to $actionLabel?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Continue'),
+          ),
+        ],
+      ),
+    );
+
+    return confirmed == true;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -335,8 +497,8 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
           ),
         ],
       ),
-      body: FutureBuilder<List<MealPlanEntry>>(
-        future: _entriesFuture,
+      body: FutureBuilder<_MealPlanViewData>(
+        future: _viewFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const AppLoadingState();
@@ -349,7 +511,16 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
             );
           }
 
-          final entries = snapshot.data ?? const <MealPlanEntry>[];
+          final viewData =
+              snapshot.data ??
+              const _MealPlanViewData(
+                entries: <MealPlanEntry>[],
+                recipes: <Recipe>[],
+                preferences: null,
+              );
+          final entries = viewData.entries;
+          final recipes = viewData.recipes;
+          final preferences = viewData.preferences;
           final upcomingEntries = entries.where((entry) {
             final today = DateTime.now();
             final current = DateTime(today.year, today.month, today.day);
@@ -409,12 +580,32 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                       ?.copyWith(fontWeight: FontWeight.w700),
                                 ),
                                 const SizedBox(height: 12),
-                                ...group.value.map(
-                                  (entry) => ListTile(
+                                ...group.value.map((entry) {
+                                  final recipe = _findRecipeById(
+                                    recipes,
+                                    entry.recipeId,
+                                  );
+                                  final warning = _buildRecipeSafetyWarning(
+                                    recipe,
+                                    preferences,
+                                  );
+
+                                  return ListTile(
                                     contentPadding: EdgeInsets.zero,
                                     title: Text(entry.recipeName),
-                                    subtitle: Text(
-                                      '${_mealTypeLabel(entry.mealType)}${entry.note == null || entry.note!.isEmpty ? '' : ' • ${entry.note}'}',
+                                    subtitle: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          '${_mealTypeLabel(entry.mealType)}${entry.note == null || entry.note!.isEmpty ? '' : ' • ${entry.note}'}',
+                                        ),
+                                        if (warning != null) ...[
+                                          const SizedBox(height: 6),
+                                          _MealSafetyBadge(warning: warning),
+                                        ],
+                                      ],
                                     ),
                                     onTap: () => _openEditForm(entry),
                                     trailing: Wrap(
@@ -434,8 +625,8 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                         ),
                                       ],
                                     ),
-                                  ),
-                                ),
+                                  );
+                                }),
                               ],
                             ),
                           ),
@@ -580,4 +771,222 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
 
     return null;
   }
+
+  _FoodSafetyWarning? _buildRecipeSafetyWarning(
+    Recipe? recipe,
+    UserPreferences? preferences,
+  ) {
+    if (recipe == null || preferences == null) {
+      return null;
+    }
+
+    final candidateSignals = recipe.ingredients
+        .expand((ingredient) => _ingredientSignalSet(ingredient))
+        .toSet();
+
+    final allergyMatches = _matchPreferenceSignals(
+      preferenceEntries: preferences.allergies,
+      candidateSignals: candidateSignals,
+    );
+    if (allergyMatches.isNotEmpty) {
+      return _FoodSafetyWarning(
+        type: _FoodSafetyWarningType.allergy,
+        matchedSignals: allergyMatches,
+      );
+    }
+
+    final intoleranceMatches = _matchPreferenceSignals(
+      preferenceEntries: preferences.intolerances,
+      candidateSignals: candidateSignals,
+    );
+    if (intoleranceMatches.isNotEmpty) {
+      return _FoodSafetyWarning(
+        type: _FoodSafetyWarningType.intolerance,
+        matchedSignals: intoleranceMatches,
+      );
+    }
+
+    return null;
+  }
+
+  Set<String> _ingredientSignalSet(RecipeIngredient ingredient) {
+    final signals = <String>{};
+    final normalizedName = _normalizeName(ingredient.name);
+    final canonicalKey = _canonicalIngredientKey(ingredient.name);
+
+    signals.add(canonicalKey);
+    signals.add(_canonicalFoodSignal(normalizedName));
+
+    if (canonicalKey == 'milk' || canonicalKey == 'cheese') {
+      signals.add('dairy');
+      signals.add('lactose');
+    }
+    if (canonicalKey == 'eggs') {
+      signals.add('eggs');
+      signals.add('egg');
+    }
+
+    return signals
+        .map(_canonicalFoodSignal)
+        .where((signal) => signal.isNotEmpty)
+        .toSet();
+  }
+
+  List<String> _matchPreferenceSignals({
+    required List<String> preferenceEntries,
+    required Set<String> candidateSignals,
+  }) {
+    final matches = <String>{};
+    for (final entry in preferenceEntries) {
+      final signal = _canonicalFoodSignal(_normalizeName(entry));
+      if (signal.isEmpty) {
+        continue;
+      }
+      if (candidateSignals.contains(signal)) {
+        matches.add(signal);
+      }
+    }
+    return matches.toList()..sort();
+  }
+
+  String _canonicalIngredientKey(String value) {
+    final normalized = _normalizeName(value);
+
+    const canonicalMap = {
+      'eggs': 'eggs',
+      'egg': 'eggs',
+      'vajce': 'eggs',
+      'vajcia': 'eggs',
+      'milk': 'milk',
+      'mlieko': 'milk',
+      'cheese': 'cheese',
+      'syr': 'cheese',
+      'pasta': 'pasta',
+      'cestoviny': 'pasta',
+      'bread': 'bread',
+      'chlieb': 'bread',
+      'pecivo': 'bread',
+      'fish': 'fish',
+      'ryba': 'fish',
+      'soy': 'soy',
+      'soya': 'soy',
+      'peanuts': 'peanuts',
+      'peanut': 'peanuts',
+      'arasidy': 'peanuts',
+      'sesame': 'sesame',
+      'sezam': 'sesame',
+    };
+
+    return canonicalMap[normalized] ?? normalized;
+  }
+
+  String _canonicalFoodSignal(String value) {
+    switch (value) {
+      case 'lactose':
+      case 'dairy':
+      case 'milk':
+      case 'cheese':
+      case 'mlieko':
+      case 'syr':
+        return 'lactose';
+      case 'gluten':
+      case 'wheat':
+      case 'pasta':
+      case 'bread':
+      case 'cestoviny':
+      case 'chlieb':
+      case 'pecivo':
+        return 'gluten';
+      case 'egg':
+      case 'eggs':
+      case 'vajce':
+      case 'vajcia':
+        return 'eggs';
+      case 'peanut':
+      case 'peanuts':
+      case 'arasidy':
+        return 'peanuts';
+      case 'nuts':
+      case 'nut':
+      case 'almond':
+      case 'walnut':
+      case 'hazelnut':
+      case 'mandla':
+      case 'orech':
+      case 'orechy':
+        return 'tree_nuts';
+      case 'soy':
+      case 'soya':
+      case 'sój':
+      case 'soj':
+        return 'soy';
+      case 'fish':
+      case 'ryba':
+        return 'fish';
+      case 'shellfish':
+      case 'shrimp':
+      case 'prawn':
+      case 'kreveta':
+        return 'shellfish';
+      case 'sesame':
+      case 'sezam':
+        return 'sesame';
+      default:
+        return value;
+    }
+  }
+}
+
+class _MealSafetyBadge extends StatelessWidget {
+  const _MealSafetyBadge({required this.warning});
+
+  final _FoodSafetyWarning warning;
+
+  @override
+  Widget build(BuildContext context) {
+    final isAllergy = warning.type == _FoodSafetyWarningType.allergy;
+    final backgroundColor = isAllergy
+        ? const Color(0xFFFDE7E9)
+        : const Color(0xFFFFF3D9);
+    final foregroundColor = isAllergy
+        ? const Color(0xFF9F1D2C)
+        : const Color(0xFF8A5A00);
+    final title = isAllergy ? 'Allergy warning' : 'Intolerance warning';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        '$title: contains ${warning.matchedSignals.join(', ')}.',
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: foregroundColor,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
+class _MealPlanViewData {
+  final List<MealPlanEntry> entries;
+  final List<Recipe> recipes;
+  final UserPreferences? preferences;
+
+  const _MealPlanViewData({
+    required this.entries,
+    required this.recipes,
+    required this.preferences,
+  });
+}
+
+enum _FoodSafetyWarningType { allergy, intolerance }
+
+class _FoodSafetyWarning {
+  final _FoodSafetyWarningType type;
+  final List<String> matchedSignals;
+
+  const _FoodSafetyWarning({required this.type, required this.matchedSignals});
 }

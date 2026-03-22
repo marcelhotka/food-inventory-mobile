@@ -7,6 +7,10 @@ import '../features/auth/presentation/auth_screen.dart';
 import '../features/households/data/household_repository.dart';
 import '../features/households/domain/household.dart';
 import '../features/households/presentation/household_setup_screen.dart';
+import '../features/user_preferences/data/user_preferences_remote_data_source.dart';
+import '../features/user_preferences/data/user_preferences_repository.dart';
+import '../features/user_preferences/domain/user_preferences.dart';
+import '../features/user_preferences/presentation/user_preferences_screen.dart';
 import 'home_shell.dart';
 
 class AppRouter {
@@ -42,7 +46,10 @@ class _RootScreen extends StatefulWidget {
 
 class _RootScreenState extends State<_RootScreen> {
   late final HouseholdRepository _householdRepository = HouseholdRepository();
+  late final UserPreferencesRepository _userPreferencesRepository =
+      UserPreferencesRepository();
   Future<Household?>? _householdFuture;
+  Future<UserPreferences?>? _preferencesFuture;
   String? _activeUserId;
 
   Future<void> _loadHousehold() async {
@@ -53,12 +60,27 @@ class _RootScreenState extends State<_RootScreen> {
   }
 
   void _ensureHouseholdFuture(String userId) {
-    if (_householdFuture != null && _activeUserId == userId) {
+    if (_householdFuture != null &&
+        _preferencesFuture != null &&
+        _activeUserId == userId) {
       return;
     }
 
     _activeUserId = userId;
     _householdFuture = _householdRepository.getPrimaryHousehold();
+    _preferencesFuture = _userPreferencesRepository.getCurrentUserPreferences();
+  }
+
+  Future<void> _loadPreferences() async {
+    setState(() {
+      _preferencesFuture = _userPreferencesRepository
+          .getCurrentUserPreferences();
+    });
+    await _preferencesFuture!;
+  }
+
+  bool _shouldBypassPreferencesGate(Object error) {
+    return error is UserPreferencesConfigException;
   }
 
   @override
@@ -124,9 +146,42 @@ class _RootScreenState extends State<_RootScreen> {
           );
         }
 
-        return HomeShell(
-          authRepository: widget.authRepository,
-          household: household,
+        return FutureBuilder<UserPreferences?>(
+          future: _preferencesFuture,
+          builder: (context, preferencesSnapshot) {
+            if (preferencesSnapshot.connectionState ==
+                ConnectionState.waiting) {
+              return const AppLoadingState();
+            }
+
+            if (preferencesSnapshot.hasError) {
+              final error = preferencesSnapshot.error;
+              if (error != null && _shouldBypassPreferencesGate(error)) {
+                return HomeShell(
+                  authRepository: widget.authRepository,
+                  household: household,
+                );
+              }
+
+              return AppErrorState(
+                message: 'Failed to load preferences.',
+                onRetry: _loadPreferences,
+              );
+            }
+
+            final preferences = preferencesSnapshot.data;
+            if (preferences == null || !preferences.onboardingCompleted) {
+              return UserPreferencesScreen(
+                isOnboarding: true,
+                onCompleted: _loadPreferences,
+              );
+            }
+
+            return HomeShell(
+              authRepository: widget.authRepository,
+              household: household,
+            );
+          },
         );
       },
     );
