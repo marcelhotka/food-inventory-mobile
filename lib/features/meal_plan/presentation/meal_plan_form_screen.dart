@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/forms/app_input_decoration.dart';
 import '../../recipes/domain/recipe.dart';
+import '../../recipes/presentation/recipe_display_text.dart';
 import '../domain/meal_plan_entry.dart';
 
 class MealPlanFormScreen extends StatefulWidget {
@@ -31,6 +32,7 @@ class _MealPlanFormScreenState extends State<MealPlanFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _recipeNameController = TextEditingController();
   final _noteController = TextEditingController();
+  final _servingsController = TextEditingController(text: '2');
   DateTime _scheduledFor = DateTime.now();
   String _mealType = 'dinner';
   String? _selectedRecipeId;
@@ -48,6 +50,9 @@ class _MealPlanFormScreenState extends State<MealPlanFormScreen> {
     _selectedRecipeId = entry?.recipeId ?? widget.prefilledRecipe?.id;
     _recipeNameController.text =
         entry?.recipeName ?? widget.prefilledRecipe?.name ?? '';
+    _servingsController.text =
+        (entry?.servings ?? widget.prefilledRecipe?.defaultServings ?? 2)
+            .toString();
     _noteController.text = entry?.note ?? '';
   }
 
@@ -55,6 +60,7 @@ class _MealPlanFormScreenState extends State<MealPlanFormScreen> {
   void dispose() {
     _recipeNameController.dispose();
     _noteController.dispose();
+    _servingsController.dispose();
     super.dispose();
   }
 
@@ -94,6 +100,7 @@ class _MealPlanFormScreenState extends State<MealPlanFormScreen> {
       userId: existing?.userId ?? user.id,
       recipeId: selectedRecipe?.id,
       recipeName: _recipeNameController.text.trim(),
+      servings: int.parse(_servingsController.text.trim()),
       scheduledFor: _scheduledFor,
       mealType: _mealType,
       note: _noteController.text.trim().isEmpty
@@ -131,7 +138,7 @@ class _MealPlanFormScreenState extends State<MealPlanFormScreen> {
                   ...widget.recipes.map(
                     (recipe) => DropdownMenuItem<String?>(
                       value: recipe.id,
-                      child: Text(recipe.name),
+                      child: Text(localizedRecipeName(context, recipe)),
                     ),
                   ),
                 ],
@@ -140,7 +147,12 @@ class _MealPlanFormScreenState extends State<MealPlanFormScreen> {
                     _selectedRecipeId = value;
                     final recipe = _findRecipeById(value);
                     if (recipe != null) {
-                      _recipeNameController.text = recipe.name;
+                      _recipeNameController.text = localizedRecipeName(
+                        context,
+                        recipe,
+                      );
+                      _servingsController.text = recipe.defaultServings
+                          .toString();
                     }
                   });
                 },
@@ -161,6 +173,19 @@ class _MealPlanFormScreenState extends State<MealPlanFormScreen> {
                 validator: (value) {
                   if ((value ?? '').trim().isEmpty) {
                     return 'Enter a meal name';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _servingsController,
+                keyboardType: TextInputType.number,
+                decoration: appInputDecoration('Servings'),
+                validator: (value) {
+                  final parsed = int.tryParse((value ?? '').trim());
+                  if (parsed == null || parsed <= 0) {
+                    return 'Enter servings';
                   }
                   return null;
                 },

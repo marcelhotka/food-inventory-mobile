@@ -71,6 +71,7 @@ class MealPlanRemoteDataSource {
       'user_id': entry.userId,
       'recipe_id': entry.recipeId,
       'recipe_name': entry.recipeName,
+      'servings': entry.servings,
       'scheduled_for': entry.scheduledFor.toIso8601String().split('T').first,
       'meal_type': entry.mealType,
       'note': entry.note,

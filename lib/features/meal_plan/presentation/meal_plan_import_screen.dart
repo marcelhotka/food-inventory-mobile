@@ -121,6 +121,7 @@ class _MealPlanImportScreenState extends State<MealPlanImportScreen> {
         userId: user.id,
         recipeId: matchedRecipe?.id,
         recipeName: matchedRecipe?.name ?? mealName,
+        servings: matchedRecipe?.defaultServings ?? 2,
         scheduledFor: parsedDate,
         mealType: mealType,
         note: matchedRecipe == null ? 'Imported from pasted meal plan' : null,
@@ -300,7 +301,7 @@ class _MealPlanImportScreenState extends State<MealPlanImportScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            '${_formatDate(entry.scheduledFor)} • ${_mealTypeLabel(entry.mealType)}',
+                            '${_formatDate(entry.scheduledFor)} • ${_mealTypeLabel(entry.mealType)} • ${entry.servings} serving${entry.servings == 1 ? '' : 's'}',
                           ),
                           const SizedBox(height: 4),
                           Text(

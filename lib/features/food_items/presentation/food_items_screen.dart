@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/localization/app_locale.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/app_feedback.dart';
 import '../../auth/data/auth_repository.dart';
@@ -118,20 +119,41 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
         existingItems: currentItems,
         promptForMerge: true,
       );
+      await _reconcileShoppingListAfterPantryIncrease(
+        name: createdItem.name,
+        quantity: createdItem.quantity,
+        unit: createdItem.unit,
+      );
       await _reload();
       widget.onPantryChanged();
+      widget.onShoppingListChanged();
       if (!mounted) return;
       if (result.wasMerged) {
         showSuccessFeedback(
           context,
-          'Updated existing ${result.item.name} (+${_formatCompactNumber(result.addedQuantity)} ${result.item.unit}).',
+          context.tr(
+            en: 'Updated existing ${result.item.name} (+${_formatCompactNumber(result.addedQuantity)} ${result.item.unit}).',
+            sk: 'Aktualizovaná existujúca položka ${result.item.name} (+${_formatCompactNumber(result.addedQuantity)} ${result.item.unit}).',
+          ),
         );
       } else {
-        showSuccessFeedback(context, 'Pantry item added.');
+        showSuccessFeedback(
+          context,
+          context.tr(
+            en: 'Pantry item added.',
+            sk: 'Položka bola pridaná do špajze.',
+          ),
+        );
       }
     } catch (_) {
       if (!mounted) return;
-      showErrorFeedback(context, 'Failed to add pantry item.');
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Failed to add pantry item.',
+          sk: 'Položku sa nepodarilo pridať do špajze.',
+        ),
+      );
     }
   }
 
@@ -161,7 +183,13 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
     final user = widget.authRepository.currentSession?.user;
     if (user == null) {
       if (!mounted) return;
-      showErrorFeedback(context, 'You need to be signed in.');
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'You need to be signed in.',
+          sk: 'Musíš byť prihlásený.',
+        ),
+      );
       return;
     }
 
@@ -184,6 +212,7 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
           lowStockThreshold: prefill.lowStockThreshold,
           unit: prefill.unit,
           expirationDate: prefill.expirationDate,
+          openedAt: null,
           createdAt: now,
           updatedAt: now,
         );
@@ -191,6 +220,11 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
           item,
           existingItems: currentItems,
           promptForMerge: false,
+        );
+        await _reconcileShoppingListAfterPantryIncrease(
+          name: item.name,
+          quantity: item.quantity,
+          unit: item.unit,
         );
         if (result.wasMerged) {
           mergedCount++;
@@ -209,6 +243,7 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
 
       await _reload();
       widget.onPantryChanged();
+      widget.onShoppingListChanged();
       if (!mounted) return;
       final parts = <String>[];
       if (createdCount > 0) {
@@ -222,12 +257,21 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
       showSuccessFeedback(
         context,
         parts.isEmpty
-            ? 'Scan processed.'
-            : 'Scan processed: ${parts.join(', ')}.',
+            ? context.tr(en: 'Scan processed.', sk: 'Scan bol spracovaný.')
+            : context.tr(
+                en: 'Scan processed: ${parts.join(', ')}.',
+                sk: 'Scan bol spracovaný: ${parts.join(', ')}.',
+              ),
       );
     } catch (_) {
       if (!mounted) return;
-      showErrorFeedback(context, 'Failed to add scanned items.');
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Failed to add scanned items.',
+          sk: 'Naskenované položky sa nepodarilo pridať.',
+        ),
+      );
     }
   }
 
@@ -253,18 +297,30 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
       final decision = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Similar pantry item found'),
+          title: Text(
+            context.tr(
+              en: 'Similar pantry item found',
+              sk: 'Našla sa podobná pantry položka',
+            ),
+          ),
           content: Text(
-            'You already have "${match.name}" in pantry. Do you want to increase the existing quantity instead of creating a duplicate item?',
+            context.tr(
+              en: 'You already have "${match.name}" in pantry. Do you want to increase the existing quantity instead of creating a duplicate item?',
+              sk: 'Položku "${match.name}" už v špajzi máš. Chceš navýšiť existujúce množstvo namiesto vytvorenia duplicity?',
+            ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Create separately'),
+              child: Text(
+                context.tr(en: 'Create separately', sk: 'Vytvoriť samostatne'),
+              ),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Increase existing'),
+              child: Text(
+                context.tr(en: 'Increase existing', sk: 'Navýšiť existujúce'),
+              ),
             ),
           ],
         ),
@@ -303,6 +359,10 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
     final incomingBarcode = incomingItem.barcode?.trim();
 
     for (final item in items) {
+      if (item.openedAt != null) {
+        continue;
+      }
+
       final existingBarcode = item.barcode?.trim();
       if (incomingBarcode != null &&
           incomingBarcode.isNotEmpty &&
@@ -316,6 +376,10 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
     final incomingKey = _pantryDuplicateKey(incomingItem);
 
     for (final item in items) {
+      if (item.openedAt != null) {
+        continue;
+      }
+
       final itemKey = _pantryDuplicateKey(item);
       if (itemKey == incomingKey) {
         return item;
@@ -382,10 +446,22 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
       await _reload();
       widget.onPantryChanged();
       if (!mounted) return;
-      showSuccessFeedback(context, 'Pantry item updated.');
+      showSuccessFeedback(
+        context,
+        context.tr(
+          en: 'Pantry item updated.',
+          sk: 'Položka v špajzi bola upravená.',
+        ),
+      );
     } catch (_) {
       if (!mounted) return;
-      showErrorFeedback(context, 'Failed to update pantry item.');
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Failed to update pantry item.',
+          sk: 'Položku v špajzi sa nepodarilo upraviť.',
+        ),
+      );
     }
   }
 
@@ -418,16 +494,31 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
         updatedAt: DateTime.now().toUtc(),
       );
       await repository.editFoodItem(updatedItem);
+      await _reconcileShoppingListAfterPantryIncrease(
+        name: item.name,
+        quantity: additionalItem.quantity,
+        unit: additionalItem.unit,
+      );
       await _reload();
       widget.onPantryChanged();
+      widget.onShoppingListChanged();
       if (!mounted) return;
       showSuccessFeedback(
         context,
-        'Added to existing ${updatedItem.name} (+${_formatCompactNumber(additionalItem.quantity)} ${additionalItem.unit}). Total: ${_formatCompactNumber(updatedItem.quantity)} ${updatedItem.unit}.',
+        context.tr(
+          en: 'Added to existing ${updatedItem.name} (+${_formatCompactNumber(additionalItem.quantity)} ${additionalItem.unit}). Total: ${_formatCompactNumber(updatedItem.quantity)} ${updatedItem.unit}.',
+          sk: 'Pridané k existujúcej položke ${updatedItem.name} (+${_formatCompactNumber(additionalItem.quantity)} ${additionalItem.unit}). Spolu: ${_formatCompactNumber(updatedItem.quantity)} ${updatedItem.unit}.',
+        ),
       );
     } catch (_) {
       if (!mounted) return;
-      showErrorFeedback(context, 'Failed to add more to pantry item.');
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Failed to add more to pantry item.',
+          sk: 'Nepodarilo sa pridať viac k pantry položke.',
+        ),
+      );
     }
   }
 
@@ -435,16 +526,21 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete food item'),
-        content: Text('Do you want to delete "${item.name}"?'),
+        title: Text(context.tr(en: 'Delete food item', sk: 'Zmazať položku')),
+        content: Text(
+          context.tr(
+            en: 'Do you want to delete "${item.name}"?',
+            sk: 'Chceš zmazať položku "${item.name}"?',
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(context.tr(en: 'Cancel', sk: 'Zrušiť')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
+            child: Text(context.tr(en: 'Delete', sk: 'Zmazať')),
           ),
         ],
       ),
@@ -459,10 +555,22 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
       await _reload();
       widget.onPantryChanged();
       if (!mounted) return;
-      showSuccessFeedback(context, 'Pantry item deleted.');
+      showSuccessFeedback(
+        context,
+        context.tr(
+          en: 'Pantry item deleted.',
+          sk: 'Položka zo špajze bola zmazaná.',
+        ),
+      );
     } catch (_) {
       if (!mounted) return;
-      showErrorFeedback(context, 'Failed to delete pantry item.');
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Failed to delete pantry item.',
+          sk: 'Položku zo špajze sa nepodarilo zmazať.',
+        ),
+      );
     }
   }
 
@@ -477,7 +585,9 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
 
         return StatefulBuilder(
           builder: (context, setDialogState) => AlertDialog(
-            title: Text('Use ${item.name}'),
+            title: Text(
+              context.tr(en: 'Use ${item.name}', sk: 'Použiť ${item.name}'),
+            ),
             content: TextField(
               controller: controller,
               keyboardType: const TextInputType.numberWithOptions(
@@ -485,14 +595,17 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
               ),
               autofocus: true,
               decoration: InputDecoration(
-                labelText: 'Used quantity (${item.unit})',
+                labelText: context.tr(
+                  en: 'Used quantity (${item.unit})',
+                  sk: 'Použité množstvo (${item.unit})',
+                ),
                 errorText: errorText,
               ),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
+                child: Text(context.tr(en: 'Cancel', sk: 'Zrušiť')),
               ),
               FilledButton(
                 onPressed: () {
@@ -501,28 +614,37 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
 
                   if (rawValue.isEmpty) {
                     setDialogState(() {
-                      errorText = 'Enter quantity';
+                      errorText = context.tr(
+                        en: 'Enter quantity',
+                        sk: 'Zadaj množstvo',
+                      );
                     });
                     return;
                   }
 
                   if (parsed == null || parsed <= 0) {
                     setDialogState(() {
-                      errorText = 'Enter a valid number';
+                      errorText = context.tr(
+                        en: 'Enter a valid number',
+                        sk: 'Zadaj platné číslo',
+                      );
                     });
                     return;
                   }
 
                   if (parsed > item.quantity + 0.000001) {
                     setDialogState(() {
-                      errorText = 'Cannot use more than you have';
+                      errorText = context.tr(
+                        en: 'Cannot use more than you have',
+                        sk: 'Nemôžeš použiť viac, než máš',
+                      );
                     });
                     return;
                   }
 
                   Navigator.pop(context, parsed);
                 },
-                child: const Text('Save'),
+                child: Text(context.tr(en: 'Save', sk: 'Uložiť')),
               ),
             ],
           ),
@@ -561,8 +683,14 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
           SnackBar(
             content: Text(
               remainingQuantity <= 0.000001
-                  ? '${item.name} used up and removed.'
-                  : '${item.name} updated.',
+                  ? context.tr(
+                      en: '${item.name} used up and removed.',
+                      sk: '${item.name} sa spotrebovalo a bolo odstránené.',
+                    )
+                  : context.tr(
+                      en: '${item.name} updated.',
+                      sk: '${item.name} bolo upravené.',
+                    ),
             ),
             behavior: SnackBarBehavior.floating,
           ),
@@ -576,7 +704,12 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
         ..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
-            content: Text('Failed to update pantry item: $error'),
+            content: Text(
+              context.tr(
+                en: 'Failed to update pantry item: $error',
+                sk: 'Položku v špajzi sa nepodarilo upraviť: $error',
+              ),
+            ),
             behavior: SnackBarBehavior.floating,
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
@@ -594,17 +727,52 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
           children: [
             ListTile(
               leading: const Icon(Icons.add_circle_outline),
-              title: const Text('Add more'),
-              subtitle: const Text('Increase the current quantity'),
+              title: Text(context.tr(en: 'Add more', sk: 'Pridať viac')),
+              subtitle: Text(
+                context.tr(
+                  en: 'Increase the current quantity',
+                  sk: 'Navýšiť aktuálne množstvo',
+                ),
+              ),
               onTap: () {
                 Navigator.of(context).pop();
                 _openAddMoreForm(item);
               },
             ),
             ListTile(
+              leading: const Icon(Icons.inventory_2_outlined),
+              title: Text(
+                item.openedAt == null
+                    ? context.tr(
+                        en: 'Mark as opened',
+                        sk: 'Označiť ako otvorené',
+                      )
+                    : context.tr(en: 'Opened', sk: 'Otvorené'),
+              ),
+              subtitle: Text(
+                item.openedAt == null
+                    ? context.tr(
+                        en: 'Track that this product is already opened',
+                        sk: 'Sleduj, že tento produkt je už otvorený',
+                      )
+                    : '${context.tr(en: 'Opened', sk: 'Otvorené')} ${_formatShortDate(item.openedAt!)}',
+              ),
+              onTap: item.openedAt != null
+                  ? null
+                  : () {
+                      Navigator.of(context).pop();
+                      _markItemAsOpened(item);
+                    },
+            ),
+            ListTile(
               leading: const Icon(Icons.edit_outlined),
-              title: const Text('Edit'),
-              subtitle: const Text('Replace or update this item'),
+              title: Text(context.tr(en: 'Edit', sk: 'Upraviť')),
+              subtitle: Text(
+                context.tr(
+                  en: 'Replace or update this item',
+                  sk: 'Prepísať alebo upraviť túto položku',
+                ),
+              ),
               onTap: () {
                 Navigator.of(context).pop();
                 _openEditForm(item);
@@ -612,7 +780,9 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.remove_circle_outline),
-              title: const Text('Mark as used'),
+              title: Text(
+                context.tr(en: 'Mark as used', sk: 'Označiť ako použité'),
+              ),
               onTap: () {
                 Navigator.of(context).pop();
                 _markItemAsUsed(item);
@@ -620,7 +790,7 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.delete_outline),
-              title: const Text('Delete'),
+              title: Text(context.tr(en: 'Delete', sk: 'Zmazať')),
               onTap: () {
                 Navigator.of(context).pop();
                 _deleteItem(item);
@@ -632,12 +802,312 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
     );
   }
 
+  Future<void> _markItemAsOpened(FoodItem item) async {
+    final normalizedUnit = _normalizeUnit(item.unit);
+    final canSplitByCount =
+        normalizedUnit == 'pcs' &&
+        item.quantity > 1 &&
+        item.quantity == item.quantity.roundToDouble();
+
+    double openedQuantity = item.quantity;
+
+    if (canSplitByCount) {
+      final controller = TextEditingController(text: '1');
+      final selectedQuantity = await showDialog<double>(
+        context: context,
+        builder: (context) {
+          String? errorText;
+          return StatefulBuilder(
+            builder: (context, setDialogState) => AlertDialog(
+              title: Text(
+                context.tr(en: 'Open ${item.name}', sk: 'Otvoriť ${item.name}'),
+              ),
+              content: TextField(
+                controller: controller,
+                autofocus: true,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: context.tr(
+                    en: 'How many units did you open?',
+                    sk: 'Koľko kusov si otvoril?',
+                  ),
+                  errorText: errorText,
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(context.tr(en: 'Cancel', sk: 'Zrušiť')),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    final parsed = int.tryParse(controller.text.trim());
+                    if (parsed == null || parsed <= 0) {
+                      setDialogState(() {
+                        errorText = context.tr(
+                          en: 'Enter a valid whole number',
+                          sk: 'Zadaj platné celé číslo',
+                        );
+                      });
+                      return;
+                    }
+                    if (parsed > item.quantity) {
+                      setDialogState(() {
+                        errorText = context.tr(
+                          en: 'Cannot open more than you have',
+                          sk: 'Nemôžeš otvoriť viac, než máš',
+                        );
+                      });
+                      return;
+                    }
+                    Navigator.pop(context, parsed.toDouble());
+                  },
+                  child: Text(
+                    context.tr(en: 'Mark opened', sk: 'Označiť ako otvorené'),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+      controller.dispose();
+
+      if (selectedQuantity == null) {
+        return;
+      }
+      openedQuantity = selectedQuantity;
+    }
+
+    try {
+      final now = DateTime.now();
+      final openedDate = DateTime(now.year, now.month, now.day);
+
+      if (openedQuantity >= item.quantity - 0.000001) {
+        final updatedItem = item.copyWith(
+          openedAt: openedDate,
+          updatedAt: DateTime.now().toUtc(),
+        );
+        await repository.editFoodItem(updatedItem);
+      } else {
+        final remainingItem = item.copyWith(
+          quantity: item.quantity - openedQuantity,
+          updatedAt: DateTime.now().toUtc(),
+        );
+        await repository.editFoodItem(remainingItem);
+
+        final openedItem = FoodItem(
+          id: '',
+          userId: item.userId,
+          householdId: item.householdId,
+          name: item.name,
+          barcode: item.barcode,
+          category: item.category,
+          storageLocation: item.storageLocation,
+          quantity: openedQuantity,
+          lowStockThreshold: item.lowStockThreshold,
+          unit: item.unit,
+          expirationDate: item.expirationDate,
+          openedAt: openedDate,
+          createdAt: DateTime.now().toUtc(),
+          updatedAt: DateTime.now().toUtc(),
+        );
+        await repository.addFoodItem(openedItem);
+      }
+      await _reload();
+      widget.onPantryChanged();
+      if (!mounted) return;
+      if (openedQuantity >= item.quantity - 0.000001) {
+        showSuccessFeedback(
+          context,
+          context.tr(
+            en: '${item.name} marked as opened.',
+            sk: '${item.name} bolo označené ako otvorené.',
+          ),
+        );
+      } else {
+        showSuccessFeedback(
+          context,
+          context.tr(
+            en: '${_formatCompactNumber(openedQuantity)} ${item.unit} of ${item.name} marked as opened.',
+            sk: '${_formatCompactNumber(openedQuantity)} ${item.unit} z ${item.name} bolo označené ako otvorené.',
+          ),
+        );
+      }
+    } catch (_) {
+      if (!mounted) return;
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Failed to mark pantry item as opened.',
+          sk: 'Položku v špajzi sa nepodarilo označiť ako otvorenú.',
+        ),
+      );
+    }
+  }
+
   double? _parseQuantity(String value) {
     return double.tryParse(value.trim().replaceAll(',', '.'));
   }
 
   String _shoppingKey(String name, String unit) {
     return '${name.trim().toLowerCase()}|${unit.trim().toLowerCase()}';
+  }
+
+  String _formatShortDate(DateTime value) {
+    final day = value.day.toString().padLeft(2, '0');
+    final month = value.month.toString().padLeft(2, '0');
+    return '$day.$month.${value.year}';
+  }
+
+  String _shoppingNameKey(String name) {
+    return name.trim().toLowerCase();
+  }
+
+  String _normalizeUnit(String value) {
+    final normalized = value.trim().toLowerCase();
+    if (const {
+      'pcs',
+      'pc',
+      'piece',
+      'pieces',
+      'ks',
+      'kus',
+      'kusy',
+    }.contains(normalized)) {
+      return 'pcs';
+    }
+    if (const {'g', 'gram', 'grams', 'gramy', 'gramov'}.contains(normalized)) {
+      return 'g';
+    }
+    if (const {
+      'kg',
+      'kilogram',
+      'kilograms',
+      'kilogramy',
+    }.contains(normalized)) {
+      return 'kg';
+    }
+    if (const {
+      'ml',
+      'milliliter',
+      'milliliters',
+      'mililiter',
+    }.contains(normalized)) {
+      return 'ml';
+    }
+    if (const {
+      'l',
+      'liter',
+      'liters',
+      'litre',
+      'litres',
+    }.contains(normalized)) {
+      return 'l';
+    }
+    return normalized;
+  }
+
+  double? _convertQuantity({
+    required double quantity,
+    required String fromUnit,
+    required String toUnit,
+  }) {
+    final normalizedFrom = _normalizeUnit(fromUnit);
+    final normalizedTo = _normalizeUnit(toUnit);
+
+    if (normalizedFrom == normalizedTo) {
+      return quantity;
+    }
+
+    const weightFactors = {'g': 1.0, 'kg': 1000.0};
+    const volumeFactors = {'ml': 1.0, 'l': 1000.0};
+    const pieceFactors = {'pcs': 1.0};
+
+    if (weightFactors.containsKey(normalizedFrom) &&
+        weightFactors.containsKey(normalizedTo)) {
+      final base = quantity * weightFactors[normalizedFrom]!;
+      return base / weightFactors[normalizedTo]!;
+    }
+
+    if (volumeFactors.containsKey(normalizedFrom) &&
+        volumeFactors.containsKey(normalizedTo)) {
+      final base = quantity * volumeFactors[normalizedFrom]!;
+      return base / volumeFactors[normalizedTo]!;
+    }
+
+    if (pieceFactors.containsKey(normalizedFrom) &&
+        pieceFactors.containsKey(normalizedTo)) {
+      final base = quantity * pieceFactors[normalizedFrom]!;
+      return base / pieceFactors[normalizedTo]!;
+    }
+
+    return null;
+  }
+
+  Future<void> _reconcileShoppingListAfterPantryIncrease({
+    required String name,
+    required double quantity,
+    required String unit,
+  }) async {
+    var remaining = quantity;
+    if (remaining <= 0) {
+      return;
+    }
+
+    final shoppingItems = await _shoppingListRepository.getShoppingListItems();
+    final matchingItems =
+        shoppingItems
+            .where(
+              (item) =>
+                  !item.isBought &&
+                  _shoppingNameKey(item.name) == _shoppingNameKey(name) &&
+                  _convertQuantity(
+                        quantity: 1,
+                        fromUnit: unit,
+                        toUnit: item.unit,
+                      ) !=
+                      null,
+            )
+            .toList()
+          ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
+    for (final shoppingItem in matchingItems) {
+      if (remaining <= 0.0001) {
+        break;
+      }
+
+      final pantryQuantityInShoppingUnit = _convertQuantity(
+        quantity: remaining,
+        fromUnit: unit,
+        toUnit: shoppingItem.unit,
+      );
+      if (pantryQuantityInShoppingUnit == null) {
+        continue;
+      }
+
+      if (pantryQuantityInShoppingUnit >= shoppingItem.quantity - 0.0001) {
+        final consumedInPantryUnit = _convertQuantity(
+          quantity: shoppingItem.quantity,
+          fromUnit: shoppingItem.unit,
+          toUnit: unit,
+        );
+        await _shoppingListRepository.removeShoppingListItem(shoppingItem.id);
+        if (consumedInPantryUnit != null) {
+          remaining -= consumedInPantryUnit;
+        } else {
+          remaining = 0;
+        }
+        continue;
+      }
+
+      final updated = shoppingItem.copyWith(
+        quantity: shoppingItem.quantity - pantryQuantityInShoppingUnit,
+        updatedAt: DateTime.now().toUtc(),
+      );
+      await _shoppingListRepository.editShoppingListItem(updated);
+      remaining = 0;
+    }
   }
 
   bool _isLowStock(FoodItem item) {
@@ -749,20 +1219,32 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
       if (createdCount == 0) {
         showSuccessFeedback(
           context,
-          'Low stock items are already on the shopping list.',
+          context.tr(
+            en: 'Low stock items are already on the shopping list.',
+            sk: 'Položky s nízkou zásobou už sú v nákupnom zozname.',
+          ),
         );
       } else {
         widget.onShoppingListChanged();
         showSuccessFeedback(
           context,
-          '$createdCount low stock item${createdCount == 1 ? '' : 's'} added to shopping list.',
+          context.tr(
+            en: '$createdCount low stock item${createdCount == 1 ? '' : 's'} added to shopping list.',
+            sk: '$createdCount polož${createdCount == 1 ? 'ka' : 'ky'} s nízkou zásobou ${createdCount == 1 ? 'bola pridaná' : 'boli pridané'} do nákupného zoznamu.',
+          ),
         );
       }
     } catch (_) {
       if (!mounted) {
         return;
       }
-      showErrorFeedback(context, 'Failed to add low stock items.');
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Failed to add low stock items.',
+          sk: 'Položky s nízkou zásobou sa nepodarilo pridať.',
+        ),
+      );
     }
   }
 
@@ -770,7 +1252,7 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Pantry'),
+        title: Text(context.tr(en: 'Pantry', sk: 'Špajza')),
         actions: [
           IconButton(
             onPressed: () {
@@ -781,17 +1263,17 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
               );
             },
             icon: const Icon(Icons.groups_2_outlined),
-            tooltip: 'Household',
+            tooltip: context.tr(en: 'Household', sk: 'Domácnosť'),
           ),
           IconButton(
             onPressed: _openBarcodeLookup,
             icon: const Icon(Icons.qr_code_scanner_rounded),
-            tooltip: 'Scan code',
+            tooltip: context.tr(en: 'Scan code', sk: 'Skenovať kód'),
           ),
           IconButton(
             onPressed: _openFridgeScan,
             icon: const Icon(Icons.photo_camera_back_outlined),
-            tooltip: 'Scan fridge',
+            tooltip: context.tr(en: 'Scan fridge', sk: 'Skenovať chladničku'),
           ),
           IconButton(
             onPressed: () {
@@ -803,19 +1285,19 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
               );
             },
             icon: const Icon(Icons.history_rounded),
-            tooltip: 'Scan history',
+            tooltip: context.tr(en: 'Scan history', sk: 'História scanov'),
           ),
           IconButton(
             onPressed: widget.authRepository.signOut,
             icon: const Icon(Icons.logout),
-            tooltip: 'Sign out',
+            tooltip: context.tr(en: 'Sign out', sk: 'Odhlásiť sa'),
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openCreateForm,
         icon: const Icon(Icons.add),
-        label: const Text('Add item'),
+        label: Text(context.tr(en: 'Add item', sk: 'Pridať položku')),
       ),
       body: FutureBuilder<_PantryViewData>(
         future: _pantryFuture,
@@ -835,7 +1317,10 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
           final preferences = snapshot.data?.preferences;
           if (items.isEmpty) {
             return AppEmptyState(
-              message: 'No pantry items yet.',
+              message: context.tr(
+                en: 'No pantry items yet.',
+                sk: 'Zatiaľ tu nemáš žiadne pantry položky.',
+              ),
               onRefresh: _reload,
             );
           }
@@ -860,7 +1345,10 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
                   ),
                   const SizedBox(height: 16),
                   AppEmptyState(
-                    message: 'No pantry items match your search.',
+                    message: context.tr(
+                      en: 'No pantry items match your search.',
+                      sk: 'Tvojmu hľadaniu nezodpovedajú žiadne pantry položky.',
+                    ),
                     onRefresh: _reload,
                   ),
                 ],
@@ -910,7 +1398,10 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
                         onPressed: () =>
                             _openLowStockScreen(items, preferences),
                         child: Text(
-                          'View $lowStockCount low stock item${lowStockCount == 1 ? '' : 's'}',
+                          context.tr(
+                            en: 'View $lowStockCount low stock item${lowStockCount == 1 ? '' : 's'}',
+                            sk: 'Zobraziť $lowStockCount polož${lowStockCount == 1 ? 'ku' : 'ky'} s nízkou zásobou',
+                          ),
                         ),
                       ),
                     ),
@@ -918,7 +1409,12 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
                     Expanded(
                       child: FilledButton.tonal(
                         onPressed: () => _addLowStockItemsToShoppingList(items),
-                        child: const Text('Add to shopping list'),
+                        child: Text(
+                          context.tr(
+                            en: 'Add to shopping list',
+                            sk: 'Pridať do nákupného zoznamu',
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -931,7 +1427,10 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
                 child: FilledButton.tonal(
                   onPressed: () => _mergeDuplicateItems(duplicateGroups),
                   child: Text(
-                    'Merge $duplicateItemCount duplicate item${duplicateItemCount == 1 ? '' : 's'}',
+                    context.tr(
+                      en: 'Merge $duplicateItemCount duplicate item${duplicateItemCount == 1 ? '' : 's'}',
+                      sk: 'Zlúčiť $duplicateItemCount duplicitn${duplicateItemCount == 1 ? 'ú položku' : 'é položky'}',
+                    ),
                   ),
                 ),
               ),
@@ -986,6 +1485,10 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
     final grouped = <String, List<FoodItem>>{};
 
     for (final item in items) {
+      if (item.openedAt != null) {
+        continue;
+      }
+
       final key = _pantryDuplicateKey(item);
 
       grouped.putIfAbsent(key, () => []).add(item);
@@ -1014,19 +1517,32 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Merge duplicate pantry items'),
+        title: Text(
+          context.tr(
+            en: 'Merge duplicate pantry items',
+            sk: 'Zlúčiť duplicitné pantry položky',
+          ),
+        ),
         content: Text(
-          'This will merge $duplicateCount duplicate item${duplicateCount == 1 ? '' : 's'} and sum their quantities.'
-          '${previewNames.isEmpty ? '' : '\n\nExamples: $previewNames'}',
+          context.tr(
+                en: 'This will merge $duplicateCount duplicate item${duplicateCount == 1 ? '' : 's'} and sum their quantities.',
+                sk: 'Týmto zlúčiš $duplicateCount duplicitn${duplicateCount == 1 ? 'ú položku' : 'é položky'} a spočítajú sa ich množstvá.',
+              ) +
+              (previewNames.isEmpty
+                  ? ''
+                  : context.tr(
+                      en: '\n\nExamples: $previewNames',
+                      sk: '\n\nPríklady: $previewNames',
+                    )),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(context.tr(en: 'Cancel', sk: 'Zrušiť')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Merge'),
+            child: Text(context.tr(en: 'Merge', sk: 'Zlúčiť')),
           ),
         ],
       ),
@@ -1097,11 +1613,20 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
       if (!mounted) return;
       showSuccessFeedback(
         context,
-        'Merged $mergedGroups pantry duplicate group${mergedGroups == 1 ? '' : 's'}.',
+        context.tr(
+          en: 'Merged $mergedGroups pantry duplicate group${mergedGroups == 1 ? '' : 's'}.',
+          sk: 'Zlúčen${mergedGroups == 1 ? 'á bola' : 'é boli'} $mergedGroups duplicitn${mergedGroups == 1 ? 'á skupina' : 'é skupiny'} pantry položiek.',
+        ),
       );
     } catch (_) {
       if (!mounted) return;
-      showErrorFeedback(context, 'Failed to merge duplicate items.');
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Failed to merge duplicate items.',
+          sk: 'Duplicitné položky sa nepodarilo zlúčiť.',
+        ),
+      );
     }
   }
 
@@ -1115,10 +1640,15 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => Scaffold(
-          appBar: AppBar(title: const Text('Low stock')),
+          appBar: AppBar(
+            title: Text(context.tr(en: 'Low stock', sk: 'Málo zásob')),
+          ),
           body: lowStockItems.isEmpty
               ? AppEmptyState(
-                  message: 'No low stock items.',
+                  message: context.tr(
+                    en: 'No low stock items.',
+                    sk: 'Žiadne položky s nízkou zásobou.',
+                  ),
                   onRefresh: _reload,
                 )
               : ListView.separated(
@@ -1189,7 +1719,7 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
           item,
           subtitle:
               '${_formatCompactNumber(item.quantity)} ${item.unit} • ${_categoryLabel(item.category)}'
-              '${_isLowStock(item) ? ' • Low stock' : ''}',
+              '${_isLowStock(item) ? ' • ${context.tr(en: 'Low stock', sk: 'Málo zásob')}' : ''}',
           warning: _buildFoodSafetyWarning(item, preferences),
         ),
       ),
@@ -1226,6 +1756,12 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
                 label: _expiryShortLabel(item.expirationDate!),
                 state: _expiryState(item.expirationDate!),
               ),
+            if (item.openedAt != null) ...[
+              const SizedBox(width: 8),
+              _OpenedBadge(
+                label: context.tr(en: 'Opened', sk: 'Otvorené'),
+              ),
+            ],
           ],
         ),
         subtitle: Column(
@@ -1239,6 +1775,19 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
                 fontWeight: FontWeight.w500,
               ),
             ),
+            if (item.openedAt != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                context.tr(
+                  en: 'Opened ${_formatShortDate(item.openedAt!)}',
+                  sk: 'Otvorené ${_formatShortDate(item.openedAt!)}',
+                ),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: const Color(0xFF8A4B00),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
             if (warning != null) ...[
               const SizedBox(height: 8),
               _FoodSafetyBadge(warning: warning),
@@ -1247,7 +1796,7 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
         ),
         trailing: IconButton(
           onPressed: () => _showItemActions(item),
-          tooltip: 'More actions',
+          tooltip: context.tr(en: 'More actions', sk: 'Viac akcií'),
           icon: const Icon(Icons.more_horiz_rounded),
         ),
       ),
@@ -1463,15 +2012,15 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
   String _expiryShortLabel(DateTime expirationDate) {
     final days = _daysUntilExpiration(expirationDate);
     if (days < 0) {
-      return 'Expired';
+      return context.tr(en: 'Expired', sk: 'Po expirácii');
     }
     if (days == 0) {
-      return 'Today';
+      return context.tr(en: 'Today', sk: 'Dnes');
     }
     if (days == 1) {
-      return 'Tomorrow';
+      return context.tr(en: 'Tomorrow', sk: 'Zajtra');
     }
-    return 'In $days days';
+    return context.tr(en: 'In $days days', sk: 'O $days dní');
   }
 
   _ExpiryState _expiryState(DateTime expirationDate) {
@@ -1496,22 +2045,22 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
 
   String _categoryLabel(String value) {
     return switch (value) {
-      'produce' => 'Produce',
-      'dairy' => 'Dairy',
-      'meat' => 'Meat',
-      'grains' => 'Grains',
-      'canned' => 'Canned',
-      'frozen' => 'Frozen',
-      'beverages' => 'Beverages',
-      _ => 'Other',
+      'produce' => context.tr(en: 'Produce', sk: 'Zelenina a ovocie'),
+      'dairy' => context.tr(en: 'Dairy', sk: 'Mliečne'),
+      'meat' => context.tr(en: 'Meat', sk: 'Mäso'),
+      'grains' => context.tr(en: 'Grains', sk: 'Obilniny'),
+      'canned' => context.tr(en: 'Canned', sk: 'Konzervy'),
+      'frozen' => context.tr(en: 'Frozen', sk: 'Mrazené'),
+      'beverages' => context.tr(en: 'Beverages', sk: 'Nápoje'),
+      _ => context.tr(en: 'Other', sk: 'Ostatné'),
     };
   }
 
   String _storageLocationLabel(String value) {
     return switch (value) {
-      'fridge' => 'Fridge',
-      'freezer' => 'Freezer',
-      _ => 'Pantry',
+      'fridge' => context.tr(en: 'Fridge', sk: 'Chladnička'),
+      'freezer' => context.tr(en: 'Freezer', sk: 'Mraznička'),
+      _ => context.tr(en: 'Pantry', sk: 'Špajza'),
     };
   }
 
@@ -1519,7 +2068,10 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
     if (error is FoodItemsConfigException || error is FoodItemsAuthException) {
       return error.toString();
     }
-    return 'Failed to load food items.';
+    return context.tr(
+      en: 'Failed to load food items.',
+      sk: 'Položky v špajzi sa nepodarilo načítať.',
+    );
   }
 
   String _normalizePantryName(String value) {
@@ -1648,21 +2200,21 @@ class _PantrySummary extends StatelessWidget {
       children: [
         Expanded(
           child: _SummaryCard(
-            label: 'Total items',
+            label: context.tr(en: 'Total items', sk: 'Spolu položiek'),
             value: totalItems.toString(),
           ),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: _SummaryCard(
-            label: 'Expiring soon',
+            label: context.tr(en: 'Expiring soon', sk: 'Čoskoro sa minie'),
             value: expiringSoonCount.toString(),
           ),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: _SummaryCard(
-            label: 'Low stock',
+            label: context.tr(en: 'Low stock', sk: 'Málo zásob'),
             value: lowStockCount.toString(),
           ),
         ),
@@ -1729,13 +2281,8 @@ class _ExpiryBadge extends StatelessWidget {
 class _StorageSectionHeader extends StatelessWidget {
   final String title;
   final int count;
-  final bool hideCount;
 
-  const _StorageSectionHeader({
-    required this.title,
-    required this.count,
-    this.hideCount = false,
-  });
+  const _StorageSectionHeader({required this.title, required this.count});
 
   @override
   Widget build(BuildContext context) {
@@ -1748,24 +2295,46 @@ class _StorageSectionHeader extends StatelessWidget {
             fontWeight: FontWeight.w800,
           ),
         ),
-        if (!hideCount) ...[
-          const Spacer(),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE8F7EE),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Text(
-              '$count',
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: const Color(0xFF1F7A43),
-                fontWeight: FontWeight.w700,
-              ),
+        const Spacer(),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE8F7EE),
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Text(
+            '$count',
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: const Color(0xFF1F7A43),
+              fontWeight: FontWeight.w700,
             ),
           ),
-        ],
+        ),
       ],
+    );
+  }
+}
+
+class _OpenedBadge extends StatelessWidget {
+  final String label;
+
+  const _OpenedBadge({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFCE8D8),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+          color: const Color(0xFF8A4B00),
+          fontWeight: FontWeight.w700,
+        ),
+      ),
     );
   }
 }
@@ -1823,7 +2392,12 @@ class _FoodSafetyBadge extends StatelessWidget {
     final foreground = isAllergy
         ? const Color(0xFF8A4B00)
         : const Color(0xFF745A00);
-    final prefix = isAllergy ? 'Allergy warning' : 'Intolerance warning';
+    final prefix = isAllergy
+        ? context.tr(en: 'Allergy warning', sk: 'Upozornenie na alergiu')
+        : context.tr(
+            en: 'Intolerance warning',
+            sk: 'Upozornenie na intoleranciu',
+          );
     final labels = warning.matches.map(_warningLabel).join(', ');
 
     return Container(
@@ -1833,7 +2407,7 @@ class _FoodSafetyBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
-        '$prefix: contains $labels',
+        '$prefix: ${context.tr(en: 'contains', sk: 'obsahuje')} $labels',
         style: Theme.of(context).textTheme.labelMedium?.copyWith(
           color: foreground,
           fontWeight: FontWeight.w700,
@@ -1844,15 +2418,15 @@ class _FoodSafetyBadge extends StatelessWidget {
 
   String _warningLabel(String signal) {
     return switch (signal) {
-      'lactose' => 'lactose/dairy',
-      'gluten' => 'gluten',
-      'eggs' => 'eggs',
-      'peanuts' => 'peanuts',
-      'tree nuts' => 'tree nuts',
-      'soy' => 'soy',
-      'fish' => 'fish',
-      'shellfish' => 'shellfish',
-      'sesame' => 'sesame',
+      'lactose' => 'laktóza/mliečne',
+      'gluten' => 'lepok',
+      'eggs' => 'vajcia',
+      'peanuts' => 'arašidy',
+      'tree nuts' => 'orechy',
+      'soy' => 'sója',
+      'fish' => 'ryby',
+      'shellfish' => 'morské plody',
+      'sesame' => 'sezam',
       _ => signal,
     };
   }
@@ -1880,7 +2454,10 @@ class _SearchAndFilterBar extends StatelessWidget {
           controller: controller,
           onChanged: onSearchChanged,
           decoration: InputDecoration(
-            hintText: 'Search pantry items',
+            hintText: context.tr(
+              en: 'Search pantry items',
+              sk: 'Hľadať položky v špajzi',
+            ),
             hintStyle: const TextStyle(
               color: Color(0xFF6B7785),
               fontWeight: FontWeight.w500,
@@ -1915,17 +2492,17 @@ class _SearchAndFilterBar extends StatelessWidget {
           runSpacing: 8,
           children: [
             _PantryFilterChip(
-              label: 'All',
+              label: context.tr(en: 'All', sk: 'Všetko'),
               selected: selectedFilter == PantryFilter.all,
               onTap: () => onFilterChanged(PantryFilter.all),
             ),
             _PantryFilterChip(
-              label: 'Expiring soon',
+              label: context.tr(en: 'Expiring soon', sk: 'Čoskoro sa minie'),
               selected: selectedFilter == PantryFilter.expiringSoon,
               onTap: () => onFilterChanged(PantryFilter.expiringSoon),
             ),
             _PantryFilterChip(
-              label: 'No expiry',
+              label: context.tr(en: 'No expiry', sk: 'Bez expirácie'),
               selected: selectedFilter == PantryFilter.noExpiry,
               onTap: () => onFilterChanged(PantryFilter.noExpiry),
             ),

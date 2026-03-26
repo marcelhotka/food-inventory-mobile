@@ -44,6 +44,7 @@ class FoodItemRemoteDataSource {
           ?.toIso8601String()
           .split('T')
           .first,
+      'opened_at': item.openedAt?.toIso8601String().split('T').first,
     };
     final response = await client
         .from('food_items')
@@ -69,6 +70,7 @@ class FoodItemRemoteDataSource {
           ?.toIso8601String()
           .split('T')
           .first,
+      'opened_at': item.openedAt?.toIso8601String().split('T').first,
       'updated_at': item.updatedAt.toIso8601String(),
     };
     final response = await client

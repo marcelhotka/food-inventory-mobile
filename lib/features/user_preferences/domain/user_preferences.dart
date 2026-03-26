@@ -6,6 +6,7 @@ class UserPreferences {
   final List<String> intolerances;
   final String? dietStyle;
   final String? cookingFrequency;
+  final String? preferredLanguage;
   final int? householdSize;
   final bool onboardingCompleted;
   final DateTime createdAt;
@@ -19,6 +20,7 @@ class UserPreferences {
     required this.intolerances,
     required this.dietStyle,
     required this.cookingFrequency,
+    required this.preferredLanguage,
     required this.householdSize,
     required this.onboardingCompleted,
     required this.createdAt,
@@ -34,6 +36,7 @@ class UserPreferences {
       intolerances: _toStringList(map['intolerances']),
       dietStyle: map['diet_style'] as String?,
       cookingFrequency: map['cooking_frequency'] as String?,
+      preferredLanguage: map['preferred_language'] as String?,
       householdSize: map['household_size'] as int?,
       onboardingCompleted: map['onboarding_completed'] as bool? ?? false,
       createdAt: DateTime.parse(map['created_at'] as String),
@@ -51,6 +54,8 @@ class UserPreferences {
     bool clearDietStyle = false,
     String? cookingFrequency,
     bool clearCookingFrequency = false,
+    String? preferredLanguage,
+    bool clearPreferredLanguage = false,
     int? householdSize,
     bool clearHouseholdSize = false,
     bool? onboardingCompleted,
@@ -67,6 +72,9 @@ class UserPreferences {
       cookingFrequency: clearCookingFrequency
           ? null
           : (cookingFrequency ?? this.cookingFrequency),
+      preferredLanguage: clearPreferredLanguage
+          ? null
+          : (preferredLanguage ?? this.preferredLanguage),
       householdSize: clearHouseholdSize
           ? null
           : (householdSize ?? this.householdSize),

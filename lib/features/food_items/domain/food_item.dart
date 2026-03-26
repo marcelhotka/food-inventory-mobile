@@ -10,6 +10,7 @@ class FoodItem {
   final double? lowStockThreshold;
   final String unit;
   final DateTime? expirationDate;
+  final DateTime? openedAt;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -25,6 +26,7 @@ class FoodItem {
     required this.lowStockThreshold,
     required this.unit,
     required this.expirationDate,
+    required this.openedAt,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -46,6 +48,9 @@ class FoodItem {
       expirationDate: map['expiration_date'] == null
           ? null
           : DateTime.parse(map['expiration_date'] as String),
+      openedAt: map['opened_at'] == null
+          ? null
+          : DateTime.parse(map['opened_at'] as String),
       createdAt: DateTime.parse(map['created_at'] as String),
       updatedAt: DateTime.parse(map['updated_at'] as String),
     );
@@ -64,6 +69,7 @@ class FoodItem {
       'low_stock_threshold': lowStockThreshold,
       'unit': unit,
       'expiration_date': expirationDate?.toIso8601String().split('T').first,
+      'opened_at': openedAt?.toIso8601String().split('T').first,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
@@ -84,6 +90,8 @@ class FoodItem {
     String? unit,
     DateTime? expirationDate,
     bool clearExpirationDate = false,
+    DateTime? openedAt,
+    bool clearOpenedAt = false,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -103,6 +111,7 @@ class FoodItem {
       expirationDate: clearExpirationDate
           ? null
           : (expirationDate ?? this.expirationDate),
+      openedAt: clearOpenedAt ? null : (openedAt ?? this.openedAt),
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

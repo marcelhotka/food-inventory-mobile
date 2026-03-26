@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../app/localization/app_locale.dart';
 import '../../../core/forms/app_input_decoration.dart';
 import '../domain/food_item.dart';
 import '../domain/food_item_prefill.dart';
@@ -45,6 +46,7 @@ class _FoodItemFormScreenState extends State<FoodItemFormScreen> {
   final _unitController = TextEditingController();
 
   DateTime? _expirationDate;
+  DateTime? _openedAt;
   String _selectedCategory = 'other';
   String _selectedStorageLocation = 'pantry';
 
@@ -63,6 +65,7 @@ class _FoodItemFormScreenState extends State<FoodItemFormScreen> {
         '';
     _unitController.text = item?.unit ?? prefill?.unit ?? 'pcs';
     _expirationDate = item?.expirationDate ?? prefill?.expirationDate;
+    _openedAt = item?.openedAt;
     _selectedCategory = item?.category ?? prefill?.category ?? 'other';
     _selectedStorageLocation =
         item?.storageLocation ?? prefill?.storageLocation ?? 'pantry';
@@ -126,6 +129,7 @@ class _FoodItemFormScreenState extends State<FoodItemFormScreen> {
       lowStockThreshold: lowStockThreshold,
       unit: _unitController.text.trim(),
       expirationDate: _expirationDate,
+      openedAt: _openedAt,
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,
     );
@@ -137,7 +141,14 @@ class _FoodItemFormScreenState extends State<FoodItemFormScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.isEditing ? 'Edit Pantry Item' : 'Add Pantry Item'),
+        title: Text(
+          widget.isEditing
+              ? context.tr(en: 'Edit Pantry Item', sk: 'Upraviť položku špajze')
+              : context.tr(
+                  en: 'Add Pantry Item',
+                  sk: 'Pridať položku do špajze',
+                ),
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -148,10 +159,12 @@ class _FoodItemFormScreenState extends State<FoodItemFormScreen> {
             children: [
               TextFormField(
                 controller: _nameController,
-                decoration: appInputDecoration('Name'),
+                decoration: appInputDecoration(
+                  context.tr(en: 'Name', sk: 'Názov'),
+                ),
                 validator: (value) {
                   if ((value ?? '').trim().isEmpty) {
-                    return 'Enter a name';
+                    return context.tr(en: 'Enter a name', sk: 'Zadaj názov');
                   }
                   return null;
                 },
@@ -160,17 +173,21 @@ class _FoodItemFormScreenState extends State<FoodItemFormScreen> {
               TextFormField(
                 controller: _barcodeController,
                 keyboardType: TextInputType.number,
-                decoration: appInputDecoration('Barcode'),
+                decoration: appInputDecoration(
+                  context.tr(en: 'Barcode', sk: 'Čiarový kód'),
+                ),
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 initialValue: _selectedCategory,
-                decoration: appInputDecoration('Category'),
+                decoration: appInputDecoration(
+                  context.tr(en: 'Category', sk: 'Kategória'),
+                ),
                 items: _categoryOptions
                     .map(
                       (value) => DropdownMenuItem(
                         value: value,
-                        child: Text(_categoryLabel(value)),
+                        child: Text(_categoryLabel(context, value)),
                       ),
                     )
                     .toList(),
@@ -186,12 +203,14 @@ class _FoodItemFormScreenState extends State<FoodItemFormScreen> {
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 initialValue: _selectedStorageLocation,
-                decoration: appInputDecoration('Storage location'),
+                decoration: appInputDecoration(
+                  context.tr(en: 'Storage location', sk: 'Umiestnenie'),
+                ),
                 items: _storageOptions
                     .map(
                       (value) => DropdownMenuItem(
                         value: value,
-                        child: Text(_storageLabel(value)),
+                        child: Text(_storageLabel(context, value)),
                       ),
                     )
                     .toList(),
@@ -213,13 +232,21 @@ class _FoodItemFormScreenState extends State<FoodItemFormScreen> {
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
-                      decoration: appInputDecoration('Quantity'),
+                      decoration: appInputDecoration(
+                        context.tr(en: 'Quantity', sk: 'Množstvo'),
+                      ),
                       validator: (value) {
                         if ((value ?? '').trim().isEmpty) {
-                          return 'Enter quantity';
+                          return context.tr(
+                            en: 'Enter quantity',
+                            sk: 'Zadaj množstvo',
+                          );
                         }
                         if (double.tryParse(value!.trim()) == null) {
-                          return 'Enter a valid number';
+                          return context.tr(
+                            en: 'Enter a valid number',
+                            sk: 'Zadaj platné číslo',
+                          );
                         }
                         return null;
                       },
@@ -229,10 +256,15 @@ class _FoodItemFormScreenState extends State<FoodItemFormScreen> {
                   Expanded(
                     child: TextFormField(
                       controller: _unitController,
-                      decoration: appInputDecoration('Unit'),
+                      decoration: appInputDecoration(
+                        context.tr(en: 'Unit', sk: 'Jednotka'),
+                      ),
                       validator: (value) {
                         if ((value ?? '').trim().isEmpty) {
-                          return 'Enter a unit';
+                          return context.tr(
+                            en: 'Enter a unit',
+                            sk: 'Zadaj jednotku',
+                          );
                         }
                         return null;
                       },
@@ -247,7 +279,10 @@ class _FoodItemFormScreenState extends State<FoodItemFormScreen> {
                   decimal: true,
                 ),
                 decoration: appInputDecoration(
-                  'Low stock threshold (optional)',
+                  context.tr(
+                    en: 'Low stock threshold (optional)',
+                    sk: 'Limit nízkej zásoby (voliteľné)',
+                  ),
                 ),
                 validator: (value) {
                   final trimmed = (value ?? '').trim();
@@ -255,7 +290,10 @@ class _FoodItemFormScreenState extends State<FoodItemFormScreen> {
                     return null;
                   }
                   if (double.tryParse(trimmed) == null) {
-                    return 'Enter a valid number';
+                    return context.tr(
+                      en: 'Enter a valid number',
+                      sk: 'Zadaj platné číslo',
+                    );
                   }
                   return null;
                 },
@@ -264,10 +302,12 @@ class _FoodItemFormScreenState extends State<FoodItemFormScreen> {
               InkWell(
                 onTap: _pickExpirationDate,
                 child: InputDecorator(
-                  decoration: appInputDecoration('Expiration date'),
+                  decoration: appInputDecoration(
+                    context.tr(en: 'Expiration date', sk: 'Dátum spotreby'),
+                  ),
                   child: Text(
                     _expirationDate == null
-                        ? 'Optional'
+                        ? context.tr(en: 'Optional', sk: 'Voliteľné')
                         : _formatDate(_expirationDate!),
                   ),
                 ),
@@ -280,7 +320,9 @@ class _FoodItemFormScreenState extends State<FoodItemFormScreen> {
                       _expirationDate = null;
                     });
                   },
-                  child: const Text('Clear date'),
+                  child: Text(
+                    context.tr(en: 'Clear date', sk: 'Vymazať dátum'),
+                  ),
                 ),
               const SizedBox(height: 24),
               if (!widget.isEditing && widget.prefill != null) ...[
@@ -291,8 +333,11 @@ class _FoodItemFormScreenState extends State<FoodItemFormScreen> {
                     color: const Color(0xFFEFF5EA),
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: const Text(
-                    'Product details were prefilled from barcode lookup. You can still edit them before saving.',
+                  child: Text(
+                    context.tr(
+                      en: 'Product details were prefilled from barcode lookup. You can still edit them before saving.',
+                      sk: 'Detaily produktu boli predvyplnené podľa čiarového kódu. Pred uložením ich ešte môžeš upraviť.',
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -301,7 +346,11 @@ class _FoodItemFormScreenState extends State<FoodItemFormScreen> {
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: _save,
-                  child: Text(widget.isEditing ? 'Save changes' : 'Add item'),
+                  child: Text(
+                    widget.isEditing
+                        ? context.tr(en: 'Save changes', sk: 'Uložiť zmeny')
+                        : context.tr(en: 'Add item', sk: 'Pridať položku'),
+                  ),
                 ),
               ),
             ],
@@ -318,24 +367,24 @@ class _FoodItemFormScreenState extends State<FoodItemFormScreen> {
     return '$day.$month.$year';
   }
 
-  String _categoryLabel(String value) {
+  String _categoryLabel(BuildContext context, String value) {
     return switch (value) {
-      'produce' => 'Produce',
-      'dairy' => 'Dairy',
-      'meat' => 'Meat',
-      'grains' => 'Grains',
-      'canned' => 'Canned',
-      'frozen' => 'Frozen',
-      'beverages' => 'Beverages',
-      _ => 'Other',
+      'produce' => context.tr(en: 'Produce', sk: 'Ovocie a zelenina'),
+      'dairy' => context.tr(en: 'Dairy', sk: 'Mliečne výrobky'),
+      'meat' => context.tr(en: 'Meat', sk: 'Mäso'),
+      'grains' => context.tr(en: 'Grains', sk: 'Obilniny'),
+      'canned' => context.tr(en: 'Canned', sk: 'Konzervy'),
+      'frozen' => context.tr(en: 'Frozen', sk: 'Mrazené'),
+      'beverages' => context.tr(en: 'Beverages', sk: 'Nápoje'),
+      _ => context.tr(en: 'Other', sk: 'Ostatné'),
     };
   }
 
-  String _storageLabel(String value) {
+  String _storageLabel(BuildContext context, String value) {
     return switch (value) {
-      'fridge' => 'Fridge',
-      'freezer' => 'Freezer',
-      _ => 'Pantry',
+      'fridge' => context.tr(en: 'Fridge', sk: 'Chladnička'),
+      'freezer' => context.tr(en: 'Freezer', sk: 'Mraznička'),
+      _ => context.tr(en: 'Pantry', sk: 'Špajza'),
     };
   }
 }

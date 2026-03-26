@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../app/localization/app_locale.dart';
 import '../../../core/forms/app_input_decoration.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/app_feedback.dart';
@@ -37,6 +38,7 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
 
   String? _selectedDietStyle;
   String? _selectedCookingFrequency;
+  String? _selectedLanguage;
   bool _onboardingCompleted = false;
   bool _isSaving = false;
   UserPreferences? _loadedPreferences;
@@ -86,6 +88,9 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
         preferences?.householdSize?.toString() ?? '';
     _selectedDietStyle = preferences?.dietStyle;
     _selectedCookingFrequency = preferences?.cookingFrequency;
+    _selectedLanguage =
+        preferences?.preferredLanguage ??
+        context.localeController.locale.languageCode;
     _onboardingCompleted = preferences?.onboardingCompleted ?? false;
   }
 
@@ -96,7 +101,13 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
 
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) {
-      showErrorFeedback(context, 'No signed-in user.');
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'No signed-in user.',
+          sk: 'Nie je prihlásený používateľ.',
+        ),
+      );
       return;
     }
 
@@ -114,6 +125,7 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
       intolerances: _splitList(_intolerancesController.text),
       dietStyle: _selectedDietStyle,
       cookingFrequency: _selectedCookingFrequency,
+      preferredLanguage: _selectedLanguage,
       householdSize: _parseHouseholdSize(_householdSizeController.text),
       onboardingCompleted: widget.isOnboarding ? true : _onboardingCompleted,
       createdAt: current?.createdAt ?? now,
@@ -122,7 +134,9 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
 
     try {
       final saved = await _repository.savePreferences(preferences);
+      if (!mounted) return;
       _applyLoadedPreferences(saved);
+      context.localeController.setLocaleCode(saved.preferredLanguage);
       if (widget.onCompleted != null) {
         await widget.onCompleted!();
       }
@@ -130,8 +144,14 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
       showSuccessFeedback(
         context,
         widget.isOnboarding
-            ? 'Preferences saved. Your kitchen is ready.'
-            : 'Preferences saved.',
+            ? context.tr(
+                en: 'Preferences saved. Your kitchen is ready.',
+                sk: 'Preferencie sú uložené. Tvoja kuchyňa je pripravená.',
+              )
+            : context.tr(
+                en: 'Preferences saved.',
+                sk: 'Preferencie sú uložené.',
+              ),
       );
       if (widget.isOnboarding) {
         return;
@@ -141,7 +161,13 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
       showErrorFeedback(context, error.message);
     } catch (_) {
       if (!mounted) return;
-      showErrorFeedback(context, 'Failed to save preferences.');
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Failed to save preferences.',
+          sk: 'Preferencie sa nepodarilo uložiť.',
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -157,7 +183,9 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
       appBar: AppBar(
         automaticallyImplyLeading: !widget.isOnboarding,
         title: Text(
-          widget.isOnboarding ? 'Set up your kitchen' : 'Preferences',
+          widget.isOnboarding
+              ? context.tr(en: 'Set up your kitchen', sk: 'Nastavenie kuchyne')
+              : context.tr(en: 'Preferences', sk: 'Preferencie'),
         ),
       ),
       body: FutureBuilder<UserPreferences?>(
@@ -173,7 +201,12 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
                 ? error
                 : null;
             return AppErrorState(
-              message: configError?.message ?? 'Failed to load preferences.',
+              message:
+                  configError?.message ??
+                  context.tr(
+                    en: 'Failed to load preferences.',
+                    sk: 'Preferencie sa nepodarilo načítať.',
+                  ),
               onRetry: _reload,
             );
           }
@@ -197,42 +230,77 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
                     children: [
                       Text(
                         widget.isOnboarding
-                            ? 'Tell us about your kitchen'
-                            : 'Personalize your kitchen',
+                            ? context.tr(
+                                en: 'Tell us about your kitchen',
+                                sk: 'Povedz nám viac o tvojej kuchyni',
+                              )
+                            : context.tr(
+                                en: 'Personalize your kitchen',
+                                sk: 'Prispôsob si svoju kuchyňu',
+                              ),
                         style: Theme.of(context).textTheme.headlineSmall
                             ?.copyWith(fontWeight: FontWeight.w800),
                       ),
                       const SizedBox(height: 10),
                       Text(
                         widget.isOnboarding
-                            ? 'Answer a few questions so we can prepare better recipe suggestions, shopping defaults and household recommendations from the start.'
-                            : 'Save favorite meals, food preferences and dietary limits now. Later we can reuse this exact data for onboarding, recipe suggestions and smarter shopping defaults.',
+                            ? context.tr(
+                                en: 'Answer a few questions so we can prepare better recipe suggestions, shopping defaults and household recommendations from the start.',
+                                sk: 'Odpovedz na pár otázok, aby sme od začiatku vedeli pripraviť lepšie odporúčania receptov, nákupov a fungovania domácnosti.',
+                              )
+                            : context.tr(
+                                en: 'Save favorite meals, food preferences and dietary limits now. Later we can reuse this exact data for onboarding, recipe suggestions and smarter shopping defaults.',
+                                sk: 'Ulož si obľúbené jedlá, potraviny a stravovacie obmedzenia. Neskôr tieto údaje využijeme pri onboardingu, odporúčaní receptov aj pri múdrejších nákupoch.',
+                              ),
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
                       const SizedBox(height: 20),
                       _PreferenceSection(
-                        title: 'Meals and foods',
-                        subtitle:
-                            'Tell us what you enjoy most so we can later shape recipe suggestions and shopping defaults.',
+                        title: context.tr(
+                          en: 'Meals and foods',
+                          sk: 'Jedlá a potraviny',
+                        ),
+                        subtitle: context.tr(
+                          en: 'Tell us what you enjoy most so we can later shape recipe suggestions and shopping defaults.',
+                          sk: 'Povedz nám, čo máš rád, aby sme neskôr vedeli lepšie odporúčať recepty a nákupy.',
+                        ),
                         children: [
                           _PreferenceField(
-                            label: 'Favorite meals',
-                            hint: 'Pasta, omelette, curry',
+                            label: context.tr(
+                              en: 'Favorite meals',
+                              sk: 'Obľúbené jedlá',
+                            ),
+                            hint: context.tr(
+                              en: 'Pasta, omelette, curry',
+                              sk: 'Cestoviny, omeleta, kari',
+                            ),
                             child: TextFormField(
                               controller: _favoriteMealsController,
                               decoration: appInputDecoration(
-                                'Favorite meals (comma separated)',
+                                context.tr(
+                                  en: 'Favorite meals (comma separated)',
+                                  sk: 'Obľúbené jedlá (oddelené čiarkou)',
+                                ),
                               ),
                             ),
                           ),
                           const SizedBox(height: 16),
                           _PreferenceField(
-                            label: 'Favorite foods',
-                            hint: 'Cheese, rice, yogurt',
+                            label: context.tr(
+                              en: 'Favorite foods',
+                              sk: 'Obľúbené potraviny',
+                            ),
+                            hint: context.tr(
+                              en: 'Cheese, rice, yogurt',
+                              sk: 'Syr, ryža, jogurt',
+                            ),
                             child: TextFormField(
                               controller: _favoriteFoodsController,
                               decoration: appInputDecoration(
-                                'Favorite foods (comma separated)',
+                                context.tr(
+                                  en: 'Favorite foods (comma separated)',
+                                  sk: 'Obľúbené potraviny (oddelené čiarkou)',
+                                ),
                               ),
                             ),
                           ),
@@ -240,38 +308,69 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
                       ),
                       const SizedBox(height: 18),
                       _PreferenceSection(
-                        title: 'Dietary needs',
-                        subtitle:
-                            'Capture allergies, intolerances and diet style so later suggestions stay relevant and safe.',
+                        title: context.tr(
+                          en: 'Dietary needs',
+                          sk: 'Stravovacie potreby',
+                        ),
+                        subtitle: context.tr(
+                          en: 'Capture allergies, intolerances and diet style so later suggestions stay relevant and safe.',
+                          sk: 'Zadaj alergie, intolerancie a štýl stravovania, aby boli odporúčania bezpečné a relevantné.',
+                        ),
                         children: [
                           _PreferenceField(
-                            label: 'Allergies',
-                            hint: 'Peanuts, shellfish',
+                            label: context.tr(en: 'Allergies', sk: 'Alergie'),
+                            hint: context.tr(
+                              en: 'Peanuts, shellfish',
+                              sk: 'Arašidy, morské plody',
+                            ),
                             child: TextFormField(
                               controller: _allergiesController,
                               decoration: appInputDecoration(
-                                'Allergies (comma separated)',
+                                context.tr(
+                                  en: 'Allergies (comma separated)',
+                                  sk: 'Alergie (oddelené čiarkou)',
+                                ),
                               ),
                             ),
                           ),
                           const SizedBox(height: 16),
                           _PreferenceField(
-                            label: 'Intolerances',
-                            hint: 'Lactose, gluten',
+                            label: context.tr(
+                              en: 'Intolerances',
+                              sk: 'Intolerancie',
+                            ),
+                            hint: context.tr(
+                              en: 'Lactose, gluten',
+                              sk: 'Laktóza, lepok',
+                            ),
                             child: TextFormField(
                               controller: _intolerancesController,
                               decoration: appInputDecoration(
-                                'Intolerances (comma separated)',
+                                context.tr(
+                                  en: 'Intolerances (comma separated)',
+                                  sk: 'Intolerancie (oddelené čiarkou)',
+                                ),
                               ),
                             ),
                           ),
                           const SizedBox(height: 16),
                           _PreferenceField(
-                            label: 'Diet style',
-                            hint: 'Choose the closest long-term preference',
+                            label: context.tr(
+                              en: 'Diet style',
+                              sk: 'Štýl stravovania',
+                            ),
+                            hint: context.tr(
+                              en: 'Choose the closest long-term preference',
+                              sk: 'Vyber najbližšie dlhodobé nastavenie',
+                            ),
                             child: DropdownButtonFormField<String>(
                               initialValue: _selectedDietStyle,
-                              decoration: appInputDecoration('Diet style'),
+                              decoration: appInputDecoration(
+                                context.tr(
+                                  en: 'Diet style',
+                                  sk: 'Štýl stravovania',
+                                ),
+                              ),
                               items: _dietStyles
                                   .map(
                                     (value) => DropdownMenuItem(
@@ -291,17 +390,75 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
                       ),
                       const SizedBox(height: 18),
                       _PreferenceSection(
-                        title: 'Household habits',
-                        subtitle:
-                            'These values help us tune meal-planning and pantry expectations later on.',
+                        title: context.tr(en: 'Language', sk: 'Jazyk'),
+                        subtitle: context.tr(
+                          en: 'Choose which language the app should use.',
+                          sk: 'Vyber jazyk, ktorý má aplikácia používať.',
+                        ),
                         children: [
                           _PreferenceField(
-                            label: 'Cooking frequency',
-                            hint: 'How often this household cooks at home',
+                            label: context.tr(
+                              en: 'App language',
+                              sk: 'Jazyk aplikácie',
+                            ),
+                            hint: context.tr(
+                              en: 'You can switch any time later',
+                              sk: 'Neskôr ho môžeš kedykoľvek zmeniť',
+                            ),
+                            child: DropdownButtonFormField<String>(
+                              initialValue: _selectedLanguage,
+                              decoration: appInputDecoration(
+                                context.tr(
+                                  en: 'App language',
+                                  sk: 'Jazyk aplikácie',
+                                ),
+                              ),
+                              items: const [
+                                DropdownMenuItem(
+                                  value: 'en',
+                                  child: Text('English'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'sk',
+                                  child: Text('Slovenčina'),
+                                ),
+                              ],
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedLanguage = value;
+                                });
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 18),
+                      _PreferenceSection(
+                        title: context.tr(
+                          en: 'Household habits',
+                          sk: 'Návyky domácnosti',
+                        ),
+                        subtitle: context.tr(
+                          en: 'These values help us tune meal-planning and pantry expectations later on.',
+                          sk: 'Tieto údaje nám neskôr pomôžu lepšie nastaviť plánovanie jedál a očakávania pre špajzu.',
+                        ),
+                        children: [
+                          _PreferenceField(
+                            label: context.tr(
+                              en: 'Cooking frequency',
+                              sk: 'Frekvencia varenia',
+                            ),
+                            hint: context.tr(
+                              en: 'How often this household cooks at home',
+                              sk: 'Ako často táto domácnosť varí doma',
+                            ),
                             child: DropdownButtonFormField<String>(
                               initialValue: _selectedCookingFrequency,
                               decoration: appInputDecoration(
-                                'Cooking frequency',
+                                context.tr(
+                                  en: 'Cooking frequency',
+                                  sk: 'Frekvencia varenia',
+                                ),
                               ),
                               items: _cookingFrequencies
                                   .map(
@@ -322,20 +479,33 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
                           ),
                           const SizedBox(height: 16),
                           _PreferenceField(
-                            label: 'Household size',
-                            hint:
-                                'How many people usually eat from this kitchen',
+                            label: context.tr(
+                              en: 'Household size',
+                              sk: 'Veľkosť domácnosti',
+                            ),
+                            hint: context.tr(
+                              en: 'How many people usually eat from this kitchen',
+                              sk: 'Koľko ľudí zvyčajne jedáva z tejto kuchyne',
+                            ),
                             child: TextFormField(
                               controller: _householdSizeController,
                               keyboardType: TextInputType.number,
-                              decoration: appInputDecoration('Household size'),
+                              decoration: appInputDecoration(
+                                context.tr(
+                                  en: 'Household size',
+                                  sk: 'Veľkosť domácnosti',
+                                ),
+                              ),
                               validator: (value) {
                                 if ((value ?? '').trim().isEmpty) {
                                   return null;
                                 }
                                 final parsed = int.tryParse(value!.trim());
                                 if (parsed == null || parsed <= 0) {
-                                  return 'Enter a valid number';
+                                  return context.tr(
+                                    en: 'Enter a valid number',
+                                    sk: 'Zadaj platné číslo',
+                                  );
                                 }
                                 return null;
                               },
@@ -353,9 +523,17 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
                             });
                           },
                           contentPadding: EdgeInsets.zero,
-                          title: const Text('Mark onboarding as completed'),
-                          subtitle: const Text(
-                            'This lets us reuse the same record later when we add first-login onboarding.',
+                          title: Text(
+                            context.tr(
+                              en: 'Mark onboarding as completed',
+                              sk: 'Označiť onboarding ako dokončený',
+                            ),
+                          ),
+                          subtitle: Text(
+                            context.tr(
+                              en: 'This lets us reuse the same record later when we add first-login onboarding.',
+                              sk: 'Týmto sa ten istý záznam bude dať neskôr použiť pri onboardingu po prvom prihlásení.',
+                            ),
                           ),
                           controlAffinity: ListTileControlAffinity.leading,
                         ),
@@ -368,10 +546,13 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
                           onPressed: _isSaving ? null : _save,
                           child: Text(
                             _isSaving
-                                ? 'Saving...'
+                                ? context.tr(en: 'Saving...', sk: 'Ukladám...')
                                 : widget.isOnboarding
-                                ? 'Continue'
-                                : 'Save preferences',
+                                ? context.tr(en: 'Continue', sk: 'Pokračovať')
+                                : context.tr(
+                                    en: 'Save preferences',
+                                    sk: 'Uložiť preferencie',
+                                  ),
                           ),
                         ),
                       ),

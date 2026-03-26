@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../app/localization/app_locale.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/app_feedback.dart';
 import '../../food_items/data/food_items_repository.dart';
@@ -19,9 +20,19 @@ import '../data/recipes_repository.dart';
 import '../domain/recipe.dart';
 import '../domain/recipe_ingredient.dart';
 import '../domain/recipe_match_result.dart';
+import 'recipe_display_text.dart';
 import 'recipe_form_screen.dart';
 
-enum RecipeFilter { all, safeForMe, favorites, publicOnly, householdOnly }
+enum RecipeFilter {
+  all,
+  under15Minutes,
+  under30Minutes,
+  under45Minutes,
+  safeForMe,
+  favorites,
+  publicOnly,
+  householdOnly,
+}
 
 class RecipesScreen extends StatefulWidget {
   final Household household;
@@ -70,6 +81,7 @@ class _RecipesScreenState extends State<RecipesScreen> {
   String _searchQuery = '';
   Timer? _searchDebounce;
   String? _presentedFocusedRecipeId;
+  final Map<String, int> _selectedServingsByRecipeId = {};
 
   @override
   void initState() {
@@ -135,16 +147,88 @@ class _RecipesScreenState extends State<RecipesScreen> {
     super.dispose();
   }
 
+  int _selectedServingsFor(Recipe recipe) {
+    return _selectedServingsByRecipeId[recipe.id] ?? recipe.defaultServings;
+  }
+
+  Future<void> _selectServings(Recipe recipe) async {
+    final controller = TextEditingController(
+      text: _selectedServingsFor(recipe).toString(),
+    );
+    final selected = await showDialog<int>(
+      context: context,
+      builder: (context) {
+        String? errorText;
+        return StatefulBuilder(
+          builder: (context, setDialogState) => AlertDialog(
+            title: Text(
+              context.tr(
+                en: 'Servings for ${localizedRecipeName(context, recipe)}',
+                sk: 'Porcie pre ${localizedRecipeName(context, recipe)}',
+              ),
+            ),
+            content: TextField(
+              controller: controller,
+              autofocus: true,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: context.tr(
+                  en: 'Number of servings',
+                  sk: 'Počet porcií',
+                ),
+                errorText: errorText,
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(context.tr(en: 'Cancel', sk: 'Zrušiť')),
+              ),
+              FilledButton(
+                onPressed: () {
+                  final parsed = int.tryParse(controller.text.trim());
+                  if (parsed == null || parsed <= 0) {
+                    setDialogState(() {
+                      errorText = context.tr(
+                        en: 'Enter a valid number',
+                        sk: 'Zadaj platné číslo',
+                      );
+                    });
+                    return;
+                  }
+                  Navigator.pop(context, parsed);
+                },
+                child: Text(context.tr(en: 'Apply', sk: 'Použiť')),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    controller.dispose();
+
+    if (selected == null) {
+      return;
+    }
+
+    setState(() {
+      _selectedServingsByRecipeId[recipe.id] = selected;
+      if (widget.focusedRecipeId == recipe.id) {
+        _presentedFocusedRecipeId = null;
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Recipes'),
+        title: Text(context.tr(en: 'Recipes', sk: 'Recepty')),
         actions: [
           IconButton(
             onPressed: _openCreateRecipe,
             icon: const Icon(Icons.add),
-            tooltip: 'Add recipe',
+            tooltip: context.tr(en: 'Add recipe', sk: 'Pridať recept'),
           ),
         ],
       ),
@@ -184,7 +268,10 @@ class _RecipesScreenState extends State<RecipesScreen> {
 
                 if (snapshot.hasError) {
                   return AppErrorState(
-                    message: 'Failed to load recipes or pantry items.',
+                    message: context.tr(
+                      en: 'Failed to load recipes or pantry items.',
+                      sk: 'Recepty alebo pantry položky sa nepodarilo načítať.',
+                    ),
                     onRetry: _reload,
                   );
                 }
@@ -202,7 +289,10 @@ class _RecipesScreenState extends State<RecipesScreen> {
 
                 if (recipes.isEmpty) {
                   return AppEmptyState(
-                    message: 'No recipes available yet.',
+                    message: context.tr(
+                      en: 'No recipes available yet.',
+                      sk: 'Zatiaľ nemáš dostupné žiadne recepty.',
+                    ),
                     onRefresh: _reload,
                   );
                 }
@@ -213,7 +303,10 @@ class _RecipesScreenState extends State<RecipesScreen> {
                 );
                 if (filteredRecipes.isEmpty) {
                   return AppEmptyState(
-                    message: 'No recipes match your search.',
+                    message: context.tr(
+                      en: 'No recipes match your search.',
+                      sk: 'Tvojmu hľadaniu nezodpovedajú žiadne recepty.',
+                    ),
                     onRefresh: _reload,
                   );
                 }
@@ -234,6 +327,7 @@ class _RecipesScreenState extends State<RecipesScreen> {
                   final focusedResult = _matchRecipe(
                     selectedRecipe,
                     pantryItems,
+                    servings: _selectedServingsFor(selectedRecipe),
                   );
                   final focusedWarning = _buildRecipeSafetyWarning(
                     selectedRecipe,
@@ -260,7 +354,12 @@ class _RecipesScreenState extends State<RecipesScreen> {
                     separatorBuilder: (_, _) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final recipe = filteredRecipes[index];
-                      final result = _matchRecipe(recipe, pantryItems);
+                      final selectedServings = _selectedServingsFor(recipe);
+                      final result = _matchRecipe(
+                        recipe,
+                        pantryItems,
+                        servings: selectedServings,
+                      );
                       final warning = _buildRecipeSafetyWarning(
                         recipe,
                         preferences,
@@ -287,7 +386,7 @@ class _RecipesScreenState extends State<RecipesScreen> {
                                 children: [
                                   Expanded(
                                     child: Text(
-                                      recipe.name,
+                                      localizedRecipeName(context, recipe),
                                       style: Theme.of(context)
                                           .textTheme
                                           .titleLarge
@@ -304,8 +403,14 @@ class _RecipesScreenState extends State<RecipesScreen> {
                                           : Icons.star_border_rounded,
                                     ),
                                     tooltip: recipe.isFavorite
-                                        ? 'Remove from favorites'
-                                        : 'Add to favorites',
+                                        ? context.tr(
+                                            en: 'Remove from favorites',
+                                            sk: 'Odstrániť z obľúbených',
+                                          )
+                                        : context.tr(
+                                            en: 'Add to favorites',
+                                            sk: 'Pridať do obľúbených',
+                                          ),
                                   ),
                                   if (!recipe.isPublic)
                                     PopupMenuButton<String>(
@@ -316,21 +421,53 @@ class _RecipesScreenState extends State<RecipesScreen> {
                                           _deleteRecipe(recipe);
                                         }
                                       },
-                                      itemBuilder: (context) => const [
+                                      itemBuilder: (context) => [
                                         PopupMenuItem(
                                           value: 'edit',
-                                          child: Text('Edit'),
+                                          child: Text(
+                                            context.tr(
+                                              en: 'Edit',
+                                              sk: 'Upraviť',
+                                            ),
+                                          ),
                                         ),
                                         PopupMenuItem(
                                           value: 'delete',
-                                          child: Text('Delete'),
+                                          child: Text(
+                                            context.tr(
+                                              en: 'Delete',
+                                              sk: 'Zmazať',
+                                            ),
+                                          ),
                                         ),
                                       ],
                                     ),
                                 ],
                               ),
                               const SizedBox(height: 8),
-                              Text(recipe.description),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  _SummaryChip(
+                                    label: '${recipe.totalMinutes} min',
+                                    color: const Color(0xFFE8EEF8),
+                                  ),
+                                  _SummaryChip(
+                                    label:
+                                        '${recipe.defaultServings} ${context.tr(en: recipe.defaultServings == 1 ? 'serving' : 'servings', sk: recipe.defaultServings == 1 ? 'porcia' : 'porcie')}',
+                                    color: const Color(0xFFEDE8F8),
+                                  ),
+                                  ActionChip(
+                                    label: Text(
+                                      '${context.tr(en: 'For', sk: 'Pre')} $selectedServings ${context.tr(en: selectedServings == 1 ? 'serving' : 'servings', sk: selectedServings == 1 ? 'porciu' : 'porcie')}',
+                                    ),
+                                    onPressed: () => _selectServings(recipe),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Text(localizedRecipeDescription(context, recipe)),
                               const SizedBox(height: 16),
                               Wrap(
                                 spacing: 8,
@@ -338,15 +475,17 @@ class _RecipesScreenState extends State<RecipesScreen> {
                                 children: [
                                   _SummaryChip(
                                     label:
-                                        '${result.available.length} available',
+                                        '${result.available.length} ${context.tr(en: 'available', sk: 'dostupné')}',
                                     color: const Color(0xFFE5F0DF),
                                   ),
                                   _SummaryChip(
-                                    label: '${result.partial.length} partial',
+                                    label:
+                                        '${result.partial.length} ${context.tr(en: 'partial', sk: 'čiastočne')}',
                                     color: const Color(0xFFF4EDC8),
                                   ),
                                   _SummaryChip(
-                                    label: '${result.missing.length} missing',
+                                    label:
+                                        '${result.missing.length} ${context.tr(en: 'missing', sk: 'chýba')}',
                                     color: const Color(0xFFF6E2CC),
                                   ),
                                 ],
@@ -357,61 +496,73 @@ class _RecipesScreenState extends State<RecipesScreen> {
                               ],
                               const SizedBox(height: 16),
                               Text(
-                                'Available',
+                                context.tr(en: 'Available', sk: 'Dostupné'),
                                 style: Theme.of(context).textTheme.titleMedium
                                     ?.copyWith(fontWeight: FontWeight.w700),
                               ),
                               const SizedBox(height: 8),
                               if (result.available.isEmpty)
-                                const Text(
-                                  'Nothing from this recipe is fully available right now.',
+                                Text(
+                                  context.tr(
+                                    en: 'Nothing from this recipe is fully available right now.',
+                                    sk: 'Z tohto receptu momentálne nie je nič úplne dostupné.',
+                                  ),
                                 )
                               else
                                 ...result.available.map(
                                   (item) => Padding(
                                     padding: const EdgeInsets.only(bottom: 6),
                                     child: Text(
-                                      '• ${item.ingredient.name}: ${_formatQuantity(item.availableQuantityInRecipeUnit)} ${item.ingredient.unit} available',
+                                      '• ${_displayIngredientName(item.ingredient.name)}: ${_formatQuantity(item.availableQuantityInRecipeUnit)} ${item.ingredient.unit} ${context.tr(en: 'available', sk: 'dostupné')}',
                                     ),
                                   ),
                                 ),
                               const SizedBox(height: 16),
                               Text(
-                                'Partially available',
+                                context.tr(
+                                  en: 'Partially available',
+                                  sk: 'Čiastočne dostupné',
+                                ),
                                 style: Theme.of(context).textTheme.titleMedium
                                     ?.copyWith(fontWeight: FontWeight.w700),
                               ),
                               const SizedBox(height: 8),
                               if (result.partial.isEmpty)
-                                const Text(
-                                  'Nothing is partially available right now.',
+                                Text(
+                                  context.tr(
+                                    en: 'Nothing is partially available right now.',
+                                    sk: 'Momentálne nie je nič čiastočne dostupné.',
+                                  ),
                                 )
                               else
                                 ...result.partial.map(
                                   (item) => Padding(
                                     padding: const EdgeInsets.only(bottom: 6),
                                     child: Text(
-                                      '• ${item.ingredient.name}: have ${_formatQuantity(item.availableQuantityInRecipeUnit)} ${item.ingredient.unit}, missing ${_formatQuantity(item.missingQuantityInRecipeUnit)} ${item.ingredient.unit}',
+                                      '• ${_displayIngredientName(item.ingredient.name)}: ${context.tr(en: 'have', sk: 'máš')} ${_formatQuantity(item.availableQuantityInRecipeUnit)} ${item.ingredient.unit}, ${context.tr(en: 'missing', sk: 'chýba')} ${_formatQuantity(item.missingQuantityInRecipeUnit)} ${item.ingredient.unit}',
                                     ),
                                   ),
                                 ),
                               const SizedBox(height: 16),
                               Text(
-                                'Missing',
+                                context.tr(en: 'Missing', sk: 'Chýba'),
                                 style: Theme.of(context).textTheme.titleMedium
                                     ?.copyWith(fontWeight: FontWeight.w700),
                               ),
                               const SizedBox(height: 8),
                               if (result.missing.isEmpty)
-                                const Text(
-                                  'No ingredients are completely missing for this recipe.',
+                                Text(
+                                  context.tr(
+                                    en: 'No ingredients are completely missing for this recipe.',
+                                    sk: 'Tomuto receptu momentálne úplne nechýbajú žiadne suroviny.',
+                                  ),
                                 )
                               else
                                 ...result.missing.map(
                                   (item) => Padding(
                                     padding: const EdgeInsets.only(bottom: 6),
                                     child: Text(
-                                      '• ${item.ingredient.name} (${_formatQuantity(item.missingQuantityInRecipeUnit)} ${item.ingredient.unit})',
+                                      '• ${_displayIngredientName(item.ingredient.name)} (${_formatQuantity(item.missingQuantityInRecipeUnit)} ${item.ingredient.unit})',
                                     ),
                                   ),
                                 ),
@@ -420,7 +571,12 @@ class _RecipesScreenState extends State<RecipesScreen> {
                                 width: double.infinity,
                                 child: OutlinedButton(
                                   onPressed: () => _addRecipeToMealPlan(recipe),
-                                  child: const Text('Add to meal plan'),
+                                  child: Text(
+                                    context.tr(
+                                      en: 'Add to meal plan',
+                                      sk: 'Pridať do jedálnička',
+                                    ),
+                                  ),
                                 ),
                               ),
                               const SizedBox(height: 10),
@@ -432,8 +588,11 @@ class _RecipesScreenState extends State<RecipesScreen> {
                                           result.partial.isEmpty)
                                       ? null
                                       : () => _addMissingToShoppingList(result),
-                                  child: const Text(
-                                    'Add missing to shopping list',
+                                  child: Text(
+                                    context.tr(
+                                      en: 'Add missing to shopping list',
+                                      sk: 'Pridať chýbajúce do nákupného zoznamu',
+                                    ),
                                   ),
                                 ),
                               ),
@@ -446,7 +605,12 @@ class _RecipesScreenState extends State<RecipesScreen> {
                                           result.partial.isEmpty)
                                       ? null
                                       : () => _cookRecipe(result),
-                                  child: const Text('Cook now'),
+                                  child: Text(
+                                    context.tr(
+                                      en: 'Cook now',
+                                      sk: 'Variť teraz',
+                                    ),
+                                  ),
                                 ),
                               ),
                               const SizedBox(height: 10),
@@ -458,8 +622,11 @@ class _RecipesScreenState extends State<RecipesScreen> {
                                           result.partial.isEmpty)
                                       ? null
                                       : () => _useAvailableFromPantry(result),
-                                  child: const Text(
-                                    'Use available from pantry',
+                                  child: Text(
+                                    context.tr(
+                                      en: 'Use available from pantry',
+                                      sk: 'Použiť dostupné zo špajze',
+                                    ),
                                   ),
                                 ),
                               ),
@@ -496,28 +663,56 @@ class _RecipesScreenState extends State<RecipesScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  recipe.name,
+                  localizedRecipeName(context, recipe),
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 const SizedBox(height: 8),
-                Text(recipe.description),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _SummaryChip(
+                      label: '${recipe.totalMinutes} min',
+                      color: const Color(0xFFE8EEF8),
+                    ),
+                    _SummaryChip(
+                      label:
+                          '${recipe.defaultServings} ${context.tr(en: recipe.defaultServings == 1 ? 'default serving' : 'default servings', sk: recipe.defaultServings == 1 ? 'predvolená porcia' : 'predvolené porcie')}',
+                      color: const Color(0xFFEDE8F8),
+                    ),
+                    ActionChip(
+                      label: Text(
+                        '${context.tr(en: 'For', sk: 'Pre')} ${result.selectedServings} ${context.tr(en: result.selectedServings == 1 ? 'serving' : 'servings', sk: result.selectedServings == 1 ? 'porciu' : 'porcie')}',
+                      ),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        _selectServings(recipe);
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(localizedRecipeDescription(context, recipe)),
                 const SizedBox(height: 16),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
                   children: [
                     _SummaryChip(
-                      label: '${result.available.length} available',
+                      label:
+                          '${result.available.length} ${context.tr(en: 'available', sk: 'dostupné')}',
                       color: const Color(0xFFE5F0DF),
                     ),
                     _SummaryChip(
-                      label: '${result.partial.length} partial',
+                      label:
+                          '${result.partial.length} ${context.tr(en: 'partial', sk: 'čiastočne')}',
                       color: const Color(0xFFF4EDC8),
                     ),
                     _SummaryChip(
-                      label: '${result.missing.length} missing',
+                      label:
+                          '${result.missing.length} ${context.tr(en: 'missing', sk: 'chýba')}',
                       color: const Color(0xFFF6E2CC),
                     ),
                   ],
@@ -534,7 +729,12 @@ class _RecipesScreenState extends State<RecipesScreen> {
                       Navigator.of(context).pop();
                       _addRecipeToMealPlan(recipe);
                     },
-                    child: const Text('Add to meal plan'),
+                    child: Text(
+                      context.tr(
+                        en: 'Add to meal plan',
+                        sk: 'Pridať do jedálnička',
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -548,7 +748,7 @@ class _RecipesScreenState extends State<RecipesScreen> {
                             Navigator.of(context).pop();
                             _cookRecipe(result);
                           },
-                    child: const Text('Cook now'),
+                    child: Text(context.tr(en: 'Cook now', sk: 'Variť teraz')),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -562,7 +762,12 @@ class _RecipesScreenState extends State<RecipesScreen> {
                             Navigator.of(context).pop();
                             _addMissingToShoppingList(result);
                           },
-                    child: const Text('Add missing to shopping list'),
+                    child: Text(
+                      context.tr(
+                        en: 'Add missing to shopping list',
+                        sk: 'Pridať chýbajúce do nákupného zoznamu',
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -581,6 +786,9 @@ class _RecipesScreenState extends State<RecipesScreen> {
       final warning = _buildRecipeSafetyWarning(recipe, preferences);
       final matchesFilter = switch (_selectedFilter) {
         RecipeFilter.all => true,
+        RecipeFilter.under15Minutes => recipe.totalMinutes <= 15,
+        RecipeFilter.under30Minutes => recipe.totalMinutes <= 30,
+        RecipeFilter.under45Minutes => recipe.totalMinutes <= 45,
         RecipeFilter.safeForMe => warning == null,
         RecipeFilter.favorites => recipe.isFavorite,
         RecipeFilter.publicOnly => recipe.isPublic,
@@ -643,10 +851,19 @@ class _RecipesScreenState extends State<RecipesScreen> {
       await _recipesRepository.addRecipe(createdRecipe);
       await _reload();
       if (!mounted) return;
-      showSuccessFeedback(context, 'Recipe added.');
+      showSuccessFeedback(
+        context,
+        context.tr(en: 'Recipe added.', sk: 'Recept bol pridaný.'),
+      );
     } catch (_) {
       if (!mounted) return;
-      showErrorFeedback(context, 'Failed to add recipe.');
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Failed to add recipe.',
+          sk: 'Recept sa nepodarilo pridať.',
+        ),
+      );
     }
   }
 
@@ -668,10 +885,19 @@ class _RecipesScreenState extends State<RecipesScreen> {
       await _recipesRepository.editRecipe(updatedRecipe);
       await _reload();
       if (!mounted) return;
-      showSuccessFeedback(context, 'Recipe updated.');
+      showSuccessFeedback(
+        context,
+        context.tr(en: 'Recipe updated.', sk: 'Recept bol upravený.'),
+      );
     } catch (_) {
       if (!mounted) return;
-      showErrorFeedback(context, 'Failed to update recipe.');
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Failed to update recipe.',
+          sk: 'Recept sa nepodarilo upraviť.',
+        ),
+      );
     }
   }
 
@@ -679,16 +905,21 @@ class _RecipesScreenState extends State<RecipesScreen> {
     final useConfirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete recipe'),
-        content: Text('Do you want to delete "${recipe.name}"?'),
+        title: Text(context.tr(en: 'Delete recipe', sk: 'Zmazať recept')),
+        content: Text(
+          context.tr(
+            en: 'Do you want to delete "${localizedRecipeName(context, recipe)}"?',
+            sk: 'Chceš zmazať recept "${localizedRecipeName(context, recipe)}"?',
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(context.tr(en: 'Cancel', sk: 'Zrušiť')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
+            child: Text(context.tr(en: 'Delete', sk: 'Zmazať')),
           ),
         ],
       ),
@@ -702,10 +933,19 @@ class _RecipesScreenState extends State<RecipesScreen> {
       await _recipesRepository.removeRecipe(recipe.id);
       await _reload();
       if (!mounted) return;
-      showSuccessFeedback(context, 'Recipe deleted.');
+      showSuccessFeedback(
+        context,
+        context.tr(en: 'Recipe deleted.', sk: 'Recept bol zmazaný.'),
+      );
     } catch (_) {
       if (!mounted) return;
-      showErrorFeedback(context, 'Failed to delete recipe.');
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Failed to delete recipe.',
+          sk: 'Recept sa nepodarilo zmazať.',
+        ),
+      );
     }
   }
 
@@ -720,12 +960,24 @@ class _RecipesScreenState extends State<RecipesScreen> {
       showSuccessFeedback(
         context,
         recipe.isFavorite
-            ? 'Removed from favorite recipes.'
-            : 'Added to favorite recipes.',
+            ? context.tr(
+                en: 'Removed from favorite recipes.',
+                sk: 'Odstránené z obľúbených receptov.',
+              )
+            : context.tr(
+                en: 'Added to favorite recipes.',
+                sk: 'Pridané medzi obľúbené recepty.',
+              ),
       );
     } catch (_) {
       if (!mounted) return;
-      showErrorFeedback(context, 'Failed to update favorite recipe.');
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Failed to update favorite recipe.',
+          sk: 'Obľúbený recept sa nepodarilo upraviť.',
+        ),
+      );
     }
   }
 
@@ -733,7 +985,10 @@ class _RecipesScreenState extends State<RecipesScreen> {
     final confirmed = await _confirmProceedWithSafetyWarning(
       recipe: recipe,
       preferences: null,
-      actionLabel: 'add this recipe to your meal plan',
+      actionLabel: context.tr(
+        en: 'add this recipe to your meal plan',
+        sk: 'pridať tento recept do jedálnička',
+      ),
     );
     if (!confirmed) {
       return;
@@ -762,26 +1017,45 @@ class _RecipesScreenState extends State<RecipesScreen> {
       await _mealPlanRepository.addEntry(createdEntry);
       widget.onMealPlanChanged();
       if (!mounted) return;
-      showSuccessFeedback(context, 'Recipe added to meal plan.');
+      showSuccessFeedback(
+        context,
+        context.tr(
+          en: 'Recipe added to meal plan.',
+          sk: 'Recept bol pridaný do jedálnička.',
+        ),
+      );
     } catch (_) {
       if (!mounted) return;
-      showErrorFeedback(context, 'Failed to add recipe to meal plan.');
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Failed to add recipe to meal plan.',
+          sk: 'Recept sa nepodarilo pridať do jedálnička.',
+        ),
+      );
     }
   }
 
-  RecipeMatchResult _matchRecipe(Recipe recipe, List<FoodItem> pantryItems) {
+  RecipeMatchResult _matchRecipe(
+    Recipe recipe,
+    List<FoodItem> pantryItems, {
+    required int servings,
+  }) {
     final available = <MatchedIngredient>[];
     final partial = <PartialIngredient>[];
     final missing = <MissingIngredient>[];
+    final scaleFactor = servings / recipe.defaultServings;
 
     for (final ingredient in recipe.ingredients) {
+      final requiredQuantity = ingredient.quantity * scaleFactor;
       final matchedItems = _findMatchedItems(ingredient.name, pantryItems);
 
       if (matchedItems.isEmpty) {
         missing.add(
           MissingIngredient(
             ingredient: ingredient,
-            missingQuantityInRecipeUnit: ingredient.quantity,
+            requiredQuantityInRecipeUnit: requiredQuantity,
+            missingQuantityInRecipeUnit: requiredQuantity,
           ),
         );
         continue;
@@ -793,14 +1067,16 @@ class _RecipesScreenState extends State<RecipesScreen> {
         missing.add(
           MissingIngredient(
             ingredient: ingredient,
-            missingQuantityInRecipeUnit: ingredient.quantity,
+            requiredQuantityInRecipeUnit: requiredQuantity,
+            missingQuantityInRecipeUnit: requiredQuantity,
           ),
         );
-      } else if (availableQuantity >= ingredient.quantity) {
+      } else if (availableQuantity >= requiredQuantity) {
         available.add(
           MatchedIngredient(
             ingredient: ingredient,
             matchedItems: matchedItems,
+            requiredQuantityInRecipeUnit: requiredQuantity,
             availableQuantityInRecipeUnit: availableQuantity,
           ),
         );
@@ -809,9 +1085,9 @@ class _RecipesScreenState extends State<RecipesScreen> {
           PartialIngredient(
             ingredient: ingredient,
             matchedItems: matchedItems,
+            requiredQuantityInRecipeUnit: requiredQuantity,
             availableQuantityInRecipeUnit: availableQuantity,
-            missingQuantityInRecipeUnit:
-                ingredient.quantity - availableQuantity,
+            missingQuantityInRecipeUnit: requiredQuantity - availableQuantity,
           ),
         );
       }
@@ -819,6 +1095,7 @@ class _RecipesScreenState extends State<RecipesScreen> {
 
     return RecipeMatchResult(
       recipe: recipe,
+      selectedServings: servings,
       available: available,
       partial: partial,
       missing: missing,
@@ -1013,6 +1290,23 @@ class _RecipesScreenState extends State<RecipesScreen> {
     return normalized;
   }
 
+  String _displayIngredientName(String value) {
+    final key = _canonicalIngredientKey(value);
+    return switch (key) {
+      'eggs' => context.tr(en: 'Eggs', sk: 'Vajcia'),
+      'milk' => context.tr(en: 'Milk', sk: 'Mlieko'),
+      'cheese' => context.tr(en: 'Cheese', sk: 'Syr'),
+      'pasta' => context.tr(en: 'Pasta', sk: 'Cestoviny'),
+      'tomatosauce' => context.tr(en: 'Tomato sauce', sk: 'Paradajková omáčka'),
+      'chicken' => context.tr(en: 'Chicken', sk: 'Kuracie mäso'),
+      'rice' => context.tr(en: 'Rice', sk: 'Ryža'),
+      'onion' => context.tr(en: 'Onion', sk: 'Cibuľa'),
+      'bread' => context.tr(en: 'Bread', sk: 'Chlieb'),
+      'ham' => context.tr(en: 'Ham', sk: 'Šunka'),
+      _ => value,
+    };
+  }
+
   String _normalizeUnit(String value) {
     return value.trim().toLowerCase();
   }
@@ -1028,7 +1322,10 @@ class _RecipesScreenState extends State<RecipesScreen> {
     final confirmed = await _confirmProceedWithSafetyWarning(
       recipe: result.recipe,
       preferences: null,
-      actionLabel: 'add missing ingredients to your shopping list',
+      actionLabel: context.tr(
+        en: 'add missing ingredients to your shopping list',
+        sk: 'pridať chýbajúce suroviny do nákupného zoznamu',
+      ),
     );
     if (!confirmed) {
       return;
@@ -1042,18 +1339,30 @@ class _RecipesScreenState extends State<RecipesScreen> {
       if (changedCount == 0) {
         showSuccessFeedback(
           context,
-          'Shopping list already matches this recipe.',
+          context.tr(
+            en: 'Shopping list already matches this recipe.',
+            sk: 'Nákupný zoznam už zodpovedá tomuto receptu.',
+          ),
         );
       } else {
         widget.onShoppingListChanged();
         showSuccessFeedback(
           context,
-          '$changedCount shopping item${changedCount == 1 ? '' : 's'} updated from recipe.',
+          context.tr(
+            en: '$changedCount shopping item${changedCount == 1 ? '' : 's'} updated from recipe.',
+            sk: 'Z receptu sa upravilo $changedCount nákupn${changedCount == 1 ? 'á položka' : 'é položky'}.',
+          ),
         );
       }
     } catch (_) {
       if (!mounted) return;
-      showErrorFeedback(context, 'Failed to add missing items.');
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Failed to add missing items.',
+          sk: 'Chýbajúce položky sa nepodarilo pridať.',
+        ),
+      );
     }
   }
 
@@ -1061,7 +1370,10 @@ class _RecipesScreenState extends State<RecipesScreen> {
     final confirmed = await _confirmProceedWithSafetyWarning(
       recipe: result.recipe,
       preferences: null,
-      actionLabel: 'use ingredients from your pantry',
+      actionLabel: context.tr(
+        en: 'use ingredients from your pantry',
+        sk: 'použiť suroviny z tvojej špajze',
+      ),
     );
     if (!confirmed) {
       return;
@@ -1072,20 +1384,33 @@ class _RecipesScreenState extends State<RecipesScreen> {
     final useConfirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Use ingredients from recipe'),
+        title: Text(
+          context.tr(
+            en: 'Use ingredients from recipe',
+            sk: 'Použiť suroviny z receptu',
+          ),
+        ),
         content: Text(
           freshResult.partial.isEmpty
-              ? 'This will deduct the recipe ingredients from your pantry.'
-              : 'This will deduct only the available pantry ingredients. Missing parts stay unchanged.',
+              ? context.tr(
+                  en: 'This will deduct the recipe ingredients from your pantry.',
+                  sk: 'Týmto sa odrátajú suroviny receptu z tvojej špajze.',
+                )
+              : context.tr(
+                  en: 'This will deduct only the available pantry ingredients. Missing parts stay unchanged.',
+                  sk: 'Týmto sa odrátajú len dostupné suroviny zo špajze. Chýbajúce časti ostanú nezmenené.',
+                ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(context.tr(en: 'Cancel', sk: 'Zrušiť')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Use ingredients'),
+            child: Text(
+              context.tr(en: 'Use ingredients', sk: 'Použiť suroviny'),
+            ),
           ),
         ],
       ),
@@ -1102,16 +1427,31 @@ class _RecipesScreenState extends State<RecipesScreen> {
 
       if (!mounted) return;
       if (changedCount == 0) {
-        showErrorFeedback(context, 'No pantry quantities were updated.');
+        showErrorFeedback(
+          context,
+          context.tr(
+            en: 'No pantry quantities were updated.',
+            sk: 'Žiadne množstvá v špajzi sa neupravili.',
+          ),
+        );
       } else {
         showSuccessFeedback(
           context,
-          'Updated $changedCount pantry item${changedCount == 1 ? '' : 's'} from recipe.',
+          context.tr(
+            en: 'Updated $changedCount pantry item${changedCount == 1 ? '' : 's'} from recipe.',
+            sk: 'Z receptu sa upravilo $changedCount položk${changedCount == 1 ? 'a' : 'y'} v špajzi.',
+          ),
         );
       }
     } catch (_) {
       if (!mounted) return;
-      showErrorFeedback(context, 'Failed to update pantry from recipe.');
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Failed to update pantry from recipe.',
+          sk: 'Špajzu sa nepodarilo upraviť podľa receptu.',
+        ),
+      );
     }
   }
 
@@ -1119,7 +1459,7 @@ class _RecipesScreenState extends State<RecipesScreen> {
     final confirmed = await _confirmProceedWithSafetyWarning(
       recipe: result.recipe,
       preferences: null,
-      actionLabel: 'cook this recipe',
+      actionLabel: context.tr(en: 'cook this recipe', sk: 'variť tento recept'),
     );
     if (!confirmed) {
       return;
@@ -1129,7 +1469,13 @@ class _RecipesScreenState extends State<RecipesScreen> {
     final canConsume =
         freshResult.available.isNotEmpty || freshResult.partial.isNotEmpty;
     if (!canConsume) {
-      showErrorFeedback(context, 'Nothing from this recipe can be cooked yet.');
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Nothing from this recipe can be cooked yet.',
+          sk: 'Z tohto receptu sa zatiaľ nedá nič uvariť.',
+        ),
+      );
       return;
     }
 
@@ -1141,13 +1487,21 @@ class _RecipesScreenState extends State<RecipesScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          title: Text('Cook ${freshResult.recipe.name}'),
+          title: Text(
+            context.tr(
+              en: 'Cook ${localizedRecipeName(context, freshResult.recipe)}',
+              sk: 'Variť ${localizedRecipeName(context, freshResult.recipe)}',
+            ),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'This will deduct the available ingredients from your pantry.',
+              Text(
+                context.tr(
+                  en: 'This will deduct the available ingredients from your pantry.',
+                  sk: 'Týmto sa odrátajú dostupné suroviny z tvojej špajze.',
+                ),
               ),
               if (canAddMissing) ...[
                 const SizedBox(height: 12),
@@ -1159,9 +1513,17 @@ class _RecipesScreenState extends State<RecipesScreen> {
                     });
                   },
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Add missing ingredients to shopping list'),
-                  subtitle: const Text(
-                    'Useful if you want to finish the recipe later.',
+                  title: Text(
+                    context.tr(
+                      en: 'Add missing ingredients to shopping list',
+                      sk: 'Pridať chýbajúce suroviny do nákupného zoznamu',
+                    ),
+                  ),
+                  subtitle: Text(
+                    context.tr(
+                      en: 'Useful if you want to finish the recipe later.',
+                      sk: 'Užitočné, ak chceš recept dokončiť neskôr.',
+                    ),
                   ),
                   controlAffinity: ListTileControlAffinity.leading,
                 ),
@@ -1171,11 +1533,11 @@ class _RecipesScreenState extends State<RecipesScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
+              child: Text(context.tr(en: 'Cancel', sk: 'Zrušiť')),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Cook now'),
+              child: Text(context.tr(en: 'Cook now', sk: 'Variť teraz')),
             ),
           ],
         ),
@@ -1218,12 +1580,24 @@ class _RecipesScreenState extends State<RecipesScreen> {
       showSuccessFeedback(
         context,
         parts.isEmpty
-            ? 'Recipe flow completed.'
-            : 'Cooked recipe and ${parts.join(', ')}.',
+            ? context.tr(
+                en: 'Recipe flow completed.',
+                sk: 'Práca s receptom bola dokončená.',
+              )
+            : context.tr(
+                en: 'Cooked recipe and ${parts.join(', ')}.',
+                sk: 'Recept bol spracovaný a ${parts.join(', ')}.',
+              ),
       );
     } catch (_) {
       if (!mounted) return;
-      showErrorFeedback(context, 'Failed to cook recipe.');
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Failed to cook recipe.',
+          sk: 'Recept sa nepodarilo spracovať.',
+        ),
+      );
     }
   }
 
@@ -1233,7 +1607,7 @@ class _RecipesScreenState extends State<RecipesScreen> {
         (item) => _PantryConsumptionEntry(
           ingredient: item.ingredient,
           matchedItems: item.matchedItems,
-          quantityToConsumeInRecipeUnit: item.ingredient.quantity,
+          quantityToConsumeInRecipeUnit: item.requiredQuantityInRecipeUnit,
         ),
       ),
       ...result.partial.map(
@@ -1270,7 +1644,11 @@ class _RecipesScreenState extends State<RecipesScreen> {
 
   Future<RecipeMatchResult> _refreshRecipeMatch(Recipe recipe) async {
     final pantryItems = await _foodItemsRepository.getFoodItems();
-    return _matchRecipe(recipe, pantryItems);
+    return _matchRecipe(
+      recipe,
+      pantryItems,
+      servings: _selectedServingsFor(recipe),
+    );
   }
 
   Future<bool> _confirmProceedWithSafetyWarning({
@@ -1294,7 +1672,12 @@ class _RecipesScreenState extends State<RecipesScreen> {
     }
 
     final isAllergy = warning.type == _FoodSafetyWarningType.allergy;
-    final title = isAllergy ? 'Allergy warning' : 'Intolerance warning';
+    final title = isAllergy
+        ? context.tr(en: 'Allergy warning', sk: 'Upozornenie na alergiu')
+        : context.tr(
+            en: 'Intolerance warning',
+            sk: 'Upozornenie na intoleranciu',
+          );
     final warningText = warning.matchedSignals.join(', ');
 
     final confirmed = await showDialog<bool>(
@@ -1302,16 +1685,19 @@ class _RecipesScreenState extends State<RecipesScreen> {
       builder: (context) => AlertDialog(
         title: Text(title),
         content: Text(
-          'This recipe may conflict with your preferences because it contains $warningText.\n\nDo you still want to $actionLabel?',
+          context.tr(
+            en: 'This recipe may conflict with your preferences because it contains $warningText.\n\nDo you still want to $actionLabel?',
+            sk: 'Tento recept môže kolidovať s tvojimi preferenciami, pretože obsahuje $warningText.\n\nNapriek tomu chceš $actionLabel?',
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(context.tr(en: 'Cancel', sk: 'Zrušiť')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Continue'),
+            child: Text(context.tr(en: 'Continue', sk: 'Pokračovať')),
           ),
         ],
       ),
@@ -1325,7 +1711,12 @@ class _RecipesScreenState extends State<RecipesScreen> {
   ) async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) {
-      throw StateError('No signed-in user.');
+      throw StateError(
+        context.tr(
+          en: 'No signed-in user.',
+          sk: 'Žiadny prihlásený používateľ.',
+        ),
+      );
     }
 
     final existingItems = await _shoppingListRepository.getShoppingListItems();
@@ -1451,21 +1842,23 @@ class _RecipesScreenState extends State<RecipesScreen> {
     final ingredientNormalized = _normalize(ingredientName);
     final itemNormalized = _normalize(item.name);
     if (ingredientNormalized == itemNormalized) {
-      return 0;
+      return item.openedAt != null ? 0 : 1;
     }
 
     final ingredientKey = _canonicalIngredientKey(ingredientName);
     final itemKey = _canonicalIngredientKey(item.name);
     if (ingredientKey == itemKey) {
-      return 1;
+      return item.openedAt != null ? 2 : 3;
     }
 
-    return switch (item.storageLocation.trim().toLowerCase()) {
-      'fridge' => 2,
-      'pantry' => 3,
-      'freezer' => 4,
-      _ => 5,
+    final storagePriority = switch (item.storageLocation.trim().toLowerCase()) {
+      'fridge' => 0,
+      'pantry' => 1,
+      'freezer' => 2,
+      _ => 3,
     };
+    final openedOffset = item.openedAt != null ? 0 : 1;
+    return 4 + (storagePriority * 2) + openedOffset;
   }
 
   Future<int> _upsertShoppingNeed({
@@ -1727,7 +2120,12 @@ class _RecipeSafetyBadge extends StatelessWidget {
     final foregroundColor = isAllergy
         ? const Color(0xFF9F1D2C)
         : const Color(0xFF8A5A00);
-    final title = isAllergy ? 'Allergy warning' : 'Intolerance warning';
+    final title = isAllergy
+        ? context.tr(en: 'Allergy warning', sk: 'Upozornenie na alergiu')
+        : context.tr(
+            en: 'Intolerance warning',
+            sk: 'Upozornenie na intoleranciu',
+          );
 
     return Container(
       width: double.infinity,
@@ -1737,7 +2135,7 @@ class _RecipeSafetyBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
-        '$title: contains ${warning.matchedSignals.join(', ')}.',
+        '$title: ${context.tr(en: 'contains', sk: 'obsahuje')} ${warning.matchedSignals.join(', ')}.',
         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
           color: foregroundColor,
           fontWeight: FontWeight.w600,
@@ -1773,9 +2171,12 @@ class _RecipesSearchAndFilterBar extends StatelessWidget {
               controller: controller,
               focusNode: focusNode,
               onChanged: onSearchChanged,
-              decoration: const InputDecoration(
-                hintText: 'Search recipes',
-                prefixIcon: Icon(Icons.search),
+              decoration: InputDecoration(
+                hintText: context.tr(
+                  en: 'Search recipes',
+                  sk: 'Hľadať recepty',
+                ),
+                prefixIcon: const Icon(Icons.search),
               ),
             ),
             const SizedBox(height: 12),
@@ -1784,27 +2185,47 @@ class _RecipesSearchAndFilterBar extends StatelessWidget {
               runSpacing: 8,
               children: [
                 FilterChip(
-                  label: const Text('All'),
+                  label: Text(context.tr(en: 'All', sk: 'Všetko')),
                   selected: selectedFilter == RecipeFilter.all,
                   onSelected: (_) => onFilterChanged(RecipeFilter.all),
                 ),
                 FilterChip(
-                  label: const Text('Safe for me'),
+                  label: const Text('15 min'),
+                  selected: selectedFilter == RecipeFilter.under15Minutes,
+                  onSelected: (_) =>
+                      onFilterChanged(RecipeFilter.under15Minutes),
+                ),
+                FilterChip(
+                  label: const Text('30 min'),
+                  selected: selectedFilter == RecipeFilter.under30Minutes,
+                  onSelected: (_) =>
+                      onFilterChanged(RecipeFilter.under30Minutes),
+                ),
+                FilterChip(
+                  label: const Text('45 min'),
+                  selected: selectedFilter == RecipeFilter.under45Minutes,
+                  onSelected: (_) =>
+                      onFilterChanged(RecipeFilter.under45Minutes),
+                ),
+                FilterChip(
+                  label: Text(
+                    context.tr(en: 'Safe for me', sk: 'Bezpečné pre mňa'),
+                  ),
                   selected: selectedFilter == RecipeFilter.safeForMe,
                   onSelected: (_) => onFilterChanged(RecipeFilter.safeForMe),
                 ),
                 FilterChip(
-                  label: const Text('Favorites'),
+                  label: Text(context.tr(en: 'Favorites', sk: 'Obľúbené')),
                   selected: selectedFilter == RecipeFilter.favorites,
                   onSelected: (_) => onFilterChanged(RecipeFilter.favorites),
                 ),
                 FilterChip(
-                  label: const Text('Public'),
+                  label: Text(context.tr(en: 'Public', sk: 'Verejné')),
                   selected: selectedFilter == RecipeFilter.publicOnly,
                   onSelected: (_) => onFilterChanged(RecipeFilter.publicOnly),
                 ),
                 FilterChip(
-                  label: const Text('Household'),
+                  label: Text(context.tr(en: 'Household', sk: 'Domácnosť')),
                   selected: selectedFilter == RecipeFilter.householdOnly,
                   onSelected: (_) =>
                       onFilterChanged(RecipeFilter.householdOnly),

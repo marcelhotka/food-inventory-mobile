@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../app/localization/app_locale.dart';
 import '../../../core/forms/app_input_decoration.dart';
 import '../domain/recipe.dart';
 import '../domain/recipe_ingredient.dart';
@@ -25,6 +26,8 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
+  final _totalMinutesController = TextEditingController(text: '30');
+  final _defaultServingsController = TextEditingController(text: '2');
   final List<_IngredientDraft> _ingredients = [_IngredientDraft()];
 
   @override
@@ -37,6 +40,8 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
 
     _nameController.text = recipe.name;
     _descriptionController.text = recipe.description;
+    _totalMinutesController.text = recipe.totalMinutes.toString();
+    _defaultServingsController.text = recipe.defaultServings.toString();
     _ingredients.clear();
     for (final ingredient in recipe.ingredients) {
       _ingredients.add(
@@ -53,6 +58,8 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
   void dispose() {
     _nameController.dispose();
     _descriptionController.dispose();
+    _totalMinutesController.dispose();
+    _defaultServingsController.dispose();
     for (final ingredient in _ingredients) {
       ingredient.dispose();
     }
@@ -94,6 +101,8 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
       createdByUserId: widget.initialRecipe?.createdByUserId ?? user.id,
       name: _nameController.text.trim(),
       description: _descriptionController.text.trim(),
+      totalMinutes: int.parse(_totalMinutesController.text.trim()),
+      defaultServings: int.parse(_defaultServingsController.text.trim()),
       isPublic: widget.initialRecipe?.isPublic ?? false,
       isFavorite: widget.initialRecipe?.isFavorite ?? false,
       createdAt: widget.initialRecipe?.createdAt ?? now,
@@ -119,7 +128,11 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.isEditing ? 'Edit Recipe' : 'Add Recipe'),
+        title: Text(
+          widget.isEditing
+              ? context.tr(en: 'Edit Recipe', sk: 'Upraviť recept')
+              : context.tr(en: 'Add Recipe', sk: 'Pridať recept'),
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -130,10 +143,15 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
             children: [
               TextFormField(
                 controller: _nameController,
-                decoration: appInputDecoration('Recipe name'),
+                decoration: appInputDecoration(
+                  context.tr(en: 'Recipe name', sk: 'Názov receptu'),
+                ),
                 validator: (value) {
                   if ((value ?? '').trim().isEmpty) {
-                    return 'Enter a recipe name';
+                    return context.tr(
+                      en: 'Enter a recipe name',
+                      sk: 'Zadaj názov receptu',
+                    );
                   }
                   return null;
                 },
@@ -143,11 +161,57 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
                 controller: _descriptionController,
                 minLines: 2,
                 maxLines: 4,
-                decoration: appInputDecoration('Description'),
+                decoration: appInputDecoration(
+                  context.tr(en: 'Description', sk: 'Popis'),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _totalMinutesController,
+                      keyboardType: TextInputType.number,
+                      decoration: appInputDecoration(
+                        context.tr(en: 'Total minutes', sk: 'Celkový čas'),
+                      ),
+                      validator: (value) {
+                        final parsed = int.tryParse((value ?? '').trim());
+                        if (parsed == null || parsed <= 0) {
+                          return context.tr(
+                            en: 'Enter valid minutes',
+                            sk: 'Zadaj platný počet minút',
+                          );
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _defaultServingsController,
+                      keyboardType: TextInputType.number,
+                      decoration: appInputDecoration(
+                        context.tr(en: 'Servings', sk: 'Porcie'),
+                      ),
+                      validator: (value) {
+                        final parsed = int.tryParse((value ?? '').trim());
+                        if (parsed == null || parsed <= 0) {
+                          return context.tr(
+                            en: 'Enter servings',
+                            sk: 'Zadaj počet porcií',
+                          );
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 24),
               Text(
-                'Ingredients',
+                context.tr(en: 'Ingredients', sk: 'Ingrediencie'),
                 style: Theme.of(
                   context,
                 ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
@@ -164,10 +228,18 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
                         children: [
                           TextFormField(
                             controller: ingredient.nameController,
-                            decoration: appInputDecoration('Ingredient name'),
+                            decoration: appInputDecoration(
+                              context.tr(
+                                en: 'Ingredient name',
+                                sk: 'Názov ingrediencie',
+                              ),
+                            ),
                             validator: (value) {
                               if ((value ?? '').trim().isEmpty) {
-                                return 'Enter ingredient name';
+                                return context.tr(
+                                  en: 'Enter ingredient name',
+                                  sk: 'Zadaj názov ingrediencie',
+                                );
                               }
                               return null;
                             },
@@ -182,14 +254,22 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
                                       const TextInputType.numberWithOptions(
                                         decimal: true,
                                       ),
-                                  decoration: appInputDecoration('Quantity'),
+                                  decoration: appInputDecoration(
+                                    context.tr(en: 'Quantity', sk: 'Množstvo'),
+                                  ),
                                   validator: (value) {
                                     if ((value ?? '').trim().isEmpty) {
-                                      return 'Enter quantity';
+                                      return context.tr(
+                                        en: 'Enter quantity',
+                                        sk: 'Zadaj množstvo',
+                                      );
                                     }
                                     if (double.tryParse(value!.trim()) ==
                                         null) {
-                                      return 'Enter a valid number';
+                                      return context.tr(
+                                        en: 'Enter a valid number',
+                                        sk: 'Zadaj platné číslo',
+                                      );
                                     }
                                     return null;
                                   },
@@ -199,10 +279,15 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
                               Expanded(
                                 child: TextFormField(
                                   controller: ingredient.unitController,
-                                  decoration: appInputDecoration('Unit'),
+                                  decoration: appInputDecoration(
+                                    context.tr(en: 'Unit', sk: 'Jednotka'),
+                                  ),
                                   validator: (value) {
                                     if ((value ?? '').trim().isEmpty) {
-                                      return 'Enter a unit';
+                                      return context.tr(
+                                        en: 'Enter a unit',
+                                        sk: 'Zadaj jednotku',
+                                      );
                                     }
                                     return null;
                                   },
@@ -216,7 +301,9 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
                             child: TextButton.icon(
                               onPressed: () => _removeIngredient(index),
                               icon: const Icon(Icons.delete_outline),
-                              label: const Text('Remove'),
+                              label: Text(
+                                context.tr(en: 'Remove', sk: 'Odstrániť'),
+                              ),
                             ),
                           ),
                         ],
@@ -230,7 +317,9 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
                 child: FilledButton.tonalIcon(
                   onPressed: _addIngredient,
                   icon: const Icon(Icons.add),
-                  label: const Text('Add ingredient'),
+                  label: Text(
+                    context.tr(en: 'Add ingredient', sk: 'Pridať ingredienciu'),
+                  ),
                 ),
               ),
               const SizedBox(height: 24),
@@ -239,7 +328,9 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
                 child: FilledButton(
                   onPressed: _save,
                   child: Text(
-                    widget.isEditing ? 'Save changes' : 'Save recipe',
+                    widget.isEditing
+                        ? context.tr(en: 'Save changes', sk: 'Uložiť zmeny')
+                        : context.tr(en: 'Save recipe', sk: 'Uložiť recept'),
                   ),
                 ),
               ),

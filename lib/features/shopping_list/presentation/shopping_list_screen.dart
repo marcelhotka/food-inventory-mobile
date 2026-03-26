@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/localization/app_locale.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/app_feedback.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../households/domain/household.dart';
 import '../../households/presentation/household_screen.dart';
+import '../../recipes/presentation/recipe_display_text.dart';
 import '../../user_preferences/data/user_preferences_repository.dart';
 import '../../user_preferences/domain/user_preferences.dart';
 import '../data/shopping_list_remote_data_source.dart';
@@ -149,7 +151,10 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
 
     final confirmed = await _confirmProceedWithSafetyWarning(
       createdItem,
-      actionLabel: 'add this item to your shopping list',
+      actionLabel: context.tr(
+        en: 'add this item to your shopping list',
+        sk: 'pridať túto položku do nákupného zoznamu',
+      ),
       preferences: null,
     );
     if (!confirmed) {
@@ -167,14 +172,29 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       if (result.wasMerged) {
         showSuccessFeedback(
           context,
-          'Added to existing ${result.item.name} (+${_formatQuantity(createdItem.quantity)} ${createdItem.unit}). Total: ${_formatQuantity(result.item.quantity)} ${result.item.unit}.',
+          context.tr(
+            en: 'Added to existing ${result.item.name} (+${_formatQuantity(createdItem.quantity)} ${createdItem.unit}). Total: ${_formatQuantity(result.item.quantity)} ${result.item.unit}.',
+            sk: 'Pridané k existujúcej položke ${result.item.name} (+${_formatQuantity(createdItem.quantity)} ${createdItem.unit}). Spolu: ${_formatQuantity(result.item.quantity)} ${result.item.unit}.',
+          ),
         );
       } else {
-        showSuccessFeedback(context, 'Shopping item added.');
+        showSuccessFeedback(
+          context,
+          context.tr(
+            en: 'Shopping item added.',
+            sk: 'Položka bola pridaná do nákupného zoznamu.',
+          ),
+        );
       }
     } catch (_) {
       if (!mounted) return;
-      showErrorFeedback(context, 'Failed to add shopping item.');
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Failed to add shopping item.',
+          sk: 'Položku sa nepodarilo pridať do nákupného zoznamu.',
+        ),
+      );
     }
   }
 
@@ -240,7 +260,10 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
 
     final confirmed = await _confirmProceedWithSafetyWarning(
       updatedItem,
-      actionLabel: 'save this shopping item',
+      actionLabel: context.tr(
+        en: 'save this shopping item',
+        sk: 'uložiť túto nákupnú položku',
+      ),
       preferences: null,
     );
     if (!confirmed) {
@@ -251,10 +274,22 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       await repository.editShoppingListItem(updatedItem);
       await _reload();
       if (!mounted) return;
-      showSuccessFeedback(context, 'Shopping item updated.');
+      showSuccessFeedback(
+        context,
+        context.tr(
+          en: 'Shopping item updated.',
+          sk: 'Položka v nákupnom zozname bola upravená.',
+        ),
+      );
     } catch (_) {
       if (!mounted) return;
-      showErrorFeedback(context, 'Failed to update shopping item.');
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Failed to update shopping item.',
+          sk: 'Položku v nákupnom zozname sa nepodarilo upraviť.',
+        ),
+      );
     }
   }
 
@@ -265,7 +300,12 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     final additionalItem = await showDialog<ShoppingListItem>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Add more ${item.name}'),
+        title: Text(
+          context.tr(
+            en: 'Add more ${item.name}',
+            sk: 'Pridať viac ${item.name}',
+          ),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -274,19 +314,23 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
-              decoration: const InputDecoration(labelText: 'Quantity'),
+              decoration: InputDecoration(
+                labelText: context.tr(en: 'Quantity', sk: 'Množstvo'),
+              ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: unitController,
-              decoration: const InputDecoration(labelText: 'Unit'),
+              decoration: InputDecoration(
+                labelText: context.tr(en: 'Unit', sk: 'Jednotka'),
+              ),
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: Text(context.tr(en: 'Cancel', sk: 'Zrušiť')),
           ),
           FilledButton(
             onPressed: () {
@@ -304,7 +348,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                 ),
               );
             },
-            child: const Text('Add'),
+            child: Text(context.tr(en: 'Add', sk: 'Pridať')),
           ),
         ],
       ),
@@ -319,7 +363,10 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
 
     final confirmed = await _confirmProceedWithSafetyWarning(
       additionalItem,
-      actionLabel: 'add this item to your shopping list',
+      actionLabel: context.tr(
+        en: 'add this item to your shopping list',
+        sk: 'pridať túto položku do nákupného zoznamu',
+      ),
       preferences: null,
     );
     if (!confirmed) {
@@ -335,7 +382,10 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       if (!mounted) return;
       showErrorFeedback(
         context,
-        'Unable to add more because the unit is not compatible with ${item.unit}.',
+        context.tr(
+          en: 'Unable to add more because the unit is not compatible with ${item.unit}.',
+          sk: 'Nepodarilo sa pridať viac, pretože jednotka nie je kompatibilná s ${item.unit}.',
+        ),
       );
       return;
     }
@@ -352,11 +402,20 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       if (!mounted) return;
       showSuccessFeedback(
         context,
-        'Added to existing ${updatedItem.name} (+${_formatQuantity(additionalItem.quantity)} ${additionalItem.unit}). Total: ${_formatQuantity(updatedItem.quantity)} ${updatedItem.unit}.',
+        context.tr(
+          en: 'Added to existing ${updatedItem.name} (+${_formatQuantity(additionalItem.quantity)} ${additionalItem.unit}). Total: ${_formatQuantity(updatedItem.quantity)} ${updatedItem.unit}.',
+          sk: 'Pridané k existujúcej položke ${updatedItem.name} (+${_formatQuantity(additionalItem.quantity)} ${additionalItem.unit}). Spolu: ${_formatQuantity(updatedItem.quantity)} ${updatedItem.unit}.',
+        ),
       );
     } catch (_) {
       if (!mounted) return;
-      showErrorFeedback(context, 'Failed to add more to this shopping item.');
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Failed to add more to this shopping item.',
+          sk: 'Nepodarilo sa pridať viac k tejto nákupnej položke.',
+        ),
+      );
     }
   }
 
@@ -370,8 +429,13 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
           children: [
             ListTile(
               leading: const Icon(Icons.add_circle_outline),
-              title: const Text('Add more'),
-              subtitle: const Text('Increase the current quantity'),
+              title: Text(context.tr(en: 'Add more', sk: 'Pridať viac')),
+              subtitle: Text(
+                context.tr(
+                  en: 'Increase the current quantity',
+                  sk: 'Navýšiť aktuálne množstvo',
+                ),
+              ),
               onTap: () {
                 Navigator.of(context).pop();
                 _openAddMoreForm(item);
@@ -379,8 +443,13 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.edit_outlined),
-              title: const Text('Edit'),
-              subtitle: const Text('Replace the current value'),
+              title: Text(context.tr(en: 'Edit', sk: 'Upraviť')),
+              subtitle: Text(
+                context.tr(
+                  en: 'Replace the current value',
+                  sk: 'Prepísať aktuálnu hodnotu',
+                ),
+              ),
               onTap: () {
                 Navigator.of(context).pop();
                 _openEditForm(item);
@@ -388,7 +457,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.delete_outline),
-              title: const Text('Delete'),
+              title: Text(context.tr(en: 'Delete', sk: 'Zmazať')),
               onTap: () {
                 Navigator.of(context).pop();
                 _deleteItem(item);
@@ -404,16 +473,23 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete shopping item'),
-        content: Text('Do you want to delete "${item.name}"?'),
+        title: Text(
+          context.tr(en: 'Delete shopping item', sk: 'Zmazať nákupnú položku'),
+        ),
+        content: Text(
+          context.tr(
+            en: 'Do you want to delete "${item.name}"?',
+            sk: 'Chceš zmazať položku "${item.name}"?',
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(context.tr(en: 'Cancel', sk: 'Zrušiť')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
+            child: Text(context.tr(en: 'Delete', sk: 'Zmazať')),
           ),
         ],
       ),
@@ -427,10 +503,22 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       await repository.removeShoppingListItem(item.id);
       await _reload();
       if (!mounted) return;
-      showSuccessFeedback(context, 'Shopping item deleted.');
+      showSuccessFeedback(
+        context,
+        context.tr(
+          en: 'Shopping item deleted.',
+          sk: 'Nákupná položka bola zmazaná.',
+        ),
+      );
     } catch (_) {
       if (!mounted) return;
-      showErrorFeedback(context, 'Failed to delete shopping item.');
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Failed to delete shopping item.',
+          sk: 'Nákupnú položku sa nepodarilo zmazať.',
+        ),
+      );
     }
   }
 
@@ -443,11 +531,22 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       if (!mounted) return;
       showSuccessFeedback(
         context,
-        value ? 'Marked as bought.' : 'Marked as not bought.',
+        value
+            ? context.tr(en: 'Marked as bought.', sk: 'Označené ako kúpené.')
+            : context.tr(
+                en: 'Marked as not bought.',
+                sk: 'Označené ako nekúpené.',
+              ),
       );
     } catch (_) {
       if (!mounted) return;
-      showErrorFeedback(context, 'Failed to update shopping item.');
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Failed to update shopping item.',
+          sk: 'Nákupnú položku sa nepodarilo upraviť.',
+        ),
+      );
     }
   }
 
@@ -455,7 +554,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Shopping List'),
+        title: Text(context.tr(en: 'Shopping List', sk: 'Nákupný zoznam')),
         actions: [
           IconButton(
             onPressed: () {
@@ -466,19 +565,19 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
               );
             },
             icon: const Icon(Icons.groups_2_outlined),
-            tooltip: 'Household',
+            tooltip: context.tr(en: 'Household', sk: 'Domácnosť'),
           ),
           IconButton(
             onPressed: widget.authRepository.signOut,
             icon: const Icon(Icons.logout),
-            tooltip: 'Sign out',
+            tooltip: context.tr(en: 'Sign out', sk: 'Odhlásiť sa'),
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openCreateForm,
         icon: const Icon(Icons.add),
-        label: const Text('Add item'),
+        label: Text(context.tr(en: 'Add item', sk: 'Pridať položku')),
       ),
       body: FutureBuilder<_ShoppingListViewData>(
         future: _shoppingListFuture,
@@ -504,7 +603,10 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
           final preferences = viewData.preferences;
           if (items.isEmpty) {
             return AppEmptyState(
-              message: 'No shopping list items yet.',
+              message: context.tr(
+                en: 'No shopping list items yet.',
+                sk: 'Zatiaľ tu nemáš žiadne nákupné položky.',
+              ),
               onRefresh: _reload,
             );
           }
@@ -529,7 +631,10 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                   ),
                   const SizedBox(height: 16),
                   AppEmptyState(
-                    message: 'No shopping items match your search.',
+                    message: context.tr(
+                      en: 'No shopping items match your search.',
+                      sk: 'Tvojmu hľadaniu nezodpovedajú žiadne nákupné položky.',
+                    ),
                     onRefresh: _reload,
                   ),
                 ],
@@ -569,7 +674,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                       },
                     ),
                     title: Text(
-                      item.name,
+                      localizedIngredientDisplayName(context, item.name),
                       style: TextStyle(
                         decoration: item.isBought
                             ? TextDecoration.lineThrough
@@ -600,13 +705,21 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                           _deleteItem(item);
                         }
                       },
-                      itemBuilder: (context) => const [
+                      itemBuilder: (context) => [
                         PopupMenuItem(
                           value: 'add_more',
-                          child: Text('Add more'),
+                          child: Text(
+                            context.tr(en: 'Add more', sk: 'Pridať viac'),
+                          ),
                         ),
-                        PopupMenuItem(value: 'edit', child: Text('Edit')),
-                        PopupMenuItem(value: 'delete', child: Text('Delete')),
+                        PopupMenuItem(
+                          value: 'edit',
+                          child: Text(context.tr(en: 'Edit', sk: 'Upraviť')),
+                        ),
+                        PopupMenuItem(
+                          value: 'delete',
+                          child: Text(context.tr(en: 'Delete', sk: 'Zmazať')),
+                        ),
                       ],
                     ),
                   ),
@@ -658,15 +771,27 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
         error is ShoppingListAuthException) {
       return error.toString();
     }
-    return 'Failed to load shopping list items.';
+    return context.tr(
+      en: 'Failed to load shopping list items.',
+      sk: 'Nákupný zoznam sa nepodarilo načítať.',
+    );
   }
 
   String _sourceLabel(String value) {
     return switch (value) {
-      ShoppingListItem.sourceRecipeMissing => 'Recipe',
-      ShoppingListItem.sourceLowStock => 'Low stock',
-      ShoppingListItem.sourceMultiple => 'Multiple',
-      _ => 'Manual',
+      ShoppingListItem.sourceRecipeMissing => context.tr(
+        en: 'Recipe',
+        sk: 'Recept',
+      ),
+      ShoppingListItem.sourceLowStock => context.tr(
+        en: 'Low stock',
+        sk: 'Málo zásob',
+      ),
+      ShoppingListItem.sourceMultiple => context.tr(
+        en: 'Multiple',
+        sk: 'Viac zdrojov',
+      ),
+      _ => context.tr(en: 'Manual', sk: 'Ručne'),
     };
   }
 
@@ -691,7 +816,12 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     }
 
     final isAllergy = warning.type == _FoodSafetyWarningType.allergy;
-    final title = isAllergy ? 'Allergy warning' : 'Intolerance warning';
+    final title = isAllergy
+        ? context.tr(en: 'Allergy warning', sk: 'Upozornenie na alergiu')
+        : context.tr(
+            en: 'Intolerance warning',
+            sk: 'Upozornenie na intoleranciu',
+          );
     final suggestions = _suggestSafeAlternatives(item, warning);
 
     final confirmed = await showDialog<bool>(
@@ -704,12 +834,18 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'This item may conflict with your preferences because it contains ${warning.matchedSignals.join(', ')}.\n\nDo you still want to $actionLabel?',
+                context.tr(
+                  en: 'This item may conflict with your preferences because it contains ${warning.matchedSignals.join(', ')}.\n\nDo you still want to $actionLabel?',
+                  sk: 'Táto položka môže kolidovať s tvojimi preferenciami, pretože obsahuje ${warning.matchedSignals.join(', ')}.\n\nNapriek tomu chceš pokračovať?',
+                ),
               ),
               if (suggestions.isNotEmpty) ...[
                 const SizedBox(height: 16),
-                const Text(
-                  'Safer alternatives:',
+                Text(
+                  context.tr(
+                    en: 'Safer alternatives:',
+                    sk: 'Bezpečnejšie alternatívy:',
+                  ),
                   style: TextStyle(fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 8),
@@ -726,11 +862,11 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(context.tr(en: 'Cancel', sk: 'Zrušiť')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Continue'),
+            child: Text(context.tr(en: 'Continue', sk: 'Pokračovať')),
           ),
         ],
       ),
@@ -1098,9 +1234,12 @@ class _ShoppingSearchAndFilterBar extends StatelessWidget {
         TextField(
           controller: controller,
           onChanged: onSearchChanged,
-          decoration: const InputDecoration(
-            hintText: 'Search shopping items',
-            prefixIcon: Icon(Icons.search_rounded),
+          decoration: InputDecoration(
+            hintText: context.tr(
+              en: 'Search shopping items',
+              sk: 'Hľadať nákupné položky',
+            ),
+            prefixIcon: const Icon(Icons.search_rounded),
           ),
         ),
         const SizedBox(height: 12),
@@ -1111,17 +1250,17 @@ class _ShoppingSearchAndFilterBar extends StatelessWidget {
             runSpacing: 8,
             children: [
               FilterChip(
-                label: const Text('All'),
+                label: Text(context.tr(en: 'All', sk: 'Všetko')),
                 selected: selectedFilter == ShoppingListFilter.all,
                 onSelected: (_) => onFilterChanged(ShoppingListFilter.all),
               ),
               FilterChip(
-                label: const Text('To buy'),
+                label: Text(context.tr(en: 'To buy', sk: 'Kúpiť')),
                 selected: selectedFilter == ShoppingListFilter.toBuy,
                 onSelected: (_) => onFilterChanged(ShoppingListFilter.toBuy),
               ),
               FilterChip(
-                label: const Text('Bought'),
+                label: Text(context.tr(en: 'Bought', sk: 'Kúpené')),
                 selected: selectedFilter == ShoppingListFilter.bought,
                 onSelected: (_) => onFilterChanged(ShoppingListFilter.bought),
               ),
@@ -1147,7 +1286,12 @@ class _ShoppingSafetyBadge extends StatelessWidget {
     final foregroundColor = isAllergy
         ? const Color(0xFF9F1D2C)
         : const Color(0xFF8A5A00);
-    final title = isAllergy ? 'Allergy warning' : 'Intolerance warning';
+    final title = isAllergy
+        ? context.tr(en: 'Allergy warning', sk: 'Upozornenie na alergiu')
+        : context.tr(
+            en: 'Intolerance warning',
+            sk: 'Upozornenie na intoleranciu',
+          );
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -1156,7 +1300,7 @@ class _ShoppingSafetyBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
       ),
       child: Text(
-        '$title: contains ${warning.matchedSignals.join(', ')}.',
+        '$title: ${context.tr(en: 'contains', sk: 'obsahuje')} ${warning.matchedSignals.join(', ')}.',
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
           color: foregroundColor,
           fontWeight: FontWeight.w600,

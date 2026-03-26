@@ -8,6 +8,7 @@ import '../../food_items/domain/food_item.dart';
 import '../../recipes/data/recipes_repository.dart';
 import '../../recipes/domain/recipe.dart';
 import '../../recipes/domain/recipe_ingredient.dart';
+import '../../recipes/presentation/recipe_display_text.dart';
 import '../../shopping_list/data/shopping_list_repository.dart';
 import '../../shopping_list/domain/shopping_list_item.dart';
 import '../../user_preferences/data/user_preferences_repository.dart';
@@ -258,13 +259,15 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         if (recipe == null) {
           continue;
         }
+        final scaleFactor = entry.servings / recipe.defaultServings;
         for (final ingredient in recipe.ingredients) {
           final available = _availableQuantity(
             ingredient.name,
             ingredient.unit,
             pantryItems,
           );
-          final missing = ingredient.quantity - available;
+          final requiredQuantity = ingredient.quantity * scaleFactor;
+          final missing = requiredQuantity - available;
           if (missing <= 0.0001) {
             continue;
           }
@@ -400,7 +403,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     return _showMealPlanSafetyDialog(
       warning: warning,
       actionLabel: actionLabel,
-      affectedMealNames: [entry.recipeName],
+      affectedMealNames: [localizedRecipeName(context, recipe)],
     );
   }
 
@@ -437,9 +440,12 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         matchedSignals: matchedSignals.toList()..sort(),
       ),
       actionLabel: actionLabel,
-      affectedMealNames: unsafeEntries
-          .map((entry) => entry.recipeName)
-          .toList(),
+      affectedMealNames: unsafeEntries.map((entry) {
+        final recipe = _findRecipeById(recipes, entry.recipeId);
+        return recipe == null
+            ? entry.recipeName
+            : localizedRecipeName(context, recipe);
+      }).toList(),
     );
   }
 
@@ -589,17 +595,20 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                     recipe,
                                     preferences,
                                   );
+                                  final displayedRecipeName = recipe == null
+                                      ? entry.recipeName
+                                      : localizedRecipeName(context, recipe);
 
                                   return ListTile(
                                     contentPadding: EdgeInsets.zero,
-                                    title: Text(entry.recipeName),
+                                    title: Text(displayedRecipeName),
                                     subtitle: Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         Text(
-                                          '${_mealTypeLabel(entry.mealType)}${entry.note == null || entry.note!.isEmpty ? '' : ' • ${entry.note}'}',
+                                          '${_mealTypeLabel(entry.mealType)} • ${entry.servings} serving${entry.servings == 1 ? '' : 's'}${entry.note == null || entry.note!.isEmpty ? '' : ' • ${entry.note}'}',
                                         ),
                                         if (warning != null) ...[
                                           const SizedBox(height: 6),

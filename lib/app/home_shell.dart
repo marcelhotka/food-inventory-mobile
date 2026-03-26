@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'localization/app_locale.dart';
 import '../features/auth/data/auth_repository.dart';
 import '../features/dashboard/presentation/dashboard_screen.dart';
 import '../features/food_items/presentation/food_items_screen.dart';
@@ -87,6 +88,7 @@ class _HomeShellState extends State<HomeShell> {
         onOpenRecipes: () => _openTab(3),
         onOpenSafeRecipes: _openSafeRecipes,
         onOpenRecipe: _openRecipe,
+        onPantryChanged: _notifyPantryChanged,
         onShoppingListChanged: _notifyShoppingListChanged,
         recipesRefreshToken: _recipesRefreshToken,
         mealPlanRefreshToken: _mealPlanRefreshToken,
@@ -127,26 +129,26 @@ class _HomeShellState extends State<HomeShell> {
             }
           });
         },
-        destinations: const [
+        destinations: [
           NavigationDestination(
-            icon: Icon(Icons.dashboard_outlined),
-            selectedIcon: Icon(Icons.dashboard),
-            label: 'Dashboard',
+            icon: const Icon(Icons.dashboard_outlined),
+            selectedIcon: const Icon(Icons.dashboard),
+            label: context.tr(en: 'Dashboard', sk: 'Prehľad'),
           ),
           NavigationDestination(
-            icon: Icon(Icons.kitchen_outlined),
-            selectedIcon: Icon(Icons.kitchen),
-            label: 'Pantry',
+            icon: const Icon(Icons.kitchen_outlined),
+            selectedIcon: const Icon(Icons.kitchen),
+            label: context.tr(en: 'Pantry', sk: 'Špajza'),
           ),
           NavigationDestination(
-            icon: Icon(Icons.shopping_cart_outlined),
-            selectedIcon: Icon(Icons.shopping_cart),
-            label: 'Shopping List',
+            icon: const Icon(Icons.shopping_cart_outlined),
+            selectedIcon: const Icon(Icons.shopping_cart),
+            label: context.tr(en: 'Shopping List', sk: 'Nákupný zoznam'),
           ),
           NavigationDestination(
-            icon: Icon(Icons.menu_book_outlined),
-            selectedIcon: Icon(Icons.menu_book),
-            label: 'Recipes',
+            icon: const Icon(Icons.menu_book_outlined),
+            selectedIcon: const Icon(Icons.menu_book),
+            label: context.tr(en: 'Recipes', sk: 'Recepty'),
           ),
         ],
       ),

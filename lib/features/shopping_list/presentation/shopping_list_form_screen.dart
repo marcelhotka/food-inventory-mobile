@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../app/localization/app_locale.dart';
 import '../../../core/forms/app_input_decoration.dart';
 import '../domain/shopping_list_item.dart';
 
@@ -80,7 +81,15 @@ class _ShoppingListFormScreenState extends State<ShoppingListFormScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          widget.isEditing ? 'Edit Shopping Item' : 'Add Shopping Item',
+          widget.isEditing
+              ? context.tr(
+                  en: 'Edit Shopping Item',
+                  sk: 'Upraviť nákupnú položku',
+                )
+              : context.tr(
+                  en: 'Add Shopping Item',
+                  sk: 'Pridať nákupnú položku',
+                ),
         ),
       ),
       body: SingleChildScrollView(
@@ -91,10 +100,12 @@ class _ShoppingListFormScreenState extends State<ShoppingListFormScreen> {
             children: [
               TextFormField(
                 controller: _nameController,
-                decoration: appInputDecoration('Name'),
+                decoration: appInputDecoration(
+                  context.tr(en: 'Name', sk: 'Názov'),
+                ),
                 validator: (value) {
                   if ((value ?? '').trim().isEmpty) {
-                    return 'Enter a name';
+                    return context.tr(en: 'Enter a name', sk: 'Zadaj názov');
                   }
                   return null;
                 },
@@ -108,13 +119,21 @@ class _ShoppingListFormScreenState extends State<ShoppingListFormScreen> {
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
-                      decoration: appInputDecoration('Quantity'),
+                      decoration: appInputDecoration(
+                        context.tr(en: 'Quantity', sk: 'Množstvo'),
+                      ),
                       validator: (value) {
                         if ((value ?? '').trim().isEmpty) {
-                          return 'Enter quantity';
+                          return context.tr(
+                            en: 'Enter quantity',
+                            sk: 'Zadaj množstvo',
+                          );
                         }
                         if (double.tryParse(value!.trim()) == null) {
-                          return 'Enter a valid number';
+                          return context.tr(
+                            en: 'Enter a valid number',
+                            sk: 'Zadaj platné číslo',
+                          );
                         }
                         return null;
                       },
@@ -124,10 +143,15 @@ class _ShoppingListFormScreenState extends State<ShoppingListFormScreen> {
                   Expanded(
                     child: TextFormField(
                       controller: _unitController,
-                      decoration: appInputDecoration('Unit'),
+                      decoration: appInputDecoration(
+                        context.tr(en: 'Unit', sk: 'Jednotka'),
+                      ),
                       validator: (value) {
                         if ((value ?? '').trim().isEmpty) {
-                          return 'Enter a unit';
+                          return context.tr(
+                            en: 'Enter a unit',
+                            sk: 'Zadaj jednotku',
+                          );
                         }
                         return null;
                       },
@@ -140,7 +164,11 @@ class _ShoppingListFormScreenState extends State<ShoppingListFormScreen> {
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: _save,
-                  child: Text(widget.isEditing ? 'Save changes' : 'Add item'),
+                  child: Text(
+                    widget.isEditing
+                        ? context.tr(en: 'Save changes', sk: 'Uložiť zmeny')
+                        : context.tr(en: 'Add item', sk: 'Pridať položku'),
+                  ),
                 ),
               ),
             ],

@@ -51,6 +51,7 @@ class UserPreferencesRemoteDataSource {
             'intolerances': preferences.intolerances,
             'diet_style': preferences.dietStyle,
             'cooking_frequency': preferences.cookingFrequency,
+            'preferred_language': preferences.preferredLanguage,
             'household_size': preferences.householdSize,
             'onboarding_completed': preferences.onboardingCompleted,
             'updated_at': preferences.updatedAt.toIso8601String(),
@@ -81,7 +82,7 @@ class UserPreferencesRemoteDataSource {
 
   bool _isMissingPreferencesSetup(PostgrestException error) {
     final code = error.code ?? '';
-    final message = (error.message ?? '').toLowerCase();
+    final message = error.message.toLowerCase();
     return code == '42P01' ||
         code == 'PGRST205' ||
         message.contains('relation') && message.contains('user_preferences') ||

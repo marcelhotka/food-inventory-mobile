@@ -73,6 +73,8 @@ class RecipesRemoteDataSource {
           'created_by_user_id': recipe.createdByUserId,
           'name': recipe.name,
           'description': recipe.description,
+          'total_minutes': recipe.totalMinutes,
+          'default_servings': recipe.defaultServings,
           'is_public': recipe.isPublic,
         })
         .select()
@@ -115,6 +117,8 @@ class RecipesRemoteDataSource {
         .update({
           'name': recipe.name,
           'description': recipe.description,
+          'total_minutes': recipe.totalMinutes,
+          'default_servings': recipe.defaultServings,
           'updated_at': recipe.updatedAt?.toIso8601String(),
         })
         .eq('id', recipe.id);

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/localization/app_locale.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../food_items/data/food_items_repository.dart';
 import '../../food_items/data/scan_sessions_repository.dart';
@@ -10,6 +11,7 @@ import '../../households/domain/household.dart';
 import '../../recipes/data/recipes_repository.dart';
 import '../../recipes/domain/recipe.dart';
 import '../../recipes/domain/recipe_ingredient.dart';
+import '../../recipes/presentation/recipe_display_text.dart';
 import '../../shopping_list/data/shopping_list_repository.dart';
 import '../../shopping_list/domain/shopping_list_item.dart';
 import '../../staples/data/staple_food_repository.dart';
@@ -18,6 +20,7 @@ import '../../staples/presentation/staple_foods_screen.dart';
 import '../../meal_plan/data/meal_plan_repository.dart';
 import '../../meal_plan/domain/meal_plan_entry.dart';
 import '../../meal_plan/presentation/meal_plan_screen.dart';
+import '../../quick_commands/presentation/quick_command_screen.dart';
 import '../../user_preferences/data/user_preferences_repository.dart';
 import '../../user_preferences/domain/user_preferences.dart';
 import '../../user_preferences/presentation/user_preferences_screen.dart';
@@ -31,6 +34,7 @@ class DashboardScreen extends StatefulWidget {
   final VoidCallback onOpenRecipes;
   final VoidCallback onOpenSafeRecipes;
   final ValueChanged<String> onOpenRecipe;
+  final VoidCallback onPantryChanged;
   final VoidCallback onShoppingListChanged;
   final int recipesRefreshToken;
   final int mealPlanRefreshToken;
@@ -45,6 +49,7 @@ class DashboardScreen extends StatefulWidget {
     required this.onOpenRecipes,
     required this.onOpenSafeRecipes,
     required this.onOpenRecipe,
+    required this.onPantryChanged,
     required this.onShoppingListChanged,
     required this.recipesRefreshToken,
     required this.mealPlanRefreshToken,
@@ -137,6 +142,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
     await _reload();
   }
 
+  Future<void> _openQuickCommand() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => QuickCommandScreen(
+          householdId: widget.household.id,
+          onPantryChanged: widget.onPantryChanged,
+          onShoppingListChanged: widget.onShoppingListChanged,
+        ),
+      ),
+    );
+
+    if (!mounted) {
+      return;
+    }
+    await _reload();
+  }
+
   Future<_DashboardData> _loadDashboard() async {
     final results = await Future.wait<dynamic>([
       _foodItemsRepository.getFoodItems(),
@@ -179,12 +201,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Dashboard'),
+        title: Text(context.tr(en: 'Dashboard', sk: 'Prehľad')),
         actions: [
           IconButton(
             onPressed: _openPreferences,
             icon: const Icon(Icons.tune_rounded),
-            tooltip: 'Preferences',
+            tooltip: context.tr(en: 'Preferences', sk: 'Preferencie'),
           ),
         ],
       ),
@@ -197,7 +219,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
           if (snapshot.hasError) {
             return AppErrorState(
-              message: 'Failed to load dashboard.',
+              message: context.tr(
+                en: 'Failed to load dashboard.',
+                sk: 'Prehľad sa nepodarilo načítať.',
+              ),
               onRetry: _reload,
             );
           }
@@ -205,7 +230,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
           final data = snapshot.data;
           if (data == null) {
             return AppEmptyState(
-              message: 'No dashboard data yet.',
+              message: context.tr(
+                en: 'No dashboard data yet.',
+                sk: 'Zatiaľ nie sú k dispozícii žiadne údaje pre prehľad.',
+              ),
               onRefresh: _reload,
             );
           }
@@ -213,6 +241,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           final expiringSoon = data.pantryItems
               .where((item) => _daysUntil(item.expirationDate) <= 3)
               .length;
+          final openedItems =
+              data.pantryItems.where((item) => item.openedAt != null).toList()
+                ..sort((a, b) => b.openedAt!.compareTo(a.openedAt!));
           final lowStock = data.pantryItems.where(_isLowStock).length;
           final toBuy = data.shoppingItems
               .where((item) => !item.isBought)
@@ -239,6 +270,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 a.expirationDate,
               ).compareTo(_daysUntil(b.expirationDate)),
             );
+          final useSoonItems = _buildUseSoonItems(
+            pantryItems: data.pantryItems,
+            openedItems: openedItems,
+            expiringItems: expiringItems,
+          );
 
           final lowStockItems = data.pantryItems.where(_isLowStock).toList()
             ..sort(
@@ -277,7 +313,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
               padding: const EdgeInsets.all(16),
               children: [
                 Text(
-                  'Household overview',
+                  context.tr(
+                    en: 'Household overview',
+                    sk: 'Prehľad domácnosti',
+                  ),
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
@@ -293,30 +332,55 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   runSpacing: 12,
                   children: [
                     _MetricCard(
-                      title: 'Expiring soon',
+                      title: context.tr(
+                        en: 'Expiring soon',
+                        sk: 'Čoskoro sa minie',
+                      ),
                       value: expiringSoon.toString(),
-                      subtitle: 'Next 3 days',
+                      subtitle: context.tr(
+                        en: 'Next 3 days',
+                        sk: 'Najbližšie 3 dni',
+                      ),
                       icon: Icons.schedule_rounded,
                       onTap: widget.onOpenPantry,
                     ),
                     _MetricCard(
-                      title: 'Low stock',
+                      title: context.tr(en: 'Low stock', sk: 'Málo zásob'),
                       value: lowStock.toString(),
-                      subtitle: 'Needs attention',
+                      subtitle: context.tr(
+                        en: 'Needs attention',
+                        sk: 'Treba doplniť',
+                      ),
                       icon: Icons.warning_amber_rounded,
                       onTap: widget.onOpenPantry,
                     ),
                     _MetricCard(
-                      title: 'To buy',
+                      title: context.tr(en: 'Opened', sk: 'Otvorené'),
+                      value: openedItems.length.toString(),
+                      subtitle: context.tr(
+                        en: 'Already opened',
+                        sk: 'Už otvorené',
+                      ),
+                      icon: Icons.inventory_2_outlined,
+                      onTap: widget.onOpenPantry,
+                    ),
+                    _MetricCard(
+                      title: context.tr(en: 'To buy', sk: 'Kúpiť'),
                       value: toBuy.toString(),
-                      subtitle: 'Active shopping items',
+                      subtitle: context.tr(
+                        en: 'Active shopping items',
+                        sk: 'Aktívne položky na nákup',
+                      ),
                       icon: Icons.shopping_cart_outlined,
                       onTap: widget.onOpenShoppingList,
                     ),
                     _MetricCard(
-                      title: 'Recipes',
+                      title: context.tr(en: 'Recipes', sk: 'Recepty'),
                       value: data.recipes.length.toString(),
-                      subtitle: 'Available to compare',
+                      subtitle: context.tr(
+                        en: 'Available to compare',
+                        sk: 'Dostupné na porovnanie',
+                      ),
                       icon: Icons.menu_book_outlined,
                       onTap: widget.onOpenRecipes,
                     ),
@@ -324,7 +388,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 const SizedBox(height: 18),
                 _SectionCard(
-                  title: 'Quick actions',
+                  title: context.tr(en: 'Quick actions', sk: 'Rýchle akcie'),
                   child: Wrap(
                     spacing: 10,
                     runSpacing: 10,
@@ -332,54 +396,91 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       FilledButton.tonalIcon(
                         onPressed: widget.onOpenPantry,
                         icon: const Icon(Icons.kitchen_outlined),
-                        label: const Text('Open pantry'),
+                        label: Text(
+                          context.tr(en: 'Open pantry', sk: 'Otvoriť špajzu'),
+                        ),
                       ),
                       FilledButton.tonalIcon(
                         onPressed: widget.onOpenShoppingList,
                         icon: const Icon(Icons.shopping_cart_outlined),
-                        label: const Text('Shopping list'),
+                        label: Text(
+                          context.tr(en: 'Shopping list', sk: 'Nákupný zoznam'),
+                        ),
                       ),
                       FilledButton.tonalIcon(
                         onPressed: widget.onOpenRecipes,
                         icon: const Icon(Icons.menu_book_outlined),
-                        label: const Text('Recipes'),
+                        label: Text(context.tr(en: 'Recipes', sk: 'Recepty')),
                       ),
                       FilledButton.tonalIcon(
                         onPressed: _openStaples,
                         icon: const Icon(Icons.favorite_border_rounded),
-                        label: const Text('Staple foods'),
+                        label: Text(
+                          context.tr(
+                            en: 'Staple foods',
+                            sk: 'Základné potraviny',
+                          ),
+                        ),
                       ),
                       FilledButton.tonalIcon(
                         onPressed: _openMealPlan,
                         icon: const Icon(Icons.event_note_outlined),
-                        label: const Text('Meal plan'),
+                        label: Text(
+                          context.tr(en: 'Meal plan', sk: 'Jedálniček'),
+                        ),
+                      ),
+                      FilledButton.tonalIcon(
+                        onPressed: _openQuickCommand,
+                        icon: const Icon(Icons.mic_none_rounded),
+                        label: Text(
+                          context.tr(en: 'Quick command', sk: 'Rýchly príkaz'),
+                        ),
                       ),
                       FilledButton.tonalIcon(
                         onPressed: _openPreferences,
                         icon: const Icon(Icons.tune_rounded),
-                        label: const Text('Preferences'),
+                        label: Text(
+                          context.tr(en: 'Preferences', sk: 'Preferencie'),
+                        ),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 14),
                 _SectionCard(
-                  title: 'Safe for you',
+                  title: context.tr(
+                    en: 'Safe for you',
+                    sk: 'Bezpečné pre teba',
+                  ),
                   trailing: TextButton(
                     onPressed: hasSafetyPreferences
                         ? widget.onOpenSafeRecipes
                         : _openPreferences,
                     child: Text(
-                      hasSafetyPreferences ? 'Open recipes' : 'Set preferences',
+                      hasSafetyPreferences
+                          ? context.tr(
+                              en: 'Open recipes',
+                              sk: 'Otvoriť recepty',
+                            )
+                          : context.tr(
+                              en: 'Set preferences',
+                              sk: 'Nastaviť preferencie',
+                            ),
                     ),
                   ),
                   child: !hasSafetyPreferences
-                      ? const Text(
-                          'Add allergies or intolerances in Preferences to get personalized safe recipe recommendations.',
+                      ? Text(
+                          context.tr(
+                            en: 'Add allergies or intolerances in Preferences to get personalized safe recipe recommendations.',
+                            sk: 'Pridaj alergie alebo intolerancie v Preferenciách a získaj osobné bezpečné odporúčania receptov.',
+                          ),
                         )
                       : safeRecommendedRecipes.isEmpty
-                      ? const Text(
-                          'No safe recipe recommendations yet. Try adding more recipes or updating your pantry.',
+                      ? Text(
+                          context.tr(
+                            en: 'No safe recipe recommendations yet. Try adding more recipes or updating your pantry.',
+                            sk: 'Zatiaľ nemáme bezpečné odporúčania receptov. Skús pridať viac receptov alebo upraviť zásoby.',
+                          ),
                         )
                       : Column(
                           children: safeRecommendedRecipes.map((recipe) {
@@ -388,11 +489,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               data.pantryItems,
                             );
                             return _DashboardRow(
-                              title: recipe.name,
+                              title: localizedRecipeName(context, recipe),
                               subtitle:
-                                  '${recipeMatch.available} available • ${recipeMatch.partial} partial • ${recipeMatch.missing} missing',
+                                  '${recipeMatch.available} ${context.tr(en: 'available', sk: 'dostupné')} • ${recipeMatch.partial} ${context.tr(en: 'partial', sk: 'čiastočne')} • ${recipeMatch.missing} ${context.tr(en: 'missing', sk: 'chýba')}',
                               onTap: () => widget.onOpenRecipe(recipe.id),
-                              actionLabel: 'Cook now',
+                              actionLabel: context.tr(
+                                en: 'Cook now',
+                                sk: 'Variť teraz',
+                              ),
                               onActionTap: () => widget.onOpenRecipe(recipe.id),
                             );
                           }).toList(),
@@ -400,22 +504,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 const SizedBox(height: 14),
                 _SectionCard(
-                  title: 'Avoid for now',
+                  title: context.tr(en: 'Avoid for now', sk: 'Zatiaľ sa vyhni'),
                   trailing: TextButton(
                     onPressed: hasSafetyPreferences
                         ? widget.onOpenRecipes
                         : _openPreferences,
                     child: Text(
-                      hasSafetyPreferences ? 'Open recipes' : 'Set preferences',
+                      hasSafetyPreferences
+                          ? context.tr(
+                              en: 'Open recipes',
+                              sk: 'Otvoriť recepty',
+                            )
+                          : context.tr(
+                              en: 'Set preferences',
+                              sk: 'Nastaviť preferencie',
+                            ),
                     ),
                   ),
                   child: !hasSafetyPreferences
-                      ? const Text(
-                          'Add allergies or intolerances in Preferences to see which recipes currently conflict with your needs.',
+                      ? Text(
+                          context.tr(
+                            en: 'Add allergies or intolerances in Preferences to see which recipes currently conflict with your needs.',
+                            sk: 'Pridaj alergie alebo intolerancie v Preferenciách a uvidíš, ktoré recepty s nimi kolidujú.',
+                          ),
                         )
                       : avoidedRecipes.isEmpty
-                      ? const Text(
-                          'Nothing currently conflicts with your saved allergies or intolerances.',
+                      ? Text(
+                          context.tr(
+                            en: 'Nothing currently conflicts with your saved allergies or intolerances.',
+                            sk: 'Momentálne nič nekoliduje s tvojimi uloženými alergiami alebo intoleranciami.',
+                          ),
                         )
                       : Column(
                           children: avoidedRecipes.map((recipe) {
@@ -424,10 +542,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               data.preferences,
                             );
                             final warningLabel = warning == null
-                                ? 'Potential conflict'
-                                : '${_warningTypeLabel(warning.type)}: contains ${warning.matchedSignals.join(', ')}';
+                                ? context.tr(
+                                    en: 'Potential conflict',
+                                    sk: 'Možný konflikt',
+                                  )
+                                : '${_warningTypeLabel(context, warning.type)}: ${context.tr(en: 'contains', sk: 'obsahuje')} ${warning.matchedSignals.join(', ')}';
                             return _DashboardRow(
-                              title: recipe.name,
+                              title: localizedRecipeName(context, recipe),
                               subtitle: warningLabel,
                               onTap: () => widget.onOpenRecipe(recipe.id),
                             );
@@ -436,51 +557,123 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 const SizedBox(height: 14),
                 _SectionCard(
-                  title: 'Use soon',
+                  title: context.tr(en: 'Opened items', sk: 'Otvorené položky'),
                   trailing: TextButton(
                     onPressed: widget.onOpenPantry,
-                    child: const Text('Open pantry'),
+                    child: Text(
+                      context.tr(en: 'Open pantry', sk: 'Otvoriť špajzu'),
+                    ),
                   ),
-                  child: expiringItems.isEmpty
-                      ? const Text('Nothing is close to expiration right now.')
+                  child: openedItems.isEmpty
+                      ? Text(
+                          context.tr(
+                            en: 'No opened pantry items right now.',
+                            sk: 'Momentálne nemáš žiadne otvorené potraviny.',
+                          ),
+                        )
                       : Column(
-                          children: expiringItems.take(4).map((item) {
+                          children: openedItems.take(4).map((item) {
                             return _DashboardRow(
-                              title: item.name,
+                              title: localizedIngredientDisplayName(
+                                context,
+                                item.name,
+                              ),
                               subtitle:
-                                  '${_expiryLabel(item.expirationDate)} • ${_formatQuantity(item.quantity)} ${item.unit}',
+                                  '${context.tr(en: 'Opened', sk: 'Otvorené')} ${_formatDate(item.openedAt!)} • ${_formatQuantity(item.quantity)} ${item.unit}',
                             );
                           }).toList(),
                         ),
                 ),
                 const SizedBox(height: 14),
                 _SectionCard(
-                  title: 'Low stock items',
+                  title: context.tr(en: 'Use soon', sk: 'Použi čoskoro'),
                   trailing: TextButton(
                     onPressed: widget.onOpenPantry,
-                    child: const Text('Open pantry'),
+                    child: Text(
+                      context.tr(en: 'Open pantry', sk: 'Otvoriť špajzu'),
+                    ),
+                  ),
+                  child: useSoonItems.isEmpty
+                      ? Text(
+                          context.tr(
+                            en: 'Nothing urgent to use right now.',
+                            sk: 'Momentálne netreba nič súrne použiť.',
+                          ),
+                        )
+                      : Column(
+                          children: useSoonItems.take(4).map((item) {
+                            final useSoonDetails = <String>[];
+                            if (item.openedAt != null) {
+                              useSoonDetails.add(
+                                '${context.tr(en: 'Opened', sk: 'Otvorené')} ${_formatDate(item.openedAt!)}',
+                              );
+                            }
+                            if (item.expirationDate != null) {
+                              useSoonDetails.add(
+                                _expiryLabel(context, item.expirationDate),
+                              );
+                            }
+                            useSoonDetails.add(
+                              '${_formatQuantity(item.quantity)} ${item.unit}',
+                            );
+                            return _DashboardRow(
+                              title: localizedIngredientDisplayName(
+                                context,
+                                item.name,
+                              ),
+                              subtitle: useSoonDetails.join(' • '),
+                            );
+                          }).toList(),
+                        ),
+                ),
+                const SizedBox(height: 14),
+                _SectionCard(
+                  title: context.tr(
+                    en: 'Low stock items',
+                    sk: 'Položky s nízkou zásobou',
+                  ),
+                  trailing: TextButton(
+                    onPressed: widget.onOpenPantry,
+                    child: Text(
+                      context.tr(en: 'Open pantry', sk: 'Otvoriť špajzu'),
+                    ),
                   ),
                   child: lowStockItems.isEmpty
-                      ? const Text('No low stock items at the moment.')
+                      ? Text(
+                          context.tr(
+                            en: 'No low stock items at the moment.',
+                            sk: 'Momentálne nie sú žiadne položky s nízkou zásobou.',
+                          ),
+                        )
                       : Column(
                           children: lowStockItems.take(4).map((item) {
                             return _DashboardRow(
-                              title: item.name,
+                              title: localizedIngredientDisplayName(
+                                context,
+                                item.name,
+                              ),
                               subtitle:
-                                  '${_formatQuantity(item.quantity)} ${item.unit} left • limit ${_formatQuantity(item.lowStockThreshold!)} ${item.unit}',
+                                  '${_formatQuantity(item.quantity)} ${item.unit} ${context.tr(en: 'left', sk: 'zostáva')} • ${context.tr(en: 'limit', sk: 'limit')} ${_formatQuantity(item.lowStockThreshold!)} ${item.unit}',
                             );
                           }).toList(),
                         ),
                 ),
                 const SizedBox(height: 14),
                 _SectionCard(
-                  title: 'Cook again',
+                  title: context.tr(en: 'Cook again', sk: 'Uvar znova'),
                   trailing: TextButton(
                     onPressed: widget.onOpenRecipes,
-                    child: const Text('Open recipes'),
+                    child: Text(
+                      context.tr(en: 'Open recipes', sk: 'Otvoriť recepty'),
+                    ),
                   ),
                   child: favoriteRecipes.isEmpty
-                      ? const Text('No favorite recipes yet.')
+                      ? Text(
+                          context.tr(
+                            en: 'No favorite recipes yet.',
+                            sk: 'Zatiaľ nemáš obľúbené recepty.',
+                          ),
+                        )
                       : Column(
                           children: favoriteRecipes.map((recipe) {
                             final recipeMatch = _matchRecipeSummary(
@@ -488,11 +681,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               data.pantryItems,
                             );
                             return _DashboardRow(
-                              title: recipe.name,
+                              title: localizedRecipeName(context, recipe),
                               subtitle:
-                                  '${recipeMatch.available} available • ${recipeMatch.partial} partial • ${recipeMatch.missing} missing',
+                                  '${recipeMatch.available} ${context.tr(en: 'available', sk: 'dostupné')} • ${recipeMatch.partial} ${context.tr(en: 'partial', sk: 'čiastočne')} • ${recipeMatch.missing} ${context.tr(en: 'missing', sk: 'chýba')}',
                               onTap: () => widget.onOpenRecipe(recipe.id),
-                              actionLabel: 'Cook now',
+                              actionLabel: context.tr(
+                                en: 'Cook now',
+                                sk: 'Variť teraz',
+                              ),
                               onActionTap: () => widget.onOpenRecipe(recipe.id),
                             );
                           }).toList(),
@@ -500,57 +696,102 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 const SizedBox(height: 14),
                 _SectionCard(
-                  title: 'Staples missing',
+                  title: context.tr(
+                    en: 'Staples missing',
+                    sk: 'Chýbajúce základy',
+                  ),
                   trailing: TextButton(
                     onPressed: _openStaples,
-                    child: const Text('Open staples'),
+                    child: Text(
+                      context.tr(en: 'Open staples', sk: 'Otvoriť základy'),
+                    ),
                   ),
                   child: missingStaples.isEmpty
-                      ? const Text('All staple foods are covered right now.')
+                      ? Text(
+                          context.tr(
+                            en: 'All staple foods are covered right now.',
+                            sk: 'Všetky základné potraviny sú momentálne pokryté.',
+                          ),
+                        )
                       : Column(
                           children: missingStaples.take(4).map((gap) {
                             return _DashboardRow(
                               title: gap.staple.name,
                               subtitle:
-                                  'Missing ${_formatQuantity(gap.missingQuantity)} ${gap.staple.unit} to reach target ${_formatQuantity(gap.staple.quantity)} ${gap.staple.unit}',
+                                  '${context.tr(en: 'Missing', sk: 'Chýba')} ${_formatQuantity(gap.missingQuantity)} ${gap.staple.unit} ${context.tr(en: 'to reach target', sk: 'do cieľa')} ${_formatQuantity(gap.staple.quantity)} ${gap.staple.unit}',
                             );
                           }).toList(),
                         ),
                 ),
                 const SizedBox(height: 14),
                 _SectionCard(
-                  title: 'Shopping focus',
+                  title: context.tr(
+                    en: 'Shopping focus',
+                    sk: 'Nákupné priority',
+                  ),
                   trailing: TextButton(
                     onPressed: widget.onOpenShoppingList,
-                    child: const Text('Open list'),
+                    child: Text(
+                      context.tr(en: 'Open list', sk: 'Otvoriť zoznam'),
+                    ),
                   ),
                   child: latestToBuy.isEmpty
-                      ? const Text('Shopping list is clear.')
+                      ? Text(
+                          context.tr(
+                            en: 'Shopping list is clear.',
+                            sk: 'Nákupný zoznam je čistý.',
+                          ),
+                        )
                       : Column(
                           children: latestToBuy.map((item) {
                             return _DashboardRow(
-                              title: item.name,
+                              title: localizedIngredientDisplayName(
+                                context,
+                                item.name,
+                              ),
                               subtitle:
-                                  '${_formatQuantity(item.quantity)} ${item.unit} • ${_shoppingSourceLabel(item.source)}',
+                                  '${_formatQuantity(item.quantity)} ${item.unit} • ${_shoppingSourceLabel(context, item.source)}',
                             );
                           }).toList(),
                         ),
                 ),
                 const SizedBox(height: 14),
                 _SectionCard(
-                  title: 'Upcoming meals',
+                  title: context.tr(
+                    en: 'Upcoming meals',
+                    sk: 'Plánované jedlá',
+                  ),
                   trailing: TextButton(
                     onPressed: _openMealPlan,
-                    child: const Text('Open meal plan'),
+                    child: Text(
+                      context.tr(
+                        en: 'Open meal plan',
+                        sk: 'Otvoriť jedálniček',
+                      ),
+                    ),
                   ),
                   child: upcomingMeals.isEmpty
-                      ? const Text('No meal plan entries yet.')
+                      ? Text(
+                          context.tr(
+                            en: 'No meal plan entries yet.',
+                            sk: 'Zatiaľ nemáš naplánované žiadne jedlá.',
+                          ),
+                        )
                       : Column(
                           children: upcomingMeals.map((entry) {
+                            final matchingRecipe = _findRecipeById(
+                              data.recipes,
+                              entry.recipeId,
+                            );
                             return _DashboardRow(
-                              title: entry.recipeName,
+                              title: matchingRecipe == null
+                                  ? entry.recipeName
+                                  : localizedRecipeName(
+                                      context,
+                                      matchingRecipe,
+                                    ),
                               subtitle:
-                                  '${_formatDate(entry.scheduledFor)} • ${_mealTypeLabel(entry.mealType)}',
+                                  '${_formatDate(entry.scheduledFor)} • ${_mealTypeLabel(context, entry.mealType)} • ${entry.servings} ${context.tr(en: entry.servings == 1 ? 'serving' : 'servings', sk: entry.servings == 1 ? 'porcia' : 'porcie')}',
                               onTap: _openMealPlan,
                             );
                           }).toList(),
@@ -558,7 +799,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 const SizedBox(height: 14),
                 _SectionCard(
-                  title: 'Latest scan',
+                  title: context.tr(en: 'Latest scan', sk: 'Posledný scan'),
                   trailing: recentScan == null
                       ? null
                       : TextButton(
@@ -571,10 +812,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               ),
                             );
                           },
-                          child: const Text('Open history'),
+                          child: Text(
+                            context.tr(
+                              en: 'Open history',
+                              sk: 'Otvoriť históriu',
+                            ),
+                          ),
                         ),
                   child: recentScan == null
-                      ? const Text('No fridge scan yet.')
+                      ? Text(
+                          context.tr(
+                            en: 'No fridge scan yet.',
+                            sk: 'Zatiaľ nemáš žiadny scan chladničky.',
+                          ),
+                        )
                       : Material(
                           color: Colors.transparent,
                           child: InkWell(
@@ -608,7 +859,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       recentScan.analysisError!.isNotEmpty) ...[
                                     const SizedBox(height: 8),
                                     Text(
-                                      'Used fallback detection.',
+                                      context.tr(
+                                        en: 'Used fallback detection.',
+                                        sk: 'Použitá bola náhradná detekcia.',
+                                      ),
                                       style: Theme.of(
                                         context,
                                       ).textTheme.bodySmall,
@@ -951,6 +1205,44 @@ List<Recipe> _avoidedRecipes(
   return avoided;
 }
 
+List<FoodItem> _buildUseSoonItems({
+  required List<FoodItem> pantryItems,
+  required List<FoodItem> openedItems,
+  required List<FoodItem> expiringItems,
+}) {
+  final prioritizedById = <String, FoodItem>{};
+
+  for (final item in openedItems) {
+    prioritizedById[item.id] = item;
+  }
+  for (final item in expiringItems) {
+    prioritizedById.putIfAbsent(item.id, () => item);
+  }
+
+  final useSoonItems = prioritizedById.values.toList()
+    ..sort((a, b) {
+      final aOpened = a.openedAt != null;
+      final bOpened = b.openedAt != null;
+      if (aOpened != bOpened) {
+        return aOpened ? -1 : 1;
+      }
+
+      final aExpiryDays = _daysUntil(a.expirationDate);
+      final bExpiryDays = _daysUntil(b.expirationDate);
+      if (aExpiryDays != bExpiryDays) {
+        return aExpiryDays.compareTo(bExpiryDays);
+      }
+
+      if (a.openedAt != null && b.openedAt != null) {
+        return a.openedAt!.compareTo(b.openedAt!);
+      }
+
+      return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+    });
+
+  return useSoonItems;
+}
+
 _FoodSafetyWarning? _buildRecipeSafetyWarning(
   Recipe recipe,
   UserPreferences? preferences,
@@ -1026,6 +1318,20 @@ List<String> _matchPreferenceSignals({
     }
   }
   return matches.toList()..sort();
+}
+
+Recipe? _findRecipeById(List<Recipe> recipes, String? recipeId) {
+  if (recipeId == null || recipeId.isEmpty) {
+    return null;
+  }
+
+  for (final recipe in recipes) {
+    if (recipe.id == recipeId) {
+      return recipe;
+    }
+  }
+
+  return null;
 }
 
 String _canonicalIngredientKey(String value) {
@@ -1115,12 +1421,15 @@ String _canonicalFoodSignal(String value) {
   }
 }
 
-String _warningTypeLabel(_FoodSafetyWarningType type) {
+String _warningTypeLabel(BuildContext context, _FoodSafetyWarningType type) {
   switch (type) {
     case _FoodSafetyWarningType.allergy:
-      return 'Allergy warning';
+      return context.tr(en: 'Allergy warning', sk: 'Upozornenie na alergiu');
     case _FoodSafetyWarningType.intolerance:
-      return 'Intolerance warning';
+      return context.tr(
+        en: 'Intolerance warning',
+        sk: 'Upozornenie na intoleranciu',
+      );
   }
 }
 
@@ -1265,30 +1574,30 @@ int _daysUntil(DateTime? value) {
   return target.difference(today).inDays;
 }
 
-String _expiryLabel(DateTime? value) {
+String _expiryLabel(BuildContext context, DateTime? value) {
   final days = _daysUntil(value);
   if (days < 0) {
-    return 'Expired';
+    return context.tr(en: 'Expired', sk: 'Po záruke');
   }
   if (days == 0) {
-    return 'Today';
+    return context.tr(en: 'Today', sk: 'Dnes');
   }
   if (days == 1) {
-    return 'Tomorrow';
+    return context.tr(en: 'Tomorrow', sk: 'Zajtra');
   }
-  return 'In $days days';
+  return context.tr(en: 'In $days days', sk: 'O $days dní');
 }
 
-String _shoppingSourceLabel(String source) {
+String _shoppingSourceLabel(BuildContext context, String source) {
   switch (source) {
     case ShoppingListItem.sourceLowStock:
-      return 'Low stock';
+      return context.tr(en: 'Low stock', sk: 'Málo zásob');
     case ShoppingListItem.sourceRecipeMissing:
-      return 'Recipe';
+      return context.tr(en: 'Recipe', sk: 'Recept');
     case ShoppingListItem.sourceMultiple:
-      return 'Multiple';
+      return context.tr(en: 'Multiple', sk: 'Viac zdrojov');
     default:
-      return 'Manual';
+      return context.tr(en: 'Manual', sk: 'Ručne');
   }
 }
 
@@ -1319,12 +1628,12 @@ String _formatDate(DateTime value) {
   return '$day.$month.${local.year}';
 }
 
-String _mealTypeLabel(String value) {
+String _mealTypeLabel(BuildContext context, String value) {
   return switch (value) {
-    'breakfast' => 'Breakfast',
-    'lunch' => 'Lunch',
-    'dinner' => 'Dinner',
-    'snack' => 'Snack',
-    _ => 'Meal',
+    'breakfast' => context.tr(en: 'Breakfast', sk: 'Raňajky'),
+    'lunch' => context.tr(en: 'Lunch', sk: 'Obed'),
+    'dinner' => context.tr(en: 'Dinner', sk: 'Večera'),
+    'snack' => context.tr(en: 'Snack', sk: 'Snack'),
+    _ => context.tr(en: 'Meal', sk: 'Jedlo'),
   };
 }

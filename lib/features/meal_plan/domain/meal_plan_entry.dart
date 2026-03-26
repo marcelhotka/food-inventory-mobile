@@ -4,6 +4,7 @@ class MealPlanEntry {
   final String userId;
   final String? recipeId;
   final String recipeName;
+  final int servings;
   final DateTime scheduledFor;
   final String mealType;
   final String? note;
@@ -16,6 +17,7 @@ class MealPlanEntry {
     required this.userId,
     required this.recipeId,
     required this.recipeName,
+    required this.servings,
     required this.scheduledFor,
     required this.mealType,
     required this.note,
@@ -30,6 +32,7 @@ class MealPlanEntry {
       userId: map['user_id'] as String,
       recipeId: map['recipe_id'] as String?,
       recipeName: map['recipe_name'] as String,
+      servings: (map['servings'] as num?)?.toInt() ?? 2,
       scheduledFor: DateTime.parse(map['scheduled_for'] as String),
       mealType: (map['meal_type'] as String?) ?? 'dinner',
       note: map['note'] as String?,
@@ -45,6 +48,7 @@ class MealPlanEntry {
     String? recipeId,
     bool clearRecipeId = false,
     String? recipeName,
+    int? servings,
     DateTime? scheduledFor,
     String? mealType,
     String? note,
@@ -58,6 +62,7 @@ class MealPlanEntry {
       userId: userId ?? this.userId,
       recipeId: clearRecipeId ? null : (recipeId ?? this.recipeId),
       recipeName: recipeName ?? this.recipeName,
+      servings: servings ?? this.servings,
       scheduledFor: scheduledFor ?? this.scheduledFor,
       mealType: mealType ?? this.mealType,
       note: clearNote ? null : (note ?? this.note),

@@ -5,11 +5,13 @@ import 'recipe_ingredient.dart';
 class MatchedIngredient {
   final RecipeIngredient ingredient;
   final List<FoodItem> matchedItems;
+  final double requiredQuantityInRecipeUnit;
   final double availableQuantityInRecipeUnit;
 
   const MatchedIngredient({
     required this.ingredient,
     required this.matchedItems,
+    required this.requiredQuantityInRecipeUnit,
     required this.availableQuantityInRecipeUnit,
   });
 }
@@ -17,12 +19,14 @@ class MatchedIngredient {
 class PartialIngredient {
   final RecipeIngredient ingredient;
   final List<FoodItem> matchedItems;
+  final double requiredQuantityInRecipeUnit;
   final double availableQuantityInRecipeUnit;
   final double missingQuantityInRecipeUnit;
 
   const PartialIngredient({
     required this.ingredient,
     required this.matchedItems,
+    required this.requiredQuantityInRecipeUnit,
     required this.availableQuantityInRecipeUnit,
     required this.missingQuantityInRecipeUnit,
   });
@@ -30,22 +34,26 @@ class PartialIngredient {
 
 class MissingIngredient {
   final RecipeIngredient ingredient;
+  final double requiredQuantityInRecipeUnit;
   final double missingQuantityInRecipeUnit;
 
   const MissingIngredient({
     required this.ingredient,
+    required this.requiredQuantityInRecipeUnit,
     required this.missingQuantityInRecipeUnit,
   });
 }
 
 class RecipeMatchResult {
   final Recipe recipe;
+  final int selectedServings;
   final List<MatchedIngredient> available;
   final List<PartialIngredient> partial;
   final List<MissingIngredient> missing;
 
   const RecipeMatchResult({
     required this.recipe,
+    required this.selectedServings,
     required this.available,
     required this.partial,
     required this.missing,

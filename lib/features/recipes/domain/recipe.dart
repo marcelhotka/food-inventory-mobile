@@ -6,6 +6,8 @@ class Recipe {
   final String? createdByUserId;
   final String name;
   final String description;
+  final int totalMinutes;
+  final int defaultServings;
   final bool isPublic;
   final bool isFavorite;
   final List<RecipeIngredient> ingredients;
@@ -18,6 +20,8 @@ class Recipe {
     required this.createdByUserId,
     required this.name,
     required this.description,
+    required this.totalMinutes,
+    required this.defaultServings,
     required this.isPublic,
     required this.isFavorite,
     required this.ingredients,
@@ -40,6 +44,8 @@ class Recipe {
       createdByUserId: map['created_by_user_id'] as String?,
       name: map['name'] as String,
       description: (map['description'] as String?) ?? '',
+      totalMinutes: (map['total_minutes'] as num?)?.toInt() ?? 30,
+      defaultServings: (map['default_servings'] as num?)?.toInt() ?? 2,
       isPublic: (map['is_public'] as bool?) ?? false,
       isFavorite: (map['is_favorite'] as bool?) ?? false,
       ingredients: ingredients,
@@ -58,6 +64,8 @@ class Recipe {
     String? createdByUserId,
     String? name,
     String? description,
+    int? totalMinutes,
+    int? defaultServings,
     bool? isPublic,
     bool? isFavorite,
     List<RecipeIngredient>? ingredients,
@@ -70,6 +78,8 @@ class Recipe {
       createdByUserId: createdByUserId ?? this.createdByUserId,
       name: name ?? this.name,
       description: description ?? this.description,
+      totalMinutes: totalMinutes ?? this.totalMinutes,
+      defaultServings: defaultServings ?? this.defaultServings,
       isPublic: isPublic ?? this.isPublic,
       isFavorite: isFavorite ?? this.isFavorite,
       ingredients: ingredients ?? this.ingredients,
