@@ -12,6 +12,7 @@ import '../../recipes/data/recipes_repository.dart';
 import '../../recipes/domain/recipe.dart';
 import '../../recipes/domain/recipe_ingredient.dart';
 import '../../recipes/presentation/recipe_display_text.dart';
+import 'notifications_screen.dart';
 import '../../shopping_list/data/shopping_list_repository.dart';
 import '../../shopping_list/domain/shopping_list_item.dart';
 import '../../staples/data/staple_food_repository.dart';
@@ -30,6 +31,7 @@ class DashboardScreen extends StatefulWidget {
   final int pantryRefreshToken;
   final int shoppingListRefreshToken;
   final VoidCallback onOpenPantry;
+  final VoidCallback onOpenExpiringSoon;
   final VoidCallback onOpenShoppingList;
   final VoidCallback onOpenRecipes;
   final VoidCallback onOpenSafeRecipes;
@@ -45,6 +47,7 @@ class DashboardScreen extends StatefulWidget {
     required this.pantryRefreshToken,
     required this.shoppingListRefreshToken,
     required this.onOpenPantry,
+    required this.onOpenExpiringSoon,
     required this.onOpenShoppingList,
     required this.onOpenRecipes,
     required this.onOpenSafeRecipes,
@@ -159,6 +162,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
     await _reload();
   }
 
+  Future<void> _openNotifications() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => NotificationsScreen(
+          household: widget.household,
+          onOpenPantry: widget.onOpenPantry,
+          onOpenShoppingList: widget.onOpenShoppingList,
+          onOpenMealPlan: _openMealPlan,
+        ),
+      ),
+    );
+
+    if (!mounted) {
+      return;
+    }
+    await _reload();
+  }
+
   Future<_DashboardData> _loadDashboard() async {
     final results = await Future.wait<dynamic>([
       _foodItemsRepository.getFoodItems(),
@@ -203,6 +224,62 @@ class _DashboardScreenState extends State<DashboardScreen> {
       appBar: AppBar(
         title: Text(context.tr(en: 'Dashboard', sk: 'Prehľad')),
         actions: [
+          FutureBuilder<_DashboardData>(
+            future: _dashboardFuture,
+            builder: (context, snapshot) {
+              final data = snapshot.data;
+              final count = data == null
+                  ? 0
+                  : data.pantryItems
+                          .where((item) => _daysUntil(item.expirationDate) <= 3)
+                          .length +
+                      data.shoppingItems
+                          .where((item) => !item.isBought)
+                          .take(6)
+                          .length +
+                      data.mealPlanEntries
+                          .where((entry) => _daysUntil(entry.scheduledFor) <= 1)
+                          .length +
+                      data.pantryItems
+                          .where((item) => item.openedAt != null)
+                          .length +
+                      data.pantryItems.where(_isLowStock).length;
+
+              return IconButton(
+                onPressed: _openNotifications,
+                tooltip: context.tr(en: 'Notifications', sk: 'Upozornenia'),
+                icon: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    const Icon(Icons.notifications_none_rounded),
+                    if (count > 0)
+                      Positioned(
+                        right: -4,
+                        top: -4,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 1,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE07A5F),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            count > 9 ? '9+' : '$count',
+                            style: Theme.of(context).textTheme.labelSmall
+                                ?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            },
+          ),
           IconButton(
             onPressed: _openPreferences,
             icon: const Icon(Icons.tune_rounded),
@@ -342,7 +419,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         sk: 'Najbližšie 3 dni',
                       ),
                       icon: Icons.schedule_rounded,
-                      onTap: widget.onOpenPantry,
+                      onTap: widget.onOpenExpiringSoon,
                     ),
                     _MetricCard(
                       title: context.tr(en: 'Low stock', sk: 'Málo zásob'),
@@ -573,13 +650,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         )
                       : Column(
                           children: openedItems.take(4).map((item) {
+                            final openedLabel = _openedUseSoonLabel(
+                              context,
+                              item,
+                            );
                             return _DashboardRow(
                               title: localizedIngredientDisplayName(
                                 context,
                                 item.name,
                               ),
                               subtitle:
-                                  '${context.tr(en: 'Opened', sk: 'Otvorené')} ${_formatDate(item.openedAt!)} • ${_formatQuantity(item.quantity)} ${item.unit}',
+                                  '${context.tr(en: 'Opened', sk: 'Otvorené')} ${_formatDate(item.openedAt!)}${openedLabel == null ? '' : ' • $openedLabel'} • ${_formatQuantity(item.quantity)} ${item.unit}',
                             );
                           }).toList(),
                         ),
@@ -607,6 +688,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               useSoonDetails.add(
                                 '${context.tr(en: 'Opened', sk: 'Otvorené')} ${_formatDate(item.openedAt!)}',
                               );
+                              final openedLabel = _openedUseSoonLabel(
+                                context,
+                                item,
+                              );
+                              if (openedLabel != null) {
+                                useSoonDetails.add(openedLabel);
+                              }
                             }
                             if (item.expirationDate != null) {
                               useSoonDetails.add(
@@ -1227,6 +1315,12 @@ List<FoodItem> _buildUseSoonItems({
         return aOpened ? -1 : 1;
       }
 
+      final openedDaysLeftComparison =
+          _openedDaysLeft(a).compareTo(_openedDaysLeft(b));
+      if (openedDaysLeftComparison != 0) {
+        return openedDaysLeftComparison;
+      }
+
       final aExpiryDays = _daysUntil(a.expirationDate);
       final bExpiryDays = _daysUntil(b.expirationDate);
       if (aExpiryDays != bExpiryDays) {
@@ -1241,6 +1335,74 @@ List<FoodItem> _buildUseSoonItems({
     });
 
   return useSoonItems;
+}
+
+int _openedUseWithinDays(FoodItem item) {
+  switch (item.category) {
+    case 'dairy':
+      return 3;
+    case 'meat':
+      return 2;
+    case 'produce':
+      return 3;
+    case 'canned':
+      return 4;
+    case 'frozen':
+      return 2;
+    case 'beverages':
+      return 5;
+    case 'grains':
+      return 7;
+    default:
+      return 3;
+  }
+}
+
+int _daysSinceOpened(DateTime? value) {
+  if (value == null) {
+    return 0;
+  }
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final opened = DateTime(value.year, value.month, value.day);
+  return today.difference(opened).inDays;
+}
+
+int _openedDaysLeft(FoodItem item) {
+  if (item.openedAt == null) {
+    return 9999;
+  }
+  return _openedUseWithinDays(item) - _daysSinceOpened(item.openedAt);
+}
+
+String? _openedUseSoonLabel(BuildContext context, FoodItem item) {
+  if (item.openedAt == null) {
+    return null;
+  }
+
+  final daysLeft = _openedDaysLeft(item);
+  if (daysLeft < 0) {
+    return context.tr(
+      en: 'Use as soon as possible',
+      sk: 'Použi čo najskôr',
+    );
+  }
+  if (daysLeft == 0) {
+    return context.tr(
+      en: 'Use today after opening',
+      sk: 'Použi dnes po otvorení',
+    );
+  }
+  if (daysLeft == 1) {
+    return context.tr(
+      en: 'Use within 1 day',
+      sk: 'Použi do 1 dňa',
+    );
+  }
+  return context.tr(
+    en: 'Use within $daysLeft days',
+    sk: 'Použi do $daysLeft dní',
+  );
 }
 
 _FoodSafetyWarning? _buildRecipeSafetyWarning(
@@ -1368,13 +1530,21 @@ String _canonicalIngredientKey(String value) {
 String _canonicalFoodSignal(String value) {
   switch (value) {
     case 'lactose':
+    case 'laktoza':
+    case 'laktozu':
+    case 'laktozy':
     case 'dairy':
+    case 'mliecne':
+    case 'mliecnych':
+    case 'mliecna':
     case 'milk':
     case 'cheese':
     case 'mlieko':
     case 'syr':
       return 'lactose';
     case 'gluten':
+    case 'lepok':
+    case 'lepku':
     case 'wheat':
     case 'pasta':
     case 'bread':
@@ -1386,6 +1556,7 @@ String _canonicalFoodSignal(String value) {
     case 'eggs':
     case 'vajce':
     case 'vajcia':
+    case 'vajec':
       return 'eggs';
     case 'peanut':
     case 'peanuts':

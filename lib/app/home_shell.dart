@@ -28,6 +28,7 @@ class _HomeShellState extends State<HomeShell> {
   int _shoppingListRefreshToken = 0;
   int _recipesRefreshToken = 0;
   int _mealPlanRefreshToken = 0;
+  int _pantryExpiringSoonOpenToken = 0;
   String? _focusedRecipeId;
   RecipeFilter _recipesInitialFilter = RecipeFilter.all;
 
@@ -54,6 +55,15 @@ class _HomeShellState extends State<HomeShell> {
       _selectedIndex = 3;
       _focusedRecipeId = null;
       _recipesInitialFilter = RecipeFilter.safeForMe;
+    });
+  }
+
+  void _openPantryExpiringSoon() {
+    setState(() {
+      _selectedIndex = 1;
+      _pantryExpiringSoonOpenToken++;
+      _focusedRecipeId = null;
+      _recipesInitialFilter = RecipeFilter.all;
     });
   }
 
@@ -84,6 +94,7 @@ class _HomeShellState extends State<HomeShell> {
         pantryRefreshToken: _pantryRefreshToken,
         shoppingListRefreshToken: _shoppingListRefreshToken,
         onOpenPantry: () => _openTab(1),
+        onOpenExpiringSoon: _openPantryExpiringSoon,
         onOpenShoppingList: () => _openTab(2),
         onOpenRecipes: () => _openTab(3),
         onOpenSafeRecipes: _openSafeRecipes,
@@ -99,6 +110,7 @@ class _HomeShellState extends State<HomeShell> {
         onPantryChanged: _notifyPantryChanged,
         onShoppingListChanged: _notifyShoppingListChanged,
         refreshToken: _pantryRefreshToken,
+        expiringSoonOpenToken: _pantryExpiringSoonOpenToken,
       ),
       ShoppingListScreen(
         authRepository: widget.authRepository,

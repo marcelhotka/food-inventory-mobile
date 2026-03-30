@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../app/localization/app_locale.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/app_feedback.dart';
 import '../../food_items/data/food_items_repository.dart';
@@ -60,10 +61,22 @@ class _StapleFoodsScreenState extends State<StapleFoodsScreen> {
       await _stapleRepository.addStapleFood(created);
       await _reload();
       if (!mounted) return;
-      showSuccessFeedback(context, 'Staple food added.');
+      showSuccessFeedback(
+        context,
+        context.tr(
+          en: 'Staple food added.',
+          sk: 'Základná potravina bola pridaná.',
+        ),
+      );
     } catch (_) {
       if (!mounted) return;
-      showErrorFeedback(context, 'Failed to add staple food.');
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Failed to add staple food.',
+          sk: 'Základnú potravinu sa nepodarilo pridať.',
+        ),
+      );
     }
   }
 
@@ -85,10 +98,22 @@ class _StapleFoodsScreenState extends State<StapleFoodsScreen> {
       await _stapleRepository.editStapleFood(updated);
       await _reload();
       if (!mounted) return;
-      showSuccessFeedback(context, 'Staple food updated.');
+      showSuccessFeedback(
+        context,
+        context.tr(
+          en: 'Staple food updated.',
+          sk: 'Základná potravina bola upravená.',
+        ),
+      );
     } catch (_) {
       if (!mounted) return;
-      showErrorFeedback(context, 'Failed to update staple food.');
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Failed to update staple food.',
+          sk: 'Základnú potravinu sa nepodarilo upraviť.',
+        ),
+      );
     }
   }
 
@@ -96,16 +121,23 @@ class _StapleFoodsScreenState extends State<StapleFoodsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete staple food'),
-        content: Text('Do you want to delete "${item.name}"?'),
+        title: Text(
+          context.tr(en: 'Delete staple food', sk: 'Zmazať základnú potravinu'),
+        ),
+        content: Text(
+          context.tr(
+            en: 'Do you want to delete "${item.name}"?',
+            sk: 'Chceš zmazať "${item.name}"?',
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(context.tr(en: 'Cancel', sk: 'Zrušiť')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
+            child: Text(context.tr(en: 'Delete', sk: 'Zmazať')),
           ),
         ],
       ),
@@ -119,10 +151,22 @@ class _StapleFoodsScreenState extends State<StapleFoodsScreen> {
       await _stapleRepository.removeStapleFood(item.id);
       await _reload();
       if (!mounted) return;
-      showSuccessFeedback(context, 'Staple food deleted.');
+      showSuccessFeedback(
+        context,
+        context.tr(
+          en: 'Staple food deleted.',
+          sk: 'Základná potravina bola zmazaná.',
+        ),
+      );
     } catch (_) {
       if (!mounted) return;
-      showErrorFeedback(context, 'Failed to delete staple food.');
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Failed to delete staple food.',
+          sk: 'Základnú potravinu sa nepodarilo zmazať.',
+        ),
+      );
     }
   }
 
@@ -131,7 +175,13 @@ class _StapleFoodsScreenState extends State<StapleFoodsScreen> {
   ) async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) {
-      showErrorFeedback(context, 'No signed-in user.');
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'No signed-in user.',
+          sk: 'Nie je prihlásený žiadny používateľ.',
+        ),
+      );
       return;
     }
 
@@ -159,19 +209,31 @@ class _StapleFoodsScreenState extends State<StapleFoodsScreen> {
 
       if (!mounted) return;
       if (changedCount == 0) {
-        showSuccessFeedback(context, 'Staple foods are already covered.');
+        showSuccessFeedback(
+          context,
+          context.tr(
+            en: 'Staple foods are already covered.',
+            sk: 'Základné potraviny sú už pokryté.',
+          ),
+        );
       } else {
         widget.onShoppingListChanged?.call();
         showSuccessFeedback(
           context,
-          '$changedCount shopping item${changedCount == 1 ? '' : 's'} updated from staple foods.',
+          context.tr(
+            en: '$changedCount shopping item${changedCount == 1 ? '' : 's'} updated from staple foods.',
+            sk: '$changedCount nákupn${changedCount == 1 ? 'á položka bola upravená' : 'é položky boli upravené'} podľa základných potravín.',
+          ),
         );
       }
     } catch (_) {
       if (!mounted) return;
       showErrorFeedback(
         context,
-        'Failed to update shopping list from staples.',
+        context.tr(
+          en: 'Failed to update shopping list from staples.',
+          sk: 'Nákupný zoznam sa nepodarilo aktualizovať zo základných potravín.',
+        ),
       );
     }
   }
@@ -306,11 +368,15 @@ class _StapleFoodsScreenState extends State<StapleFoodsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Staple foods')),
+      appBar: AppBar(
+        title: Text(context.tr(en: 'Staple foods', sk: 'Základné potraviny')),
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openCreateForm,
         icon: const Icon(Icons.add),
-        label: const Text('Add staple'),
+        label: Text(
+          context.tr(en: 'Add staple', sk: 'Pridať základnú potravinu'),
+        ),
       ),
       body: FutureBuilder<List<StapleFood>>(
         future: _staplesFuture,
@@ -321,7 +387,10 @@ class _StapleFoodsScreenState extends State<StapleFoodsScreen> {
 
           if (snapshot.hasError) {
             return AppErrorState(
-              message: 'Failed to load staple foods.',
+              message: context.tr(
+                en: 'Failed to load staple foods.',
+                sk: 'Nepodarilo sa načítať základné potraviny.',
+              ),
               onRetry: _reload,
             );
           }
@@ -329,7 +398,10 @@ class _StapleFoodsScreenState extends State<StapleFoodsScreen> {
           final items = snapshot.data ?? [];
           if (items.isEmpty) {
             return AppEmptyState(
-              message: 'No staple foods yet.',
+              message: context.tr(
+                en: 'No staple foods yet.',
+                sk: 'Zatiaľ tu nie sú žiadne základné potraviny.',
+              ),
               onRefresh: _reload,
             );
           }
@@ -346,7 +418,10 @@ class _StapleFoodsScreenState extends State<StapleFoodsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Foods your household wants to keep at home regularly.',
+                          context.tr(
+                            en: 'Foods your household wants to keep at home regularly.',
+                            sk: 'Potraviny, ktoré chce vaša domácnosť držať doma pravidelne.',
+                          ),
                           style: Theme.of(context).textTheme.bodyLarge,
                         ),
                         const SizedBox(height: 12),
@@ -355,8 +430,11 @@ class _StapleFoodsScreenState extends State<StapleFoodsScreen> {
                           child: FilledButton.tonal(
                             onPressed: () =>
                                 _addMissingStaplesToShoppingList(items),
-                            child: const Text(
-                              'Add missing staples to shopping list',
+                            child: Text(
+                              context.tr(
+                                en: 'Add missing staples to shopping list',
+                                sk: 'Pridať chýbajúce základné potraviny do nákupného zoznamu',
+                              ),
                             ),
                           ),
                         ),
@@ -378,6 +456,7 @@ class _StapleFoodsScreenState extends State<StapleFoodsScreen> {
                         trailing: IconButton(
                           onPressed: () => _deleteStaple(item),
                           icon: const Icon(Icons.delete_outline),
+                          tooltip: context.tr(en: 'Delete', sk: 'Zmazať'),
                         ),
                       ),
                     ),
@@ -455,14 +534,14 @@ class _StapleFoodsScreenState extends State<StapleFoodsScreen> {
 
   String _categoryLabel(String value) {
     return switch (value) {
-      'produce' => 'Produce',
-      'dairy' => 'Dairy',
-      'meat' => 'Meat',
-      'grains' => 'Grains',
-      'canned' => 'Canned',
-      'frozen' => 'Frozen',
-      'beverages' => 'Beverages',
-      _ => 'Other',
+      'produce' => context.tr(en: 'Produce', sk: 'Ovocie a zelenina'),
+      'dairy' => context.tr(en: 'Dairy', sk: 'Mliečne výrobky'),
+      'meat' => context.tr(en: 'Meat', sk: 'Mäso'),
+      'grains' => context.tr(en: 'Grains', sk: 'Obilniny'),
+      'canned' => context.tr(en: 'Canned', sk: 'Konzervy'),
+      'frozen' => context.tr(en: 'Frozen', sk: 'Mrazené'),
+      'beverages' => context.tr(en: 'Beverages', sk: 'Nápoje'),
+      _ => context.tr(en: 'Other', sk: 'Ostatné'),
     };
   }
 }

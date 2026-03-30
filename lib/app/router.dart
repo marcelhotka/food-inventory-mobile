@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'localization/app_locale.dart';
 import '../core/widgets/app_async_state_widgets.dart';
 import '../features/auth/data/auth_repository.dart';
 import '../features/auth/presentation/auth_screen.dart';
@@ -123,7 +124,10 @@ class _RootScreenState extends State<_RootScreen> {
 
         if (snapshot.hasError) {
           return AppErrorState(
-            message: 'Failed to load household.',
+            message: context.tr(
+              en: 'Failed to load household.',
+              sk: 'Nepodarilo sa načítať domácnosť.',
+            ),
             onRetry: _loadHousehold,
           );
         }
@@ -164,7 +168,10 @@ class _RootScreenState extends State<_RootScreen> {
               }
 
               return AppErrorState(
-                message: 'Failed to load preferences.',
+                message: context.tr(
+                  en: 'Failed to load preferences.',
+                  sk: 'Nepodarilo sa načítať preferencie.',
+                ),
                 onRetry: _loadPreferences,
               );
             }
@@ -220,7 +227,14 @@ class _AnonymousHouseholdBootstrapState
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
           return Scaffold(
-            appBar: AppBar(title: const Text('Preparing your pantry')),
+            appBar: AppBar(
+              title: Text(
+                context.tr(
+                  en: 'Preparing your pantry',
+                  sk: 'Pripravujeme tvoju špajzu',
+                ),
+              ),
+            ),
             body: const Center(child: AppLoadingState()),
           );
         }
@@ -247,7 +261,9 @@ class _ConfigErrorScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Setup needed')),
+      appBar: AppBar(
+        title: Text(context.tr(en: 'Setup needed', sk: 'Treba nastavenie')),
+      ),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -272,8 +288,12 @@ class _UnknownRouteScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Page not found')),
-      body: const Center(child: Text('Unknown route')),
+      appBar: AppBar(
+        title: Text(context.tr(en: 'Page not found', sk: 'Stránka sa nenašla')),
+      ),
+      body: Center(
+        child: Text(context.tr(en: 'Unknown route', sk: 'Neznáma stránka')),
+      ),
     );
   }
 }

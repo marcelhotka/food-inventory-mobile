@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/localization/app_locale.dart';
 import '../../../core/forms/app_input_decoration.dart';
 import '../../../core/widgets/app_feedback.dart';
 import '../../auth/data/auth_repository.dart';
@@ -49,10 +50,19 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen> {
       await widget.repository.createHousehold(_nameController.text.trim());
       await widget.onCreated();
       if (!mounted) return;
-      showSuccessFeedback(context, 'Household created.');
+      showSuccessFeedback(
+        context,
+        context.tr(en: 'Household created.', sk: 'Domácnosť bola vytvorená.'),
+      );
     } catch (_) {
       if (!mounted) return;
-      showErrorFeedback(context, 'Failed to create household.');
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Failed to create household.',
+          sk: 'Domácnosť sa nepodarilo vytvoriť.',
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -64,7 +74,10 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen> {
 
   Future<void> _joinHousehold() async {
     if ((_joinCodeController.text).trim().isEmpty) {
-      showErrorFeedback(context, 'Enter a household code.');
+      showErrorFeedback(
+        context,
+        context.tr(en: 'Enter a household code.', sk: 'Zadaj kód domácnosti.'),
+      );
       return;
     }
 
@@ -76,10 +89,22 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen> {
       await widget.repository.joinHousehold(_joinCodeController.text.trim());
       await widget.onCreated();
       if (!mounted) return;
-      showSuccessFeedback(context, 'Joined household.');
+      showSuccessFeedback(
+        context,
+        context.tr(
+          en: 'Joined household.',
+          sk: 'Pripojenie do domácnosti bolo úspešné.',
+        ),
+      );
     } catch (_) {
       if (!mounted) return;
-      showErrorFeedback(context, 'Failed to join household.');
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Failed to join household.',
+          sk: 'Do domácnosti sa nepodarilo pripojiť.',
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -93,12 +118,14 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Create household'),
+        title: Text(
+          context.tr(en: 'Create household', sk: 'Vytvoriť domácnosť'),
+        ),
         actions: [
           IconButton(
             onPressed: widget.authRepository.signOut,
             icon: const Icon(Icons.logout),
-            tooltip: 'Sign out',
+            tooltip: context.tr(en: 'Sign out', sk: 'Odhlásiť sa'),
           ),
         ],
       ),
@@ -119,8 +146,14 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen> {
                 children: [
                   Text(
                     _isJoinMode
-                        ? 'Join a shared kitchen'
-                        : 'Start your shared kitchen',
+                        ? context.tr(
+                            en: 'Join a shared kitchen',
+                            sk: 'Pripoj sa do zdieľanej kuchyne',
+                          )
+                        : context.tr(
+                            en: 'Start your shared kitchen',
+                            sk: 'Spusti svoju zdieľanú kuchyňu',
+                          ),
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w800,
                     ),
@@ -128,22 +161,28 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen> {
                   const SizedBox(height: 10),
                   Text(
                     _isJoinMode
-                        ? 'Enter a household code from another family member to share the same pantry and shopping list.'
-                        : 'Create one household so your pantry and shopping list can be shared later with other family members.',
+                        ? context.tr(
+                            en: 'Enter a household code from another family member to share the same pantry and shopping list.',
+                            sk: 'Zadaj kód domácnosti od ďalšieho člena rodiny, aby ste zdieľali rovnakú špajzu a nákupný zoznam.',
+                          )
+                        : context.tr(
+                            en: 'Create one household so your pantry and shopping list can be shared later with other family members.',
+                            sk: 'Vytvor jednu domácnosť, aby si mohol neskôr zdieľať špajzu a nákupný zoznam s ďalšími členmi rodiny.',
+                          ),
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                   const SizedBox(height: 20),
                   SegmentedButton<bool>(
-                    segments: const [
+                    segments: [
                       ButtonSegment<bool>(
                         value: false,
-                        label: Text('Create'),
-                        icon: Icon(Icons.add_home_outlined),
+                        label: Text(context.tr(en: 'Create', sk: 'Vytvoriť')),
+                        icon: const Icon(Icons.add_home_outlined),
                       ),
                       ButtonSegment<bool>(
                         value: true,
-                        label: Text('Join'),
-                        icon: Icon(Icons.group_add_outlined),
+                        label: Text(context.tr(en: 'Join', sk: 'Pripojiť sa')),
+                        icon: const Icon(Icons.group_add_outlined),
                       ),
                     ],
                     selected: {_isJoinMode},
@@ -157,18 +196,28 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen> {
                   if (_isJoinMode)
                     TextFormField(
                       controller: _joinCodeController,
-                      decoration: appInputDecoration('Household code'),
+                      decoration: appInputDecoration(
+                        context.tr(en: 'Household code', sk: 'Kód domácnosti'),
+                      ),
                     )
                   else
                     TextFormField(
                       controller: _nameController,
-                      decoration: appInputDecoration('Household name'),
+                      decoration: appInputDecoration(
+                        context.tr(
+                          en: 'Household name',
+                          sk: 'Názov domácnosti',
+                        ),
+                      ),
                       validator: (value) {
                         if (_isJoinMode) {
                           return null;
                         }
                         if ((value ?? '').trim().isEmpty) {
-                          return 'Enter a household name';
+                          return context.tr(
+                            en: 'Enter a household name',
+                            sk: 'Zadaj názov domácnosti',
+                          );
                         }
                         return null;
                       },
@@ -182,10 +231,24 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen> {
                           : (_isJoinMode ? _joinHousehold : _createHousehold),
                       child: Text(
                         _isSubmitting
-                            ? (_isJoinMode ? 'Joining...' : 'Creating...')
+                            ? (_isJoinMode
+                                  ? context.tr(
+                                      en: 'Joining...',
+                                      sk: 'Pripájam...',
+                                    )
+                                  : context.tr(
+                                      en: 'Creating...',
+                                      sk: 'Vytváram...',
+                                    ))
                             : (_isJoinMode
-                                  ? 'Join household'
-                                  : 'Create household'),
+                                  ? context.tr(
+                                      en: 'Join household',
+                                      sk: 'Pripojiť sa do domácnosti',
+                                    )
+                                  : context.tr(
+                                      en: 'Create household',
+                                      sk: 'Vytvoriť domácnosť',
+                                    )),
                       ),
                     ),
                   ),

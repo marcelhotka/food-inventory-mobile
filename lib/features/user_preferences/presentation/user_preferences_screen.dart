@@ -375,7 +375,9 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
                                   .map(
                                     (value) => DropdownMenuItem(
                                       value: value,
-                                      child: Text(_dietStyleLabel(value)),
+                                      child: Text(
+                                        _dietStyleLabel(context, value),
+                                      ),
                                     ),
                                   )
                                   .toList(),
@@ -413,14 +415,18 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
                                   sk: 'Jazyk aplikácie',
                                 ),
                               ),
-                              items: const [
+                              items: [
                                 DropdownMenuItem(
                                   value: 'en',
-                                  child: Text('English'),
+                                  child: Text(
+                                    context.tr(en: 'English', sk: 'Angličtina'),
+                                  ),
                                 ),
                                 DropdownMenuItem(
                                   value: 'sk',
-                                  child: Text('Slovenčina'),
+                                  child: Text(
+                                    context.tr(en: 'Slovak', sk: 'Slovenčina'),
+                                  ),
                                 ),
                               ],
                               onChanged: (value) {
@@ -465,7 +471,7 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
                                     (value) => DropdownMenuItem(
                                       value: value,
                                       child: Text(
-                                        _cookingFrequencyLabel(value),
+                                        _cookingFrequencyLabel(context, value),
                                       ),
                                     ),
                                   )
@@ -590,24 +596,30 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
     return int.tryParse(normalized);
   }
 
-  static String _dietStyleLabel(String value) {
+  static String _dietStyleLabel(BuildContext context, String value) {
     return switch (value) {
-      'omnivore' => 'Omnivore',
-      'vegetarian' => 'Vegetarian',
-      'vegan' => 'Vegan',
-      'pescatarian' => 'Pescatarian',
-      'low_carb' => 'Low carb',
-      'high_protein' => 'High protein',
+      'omnivore' => context.tr(en: 'Omnivore', sk: 'Všežravec'),
+      'vegetarian' => context.tr(en: 'Vegetarian', sk: 'Vegetarián'),
+      'vegan' => context.tr(en: 'Vegan', sk: 'Vegán'),
+      'pescatarian' => context.tr(en: 'Pescatarian', sk: 'Pescetarián'),
+      'low_carb' => context.tr(en: 'Low carb', sk: 'Nízkosacharidová strava'),
+      'high_protein' => context.tr(
+        en: 'High protein',
+        sk: 'Vysokobielkovinová strava',
+      ),
       _ => value,
     };
   }
 
-  static String _cookingFrequencyLabel(String value) {
+  static String _cookingFrequencyLabel(BuildContext context, String value) {
     return switch (value) {
-      'daily' => 'Daily',
-      'few_times_week' => 'A few times a week',
-      'weekends_only' => 'Weekends only',
-      'rarely' => 'Rarely',
+      'daily' => context.tr(en: 'Daily', sk: 'Denne'),
+      'few_times_week' => context.tr(
+        en: 'A few times a week',
+        sk: 'Niekoľkokrát do týždňa',
+      ),
+      'weekends_only' => context.tr(en: 'Weekends only', sk: 'Len cez víkend'),
+      'rarely' => context.tr(en: 'Rarely', sk: 'Zriedka'),
       _ => value,
     };
   }

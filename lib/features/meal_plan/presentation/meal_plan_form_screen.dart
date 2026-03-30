@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../app/localization/app_locale.dart';
 import '../../../core/forms/app_input_decoration.dart';
 import '../../recipes/domain/recipe.dart';
 import '../../recipes/presentation/recipe_display_text.dart';
@@ -117,7 +118,11 @@ class _MealPlanFormScreenState extends State<MealPlanFormScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.isEditing ? 'Edit Meal Plan' : 'Add Meal Plan'),
+        title: Text(
+          widget.isEditing
+              ? context.tr(en: 'Edit Meal Plan', sk: 'Upraviť jedálniček')
+              : context.tr(en: 'Add Meal Plan', sk: 'Pridať do jedálnička'),
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -128,12 +133,17 @@ class _MealPlanFormScreenState extends State<MealPlanFormScreen> {
               DropdownButtonFormField<String?>(
                 initialValue: _selectedRecipeId,
                 decoration: appInputDecoration(
-                  'Recipe (optional, includes your own recipes)',
+                  context.tr(
+                    en: 'Recipe (optional, includes your own recipes)',
+                    sk: 'Recept (voliteľné, vrátane tvojich vlastných receptov)',
+                  ),
                 ),
                 items: [
-                  const DropdownMenuItem<String?>(
+                  DropdownMenuItem<String?>(
                     value: null,
-                    child: Text('Custom meal'),
+                    child: Text(
+                      context.tr(en: 'Custom meal', sk: 'Vlastné jedlo'),
+                    ),
                   ),
                   ...widget.recipes.map(
                     (recipe) => DropdownMenuItem<String?>(
@@ -162,17 +172,25 @@ class _MealPlanFormScreenState extends State<MealPlanFormScreen> {
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    'Tip: create your own recipe in Recipes and later link it here.',
+                    context.tr(
+                      en: 'Tip: create your own recipe in Recipes and later link it here.',
+                      sk: 'Tip: vytvor si vlastný recept v Receptoch a neskôr ho tu prepoj.',
+                    ),
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ),
               if (_selectedRecipeId == null) const SizedBox(height: 16),
               TextFormField(
                 controller: _recipeNameController,
-                decoration: appInputDecoration('Meal name'),
+                decoration: appInputDecoration(
+                  context.tr(en: 'Meal name', sk: 'Názov jedla'),
+                ),
                 validator: (value) {
                   if ((value ?? '').trim().isEmpty) {
-                    return 'Enter a meal name';
+                    return context.tr(
+                      en: 'Enter a meal name',
+                      sk: 'Zadaj názov jedla',
+                    );
                   }
                   return null;
                 },
@@ -181,11 +199,16 @@ class _MealPlanFormScreenState extends State<MealPlanFormScreen> {
               TextFormField(
                 controller: _servingsController,
                 keyboardType: TextInputType.number,
-                decoration: appInputDecoration('Servings'),
+                decoration: appInputDecoration(
+                  context.tr(en: 'Servings', sk: 'Porcie'),
+                ),
                 validator: (value) {
                   final parsed = int.tryParse((value ?? '').trim());
                   if (parsed == null || parsed <= 0) {
-                    return 'Enter servings';
+                    return context.tr(
+                      en: 'Enter servings',
+                      sk: 'Zadaj počet porcií',
+                    );
                   }
                   return null;
                 },
@@ -193,12 +216,14 @@ class _MealPlanFormScreenState extends State<MealPlanFormScreen> {
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 initialValue: _mealType,
-                decoration: appInputDecoration('Meal type'),
+                decoration: appInputDecoration(
+                  context.tr(en: 'Meal type', sk: 'Typ jedla'),
+                ),
                 items: _mealTypes
                     .map(
                       (value) => DropdownMenuItem(
                         value: value,
-                        child: Text(_mealTypeLabel(value)),
+                        child: Text(_mealTypeLabel(context, value)),
                       ),
                     )
                     .toList(),
@@ -216,7 +241,9 @@ class _MealPlanFormScreenState extends State<MealPlanFormScreen> {
                 onTap: _pickDate,
                 borderRadius: BorderRadius.circular(18),
                 child: InputDecorator(
-                  decoration: appInputDecoration('Date'),
+                  decoration: appInputDecoration(
+                    context.tr(en: 'Date', sk: 'Dátum'),
+                  ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -230,7 +257,9 @@ class _MealPlanFormScreenState extends State<MealPlanFormScreen> {
               TextFormField(
                 controller: _noteController,
                 maxLines: 3,
-                decoration: appInputDecoration('Note (optional)'),
+                decoration: appInputDecoration(
+                  context.tr(en: 'Note (optional)', sk: 'Poznámka (voliteľné)'),
+                ),
               ),
               const SizedBox(height: 24),
               SizedBox(
@@ -238,7 +267,12 @@ class _MealPlanFormScreenState extends State<MealPlanFormScreen> {
                 child: FilledButton(
                   onPressed: _save,
                   child: Text(
-                    widget.isEditing ? 'Save changes' : 'Add to meal plan',
+                    widget.isEditing
+                        ? context.tr(en: 'Save changes', sk: 'Uložiť zmeny')
+                        : context.tr(
+                            en: 'Add to meal plan',
+                            sk: 'Pridať do jedálnička',
+                          ),
                   ),
                 ),
               ),
@@ -249,13 +283,13 @@ class _MealPlanFormScreenState extends State<MealPlanFormScreen> {
     );
   }
 
-  String _mealTypeLabel(String value) {
+  String _mealTypeLabel(BuildContext context, String value) {
     return switch (value) {
-      'breakfast' => 'Breakfast',
-      'lunch' => 'Lunch',
-      'dinner' => 'Dinner',
-      'snack' => 'Snack',
-      _ => 'Meal',
+      'breakfast' => context.tr(en: 'Breakfast', sk: 'Raňajky'),
+      'lunch' => context.tr(en: 'Lunch', sk: 'Obed'),
+      'dinner' => context.tr(en: 'Dinner', sk: 'Večera'),
+      'snack' => context.tr(en: 'Snack', sk: 'Desiata'),
+      _ => context.tr(en: 'Meal', sk: 'Jedlo'),
     };
   }
 

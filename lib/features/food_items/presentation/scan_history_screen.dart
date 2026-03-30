@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/localization/app_locale.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
 import '../data/scan_sessions_repository.dart';
 import '../domain/scan_candidate.dart';
@@ -32,7 +33,9 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Scan history')),
+      appBar: AppBar(
+        title: Text(context.tr(en: 'Scan history', sk: 'História scanov')),
+      ),
       body: FutureBuilder<List<ScanSession>>(
         future: _sessionsFuture,
         builder: (context, snapshot) {
@@ -42,7 +45,10 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
 
           if (snapshot.hasError) {
             return AppErrorState(
-              message: 'Failed to load scan history.',
+              message: context.tr(
+                en: 'Failed to load scan history.',
+                sk: 'Históriu scanov sa nepodarilo načítať.',
+              ),
               onRetry: _reload,
             );
           }
@@ -50,7 +56,10 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
           final sessions = snapshot.data ?? [];
           if (sessions.isEmpty) {
             return AppEmptyState(
-              message: 'No fridge scans yet.',
+              message: context.tr(
+                en: 'No fridge scans yet.',
+                sk: 'Zatiaľ nemáš žiadne scany chladničky.',
+              ),
               onRefresh: _reload,
             );
           }
@@ -104,7 +113,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          '${_formatDateTime(session.createdAt)} • $selectedCount selected',
+                          '${_formatDateTime(session.createdAt)} • $selectedCount ${context.tr(en: 'selected', sk: 'vybrané')}',
                           style: Theme.of(context).textTheme.bodyMedium,
                         ),
                         const SizedBox(height: 12),
@@ -114,11 +123,13 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
                           children: [
                             _HistoryChip(
                               icon: Icons.inventory_2_outlined,
-                              label: '${session.candidates.length} detected',
+                              label:
+                                  '${session.candidates.length} ${context.tr(en: 'detected', sk: 'rozpoznané')}',
                             ),
                             _HistoryChip(
                               icon: Icons.check_circle_outline_rounded,
-                              label: '$selectedCount confirmed',
+                              label:
+                                  '$selectedCount ${context.tr(en: 'confirmed', sk: 'potvrdené')}',
                             ),
                           ],
                         ),
@@ -171,7 +182,9 @@ class _ScanSessionDetailScreenState extends State<ScanSessionDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Scan detail')),
+      appBar: AppBar(
+        title: Text(context.tr(en: 'Scan detail', sk: 'Detail scanu')),
+      ),
       body: FutureBuilder<ScanSession>(
         future: _sessionFuture,
         builder: (context, snapshot) {
@@ -181,7 +194,10 @@ class _ScanSessionDetailScreenState extends State<ScanSessionDetailScreen> {
 
           if (snapshot.hasError) {
             return AppErrorState(
-              message: 'Failed to load scan detail.',
+              message: context.tr(
+                en: 'Failed to load scan detail.',
+                sk: 'Detail scanu sa nepodarilo načítať.',
+              ),
               onRetry: _reload,
             );
           }
@@ -189,7 +205,10 @@ class _ScanSessionDetailScreenState extends State<ScanSessionDetailScreen> {
           final session = snapshot.data;
           if (session == null) {
             return AppEmptyState(
-              message: 'This scan is no longer available.',
+              message: context.tr(
+                en: 'This scan is no longer available.',
+                sk: 'Tento scan už nie je dostupný.',
+              ),
               onRefresh: _reload,
             );
           }
@@ -277,24 +296,24 @@ class _CandidateCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            '${_formatQuantity(prefill.quantity)} ${prefill.unit} • ${_labelize(prefill.storageLocation)} • ${_labelize(prefill.category)}',
+            '${_formatQuantity(prefill.quantity)} ${prefill.unit} • ${_labelize(context, prefill.storageLocation)} • ${_labelize(context, prefill.category)}',
           ),
           const SizedBox(height: 6),
           Text(
-            'Confidence ${(candidate.confidence * 100).round()}%',
+            '${context.tr(en: 'Confidence', sk: 'Istota')} ${(candidate.confidence * 100).round()}%',
             style: Theme.of(context).textTheme.bodySmall,
           ),
           if (prefill.barcode != null && prefill.barcode!.isNotEmpty) ...[
             const SizedBox(height: 6),
             Text(
-              'Code ${prefill.barcode}',
+              '${context.tr(en: 'Code', sk: 'Kód')} ${prefill.barcode}',
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
           if (prefill.expirationDate != null) ...[
             const SizedBox(height: 6),
             Text(
-              'Expires ${_formatDate(prefill.expirationDate!)}',
+              '${context.tr(en: 'Expires', sk: 'Spotreba do')} ${_formatDate(prefill.expirationDate!)}',
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
@@ -314,7 +333,9 @@ class _StatusChip extends StatelessWidget {
     final color = isSelected
         ? const Color(0xFFDDEBD7)
         : const Color(0xFFF1E2D1);
-    final text = isSelected ? 'Confirmed' : 'Rejected';
+    final text = isSelected
+        ? context.tr(en: 'Confirmed', sk: 'Potvrdené')
+        : context.tr(en: 'Rejected', sk: 'Odmietnuté');
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -382,9 +403,34 @@ String _formatQuantity(double value) {
       .replaceFirst(RegExp(r'\.$'), '');
 }
 
-String _labelize(String value) {
+String _labelize(BuildContext context, String value) {
   if (value.isEmpty) {
     return value;
+  }
+
+  switch (value) {
+    case 'fridge':
+      return context.tr(en: 'Fridge', sk: 'Chladnička');
+    case 'freezer':
+      return context.tr(en: 'Freezer', sk: 'Mraznička');
+    case 'pantry':
+      return context.tr(en: 'Pantry', sk: 'Špajza');
+    case 'produce':
+      return context.tr(en: 'Produce', sk: 'Ovocie a zelenina');
+    case 'dairy':
+      return context.tr(en: 'Dairy', sk: 'Mliečne výrobky');
+    case 'meat':
+      return context.tr(en: 'Meat', sk: 'Mäso');
+    case 'grains':
+      return context.tr(en: 'Grains', sk: 'Obilniny');
+    case 'canned':
+      return context.tr(en: 'Canned', sk: 'Konzervy');
+    case 'frozen':
+      return context.tr(en: 'Frozen', sk: 'Mrazené');
+    case 'beverages':
+      return context.tr(en: 'Beverages', sk: 'Nápoje');
+    case 'other':
+      return context.tr(en: 'Other', sk: 'Ostatné');
   }
 
   final words = value.split('_');

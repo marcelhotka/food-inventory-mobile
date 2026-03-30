@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../app/localization/app_locale.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/app_feedback.dart';
 import '../data/scan_sessions_repository.dart';
@@ -54,7 +55,12 @@ class _FridgeScanScreenState extends State<FridgeScanScreen> {
   }) async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) {
-      throw StateError('You need to be signed in.');
+      throw StateError(
+        context.tr(
+          en: 'You need to be signed in.',
+          sk: 'Musíš byť prihlásený.',
+        ),
+      );
     }
 
     return _scanSessionsRepository.startPhotoScan(
@@ -92,7 +98,9 @@ class _FridgeScanScreenState extends State<FridgeScanScreen> {
 
       setState(() {
         _photoBytes = bytes;
-        _imageLabel = file.name.isEmpty ? 'Fridge photo' : file.name;
+        _imageLabel = file.name.isEmpty
+            ? context.tr(en: 'Fridge photo', sk: 'Fotka chladničky')
+            : file.name;
         _scanFuture = _startPhotoScan(
           imageBytes: bytes,
           imageLabel: _imageLabel!,
@@ -106,7 +114,13 @@ class _FridgeScanScreenState extends State<FridgeScanScreen> {
       setState(() {
         _isPickingImage = false;
       });
-      showErrorFeedback(context, 'Failed to load photo.');
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Failed to load photo.',
+          sk: 'Fotku sa nepodarilo načítať.',
+        ),
+      );
     }
   }
 
@@ -116,7 +130,9 @@ class _FridgeScanScreenState extends State<FridgeScanScreen> {
 
     if (scanFuture == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Scan fridge')),
+        appBar: AppBar(
+          title: Text(context.tr(en: 'Scan fridge', sk: 'Skenovať chladničku')),
+        ),
         body: ListView(
           padding: const EdgeInsets.all(16),
           children: [
@@ -131,14 +147,20 @@ class _FridgeScanScreenState extends State<FridgeScanScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Upload one fridge photo',
+                    context.tr(
+                      en: 'Upload one fridge photo',
+                      sk: 'Nahraj jednu fotku chladničky',
+                    ),
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Choose or take a single photo of your fridge. We will run the current scan review flow on that image, then later replace the mock detection with real AI.',
+                    context.tr(
+                      en: 'Choose or take a single photo of your fridge. We will run the current scan review flow on that image, then later replace the mock detection with real AI.',
+                      sk: 'Vyber alebo odfoť jednu fotku svojej chladničky. Na tejto fotke spustíme aktuálny kontrolný flow scanu a neskôr nahradíme mock detekciu reálnou AI.',
+                    ),
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                   const SizedBox(height: 20),
@@ -162,7 +184,12 @@ class _FridgeScanScreenState extends State<FridgeScanScreen> {
                           : () => _pickImage(ImageSource.camera),
                       icon: const Icon(Icons.photo_camera_outlined),
                       label: Text(
-                        _isPickingImage ? 'Opening camera...' : 'Take photo',
+                        _isPickingImage
+                            ? context.tr(
+                                en: 'Opening camera...',
+                                sk: 'Otváram fotoaparát...',
+                              )
+                            : context.tr(en: 'Take photo', sk: 'Odfotiť'),
                       ),
                     ),
                   ),
@@ -174,7 +201,9 @@ class _FridgeScanScreenState extends State<FridgeScanScreen> {
                           ? null
                           : () => _pickImage(ImageSource.gallery),
                       icon: const Icon(Icons.photo_library_outlined),
-                      label: const Text('Choose photo'),
+                      label: Text(
+                        context.tr(en: 'Choose photo', sk: 'Vybrať fotku'),
+                      ),
                     ),
                   ),
                 ],
@@ -186,7 +215,9 @@ class _FridgeScanScreenState extends State<FridgeScanScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Scan fridge')),
+      appBar: AppBar(
+        title: Text(context.tr(en: 'Scan fridge', sk: 'Skenovať chladničku')),
+      ),
       body: FutureBuilder<ScanSession>(
         future: scanFuture,
         builder: (context, snapshot) {
@@ -196,7 +227,10 @@ class _FridgeScanScreenState extends State<FridgeScanScreen> {
 
           if (snapshot.hasError) {
             return AppErrorState(
-              message: 'Failed to analyze fridge photo.',
+              message: context.tr(
+                en: 'Failed to analyze fridge photo.',
+                sk: 'Fotku chladničky sa nepodarilo analyzovať.',
+              ),
               onRetry: _reload,
             );
           }
@@ -204,7 +238,10 @@ class _FridgeScanScreenState extends State<FridgeScanScreen> {
           final session = snapshot.data;
           if (session == null || session.candidates.isEmpty) {
             return AppEmptyState(
-              message: 'No items were detected in this scan.',
+              message: context.tr(
+                en: 'No items were detected in this scan.',
+                sk: 'V tomto scane sa nepodarilo rozpoznať žiadne položky.',
+              ),
               onRefresh: _reload,
             );
           }
@@ -338,7 +375,13 @@ class _FridgeScanReviewState extends State<_FridgeScanReview> {
         .toList();
 
     if (selectedCandidates.isEmpty) {
-      showErrorFeedback(context, 'Select at least one item to continue.');
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Select at least one item to continue.',
+          sk: 'Vyber aspoň jednu položku, aby si mohol pokračovať.',
+        ),
+      );
       return;
     }
 
@@ -363,7 +406,13 @@ class _FridgeScanReviewState extends State<_FridgeScanReview> {
       if (!mounted) {
         return;
       }
-      showErrorFeedback(context, 'Failed to save scan session.');
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Failed to save scan session.',
+          sk: 'Scan sa nepodarilo uložiť.',
+        ),
+      );
       setState(() {
         _isSaving = false;
       });
@@ -388,14 +437,20 @@ class _FridgeScanReviewState extends State<_FridgeScanReview> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Review detected items',
+                context.tr(
+                  en: 'Review detected items',
+                  sk: 'Skontroluj rozpoznané položky',
+                ),
                 style: Theme.of(
                   context,
                 ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 8),
               Text(
-                'This is the scan confirmation flow. Later we will replace the mock results with real AI detection from one fridge photo.',
+                context.tr(
+                  en: 'This is the scan confirmation flow. Later we will replace the mock results with real AI detection from one fridge photo.',
+                  sk: 'Toto je potvrdzovací flow scanu. Neskôr nahradíme mock výsledky reálnou AI detekciou z jednej fotky chladničky.',
+                ),
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
               if (widget.photoBytes != null) ...[
@@ -420,7 +475,8 @@ class _FridgeScanReviewState extends State<_FridgeScanReview> {
                     icon: Icons.image_outlined,
                   ),
                   _ScanMetaChip(
-                    label: '$selectedCount selected',
+                    label:
+                        '$selectedCount ${context.tr(en: 'selected', sk: 'vybrané')}',
                     icon: Icons.checklist_rounded,
                   ),
                 ],
@@ -429,7 +485,9 @@ class _FridgeScanReviewState extends State<_FridgeScanReview> {
               TextButton.icon(
                 onPressed: widget.onPickAnotherPhoto,
                 icon: const Icon(Icons.restart_alt_rounded),
-                label: const Text('Use another photo'),
+                label: Text(
+                  context.tr(en: 'Use another photo', sk: 'Použiť inú fotku'),
+                ),
               ),
             ],
           ),
@@ -440,7 +498,12 @@ class _FridgeScanReviewState extends State<_FridgeScanReview> {
           child: FilledButton.tonalIcon(
             onPressed: _addManualCandidate,
             icon: const Icon(Icons.add),
-            label: const Text('Add missing item manually'),
+            label: Text(
+              context.tr(
+                en: 'Add missing item manually',
+                sk: 'Pridať chýbajúcu položku ručne',
+              ),
+            ),
           ),
         ),
         const SizedBox(height: 16),
@@ -461,7 +524,7 @@ class _FridgeScanReviewState extends State<_FridgeScanReview> {
                 ),
                 title: Text(candidate.prefill.name),
                 subtitle: Text(
-                  '${candidate.prefill.quantity} ${candidate.prefill.unit} • ${candidate.prefill.storageLocation} • ${(candidate.confidence * 100).round()}%',
+                  '${candidate.prefill.quantity} ${candidate.prefill.unit} • ${_storageLabel(context, candidate.prefill.storageLocation)} • ${(candidate.confidence * 100).round()}%',
                 ),
                 trailing: SizedBox(
                   width: 96,
@@ -471,12 +534,12 @@ class _FridgeScanReviewState extends State<_FridgeScanReview> {
                       IconButton(
                         onPressed: () => _editCandidate(candidate),
                         icon: const Icon(Icons.edit_outlined),
-                        tooltip: 'Edit',
+                        tooltip: context.tr(en: 'Edit', sk: 'Upraviť'),
                       ),
                       IconButton(
                         onPressed: () => _removeCandidate(candidate.id),
                         icon: const Icon(Icons.close_rounded),
-                        tooltip: 'Remove',
+                        tooltip: context.tr(en: 'Remove', sk: 'Odstrániť'),
                       ),
                     ],
                   ),
@@ -491,13 +554,27 @@ class _FridgeScanReviewState extends State<_FridgeScanReview> {
           child: FilledButton(
             onPressed: _isSaving ? null : _finish,
             child: Text(
-              _isSaving ? 'Saving scan...' : 'Add selected items to pantry',
+              _isSaving
+                  ? context.tr(en: 'Saving scan...', sk: 'Ukladám scan...')
+                  : context.tr(
+                      en: 'Add selected items to pantry',
+                      sk: 'Pridať vybrané položky do špajze',
+                    ),
             ),
           ),
         ),
       ],
     );
   }
+}
+
+String _storageLabel(BuildContext context, String value) {
+  return switch (value) {
+    'fridge' => context.tr(en: 'Fridge', sk: 'Chladnička'),
+    'freezer' => context.tr(en: 'Freezer', sk: 'Mraznička'),
+    'pantry' => context.tr(en: 'Pantry', sk: 'Špajza'),
+    _ => value,
+  };
 }
 
 class _ScanMetaChip extends StatelessWidget {

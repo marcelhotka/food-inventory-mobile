@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/localization/app_locale.dart';
+import '../../../core/food/food_signal_catalog.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/app_feedback.dart';
 import '../../auth/data/auth_repository.dart';
+import '../../household_activity/data/household_activity_repository.dart';
+import '../../household_activity/domain/household_activity_event.dart';
 import '../../households/domain/household.dart';
 import '../../households/presentation/household_screen.dart';
 import '../../recipes/presentation/recipe_display_text.dart';
@@ -36,6 +39,8 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
   late final ShoppingListRepository repository = ShoppingListRepository(
     householdId: widget.household.id,
   );
+  late final HouseholdActivityRepository _activityRepository =
+      HouseholdActivityRepository(householdId: widget.household.id);
   late final UserPreferencesRepository _userPreferencesRepository =
       UserPreferencesRepository();
   final TextEditingController _searchController = TextEditingController();
@@ -117,6 +122,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       }
 
       final updatedPrimary = primary.copyWith(
+        name: _preferredMergedItemName(primary.name, group.last.name),
         quantity: mergedQuantity,
         source: mergedSource,
         isBought: anyBought,
@@ -149,7 +155,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       return;
     }
 
-    final confirmed = await _confirmProceedWithSafetyWarning(
+    final safeItem = await _confirmProceedWithSafetyWarning(
       createdItem,
       actionLabel: context.tr(
         en: 'add this item to your shopping list',
@@ -157,15 +163,21 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       ),
       preferences: null,
     );
-    if (!confirmed) {
+    if (safeItem == null) {
       return;
     }
 
     try {
       final existingItems = await repository.getShoppingListItems();
       final result = await _saveShoppingItemWithDuplicateHandling(
-        createdItem,
+        safeItem,
         existingItems: existingItems,
+      );
+      _logActivity(
+        eventType: result.wasMerged ? 'shopping_increased' : 'shopping_added',
+        itemName: result.item.name,
+        quantity: safeItem.quantity,
+        unit: safeItem.unit,
       );
       await _reload();
       if (!mounted) return;
@@ -173,8 +185,8 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
         showSuccessFeedback(
           context,
           context.tr(
-            en: 'Added to existing ${result.item.name} (+${_formatQuantity(createdItem.quantity)} ${createdItem.unit}). Total: ${_formatQuantity(result.item.quantity)} ${result.item.unit}.',
-            sk: 'Pridané k existujúcej položke ${result.item.name} (+${_formatQuantity(createdItem.quantity)} ${createdItem.unit}). Spolu: ${_formatQuantity(result.item.quantity)} ${result.item.unit}.',
+            en: 'Added to existing ${result.item.name} (+${_formatQuantity(safeItem.quantity)} ${safeItem.unit}). Total: ${_formatQuantity(result.item.quantity)} ${result.item.unit}.',
+            sk: 'Pridané k existujúcej položke ${result.item.name} (+${_formatQuantity(safeItem.quantity)} ${safeItem.unit}). Spolu: ${_formatQuantity(result.item.quantity)} ${result.item.unit}.',
           ),
         );
       } else {
@@ -226,6 +238,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
 
     final updated = await repository.editShoppingListItem(
       existing.copyWith(
+        name: _preferredMergedItemName(existing.name, incomingItem.name),
         quantity: mergedQuantity,
         isBought: false,
         source: ShoppingListItem.mergeSource(
@@ -258,7 +271,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       return;
     }
 
-    final confirmed = await _confirmProceedWithSafetyWarning(
+    final safeItem = await _confirmProceedWithSafetyWarning(
       updatedItem,
       actionLabel: context.tr(
         en: 'save this shopping item',
@@ -266,12 +279,18 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       ),
       preferences: null,
     );
-    if (!confirmed) {
+    if (safeItem == null) {
       return;
     }
 
     try {
-      await repository.editShoppingListItem(updatedItem);
+      await repository.editShoppingListItem(safeItem);
+      _logActivity(
+        eventType: 'shopping_updated',
+        itemName: safeItem.name,
+        quantity: safeItem.quantity,
+        unit: safeItem.unit,
+      );
       await _reload();
       if (!mounted) return;
       showSuccessFeedback(
@@ -361,7 +380,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       return;
     }
 
-    final confirmed = await _confirmProceedWithSafetyWarning(
+    final safeItem = await _confirmProceedWithSafetyWarning(
       additionalItem,
       actionLabel: context.tr(
         en: 'add this item to your shopping list',
@@ -369,13 +388,13 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       ),
       preferences: null,
     );
-    if (!confirmed) {
+    if (safeItem == null) {
       return;
     }
 
     final additionalQuantity = _convertQuantity(
-      quantity: additionalItem.quantity,
-      fromUnit: additionalItem.unit,
+      quantity: safeItem.quantity,
+      fromUnit: safeItem.unit,
       toUnit: item.unit,
     );
     if (additionalQuantity == null) {
@@ -397,6 +416,12 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
           isBought: false,
           updatedAt: DateTime.now().toUtc(),
         ),
+      );
+      _logActivity(
+        eventType: 'shopping_increased',
+        itemName: updatedItem.name,
+        quantity: additionalItem.quantity,
+        unit: additionalItem.unit,
       );
       await _reload();
       if (!mounted) return;
@@ -501,6 +526,12 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
 
     try {
       await repository.removeShoppingListItem(item.id);
+      _logActivity(
+        eventType: 'shopping_deleted',
+        itemName: item.name,
+        quantity: item.quantity,
+        unit: item.unit,
+      );
       await _reload();
       if (!mounted) return;
       showSuccessFeedback(
@@ -526,6 +557,12 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     try {
       await repository.editShoppingListItem(
         item.copyWith(isBought: value, updatedAt: DateTime.now().toUtc()),
+      );
+      _logActivity(
+        eventType: value ? 'shopping_bought' : 'shopping_unbought',
+        itemName: item.name,
+        quantity: item.quantity,
+        unit: item.unit,
       );
       await _reload();
       if (!mounted) return;
@@ -736,6 +773,35 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     return '${item.quantity} ${item.unit} • ${_sourceLabel(item.source)}';
   }
 
+  Future<void> _logActivity({
+    required String eventType,
+    required String itemName,
+    double? quantity,
+    String? unit,
+    String? details,
+  }) async {
+    final userId = widget.authRepository.currentSession?.user.id;
+    if (userId == null) {
+      return;
+    }
+
+    try {
+      await _activityRepository.addEvent(
+        HouseholdActivityEvent(
+          id: '',
+          householdId: widget.household.id,
+          userId: userId,
+          eventType: eventType,
+          itemName: itemName,
+          quantity: quantity,
+          unit: unit,
+          details: details,
+          createdAt: DateTime.now().toUtc(),
+        ),
+      );
+    } catch (_) {}
+  }
+
   List<ShoppingListItem> _applyFilters(List<ShoppingListItem> items) {
     final query = _searchController.text.trim().toLowerCase();
 
@@ -756,7 +822,27 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
   }
 
   String _itemKey(String name, String unit) {
-    return '${name.trim().toLowerCase()}|${_unitMergeKey(unit)}';
+    return '${_canonicalShoppingItemKey(name)}|${_unitMergeKey(unit)}';
+  }
+
+  String _canonicalShoppingItemKey(String value) {
+    return deriveFoodSignalInfo(value).itemKey;
+  }
+
+  String _preferredMergedItemName(String existingName, String incomingName) {
+    final existingNormalized = _normalizeValue(existingName);
+    final incomingNormalized = _normalizeValue(incomingName);
+    if ((incomingNormalized.contains('bezlakt') &&
+            !existingNormalized.contains('bezlakt')) ||
+        (incomingNormalized.contains('bezlepk') &&
+            !existingNormalized.contains('bezlepk')) ||
+        (incomingNormalized.contains('nahradavajec') &&
+            !existingNormalized.contains('nahradavajec')) ||
+        (incomingNormalized.contains('bezvajec') &&
+            !existingNormalized.contains('bezvajec'))) {
+      return incomingName;
+    }
+    return existingName;
   }
 
   String _formatQuantity(double value) {
@@ -803,7 +889,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     }
   }
 
-  Future<bool> _confirmProceedWithSafetyWarning(
+  Future<ShoppingListItem?> _confirmProceedWithSafetyWarning(
     ShoppingListItem item, {
     required String actionLabel,
     required UserPreferences? preferences,
@@ -812,7 +898,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
         preferences ?? await _loadCurrentPreferencesSafely();
     final warning = _buildFoodSafetyWarning(item, effectivePreferences);
     if (warning == null || !mounted) {
-      return true;
+      return item;
     }
 
     final isAllergy = warning.type == _FoodSafetyWarningType.allergy;
@@ -872,7 +958,11 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       ),
     );
 
-    return confirmed == true;
+    if (confirmed != true) {
+      return null;
+    }
+
+    return _applySaferAlternativeToItem(item, warning) ?? item;
   }
 
   _FoodSafetyWarning? _buildFoodSafetyWarning(
@@ -910,31 +1000,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
   }
 
   Set<String> _foodSignalSet(String value) {
-    final normalized = _normalizeValue(value);
-    final signals = <String>{normalized, _canonicalFoodSignal(normalized)};
-
-    if (normalized.contains('milk') ||
-        normalized.contains('mlieko') ||
-        normalized.contains('cheese') ||
-        normalized.contains('syr')) {
-      signals.add('dairy');
-      signals.add('lactose');
-    }
-    if (normalized.contains('egg') || normalized.contains('vajc')) {
-      signals.add('eggs');
-    }
-    if (normalized.contains('pasta') ||
-        normalized.contains('cestovin') ||
-        normalized.contains('bread') ||
-        normalized.contains('chlieb') ||
-        normalized.contains('peciv')) {
-      signals.add('gluten');
-    }
-
-    return signals
-        .map(_canonicalFoodSignal)
-        .where((signal) => signal.isNotEmpty)
-        .toSet();
+    return deriveFoodSignalInfo(value).signals;
   }
 
   List<String> _matchPreferenceSignals({
@@ -955,90 +1021,11 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
   }
 
   String _normalizeValue(String value) {
-    const replacements = {
-      'á': 'a',
-      'ä': 'a',
-      'č': 'c',
-      'ď': 'd',
-      'é': 'e',
-      'ě': 'e',
-      'í': 'i',
-      'ĺ': 'l',
-      'ľ': 'l',
-      'ň': 'n',
-      'ó': 'o',
-      'ô': 'o',
-      'ŕ': 'r',
-      'ř': 'r',
-      'š': 's',
-      'ť': 't',
-      'ú': 'u',
-      'ů': 'u',
-      'ý': 'y',
-      'ž': 'z',
-    };
-
-    var normalized = value.toLowerCase().trim();
-    replacements.forEach((from, to) {
-      normalized = normalized.replaceAll(from, to);
-    });
-    return normalized.replaceAll(RegExp(r'[^a-z0-9]'), '');
+    return normalizeFoodValue(value);
   }
 
   String _canonicalFoodSignal(String value) {
-    switch (value) {
-      case 'lactose':
-      case 'dairy':
-      case 'milk':
-      case 'cheese':
-      case 'mlieko':
-      case 'syr':
-        return 'lactose';
-      case 'gluten':
-      case 'wheat':
-      case 'pasta':
-      case 'bread':
-      case 'cestoviny':
-      case 'chlieb':
-      case 'pecivo':
-        return 'gluten';
-      case 'egg':
-      case 'eggs':
-      case 'vajce':
-      case 'vajcia':
-        return 'eggs';
-      case 'peanut':
-      case 'peanuts':
-      case 'arasidy':
-        return 'peanuts';
-      case 'nuts':
-      case 'nut':
-      case 'almond':
-      case 'walnut':
-      case 'hazelnut':
-      case 'mandla':
-      case 'orech':
-      case 'orechy':
-        return 'tree_nuts';
-      case 'soy':
-      case 'soya':
-      case 'sój':
-      case 'soj':
-        return 'soy';
-      case 'fish':
-      case 'ryba':
-        return 'fish';
-      case 'shellfish':
-      case 'shrimp':
-      case 'prawn':
-      case 'kreveta':
-        return 'shellfish';
-      case 'sesame':
-      case 'sezam':
-        return 'sesame';
-      default:
-        return value;
-    }
+    return canonicalFoodSignal(value);
   }
 
   String _unitMergeKey(String unit) {
@@ -1204,6 +1191,67 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     }
 
     return suggestions.toList();
+  }
+
+  ShoppingListItem? _applySaferAlternativeToItem(
+    ShoppingListItem item,
+    _FoodSafetyWarning warning,
+  ) {
+    final normalizedName = _normalizeValue(item.name);
+
+    for (final signal in warning.matchedSignals) {
+      switch (signal) {
+        case 'lactose':
+          if (normalizedName.contains('milk') ||
+              normalizedName.contains('mlieko')) {
+            return item.copyWith(name: 'Bezlaktózové mlieko');
+          }
+          if (normalizedName.contains('cheese') ||
+              normalizedName.contains('syr') ||
+              normalizedName.contains('gorgonzola') ||
+              normalizedName.contains('mozzarella')) {
+            return item.copyWith(name: 'Bezlaktózový syr');
+          }
+          if (normalizedName.contains('yogurt') ||
+              normalizedName.contains('jogurt')) {
+            return item.copyWith(name: 'Bezlaktózový jogurt');
+          }
+          if (normalizedName.contains('cream') ||
+              normalizedName.contains('smot')) {
+            return item.copyWith(name: 'Bezlaktózová smotana');
+          }
+          if (normalizedName.contains('butter') ||
+              normalizedName.contains('maslo')) {
+            return item.copyWith(name: 'Bezlaktózové maslo');
+          }
+          return item.copyWith(name: 'Bezlaktózová alternatíva');
+        case 'gluten':
+          if (normalizedName.contains('pasta') ||
+              normalizedName.contains('cestovin')) {
+            return item.copyWith(name: 'Bezlepkové cestoviny');
+          }
+          if (normalizedName.contains('baget')) {
+            return item.copyWith(name: 'Bezlepková bageta');
+          }
+          if (normalizedName.contains('bread') ||
+              normalizedName.contains('chlieb') ||
+              normalizedName.contains('peciv')) {
+            return item.copyWith(name: 'Bezlepkový chlieb');
+          }
+          if (normalizedName.contains('flour') ||
+              normalizedName.contains('muka')) {
+            return item.copyWith(name: 'Bezlepková múka');
+          }
+          return item.copyWith(name: 'Bezlepková alternatíva');
+        case 'eggs':
+          if (normalizedName.contains('egg') || normalizedName.contains('vajc')) {
+            return item.copyWith(name: 'Náhrada vajec');
+          }
+          return item.copyWith(name: 'Bezvaječná alternatíva');
+      }
+    }
+
+    return null;
   }
 }
 

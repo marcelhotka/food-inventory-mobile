@@ -62,6 +62,54 @@ String localizedIngredientName(
 }
 
 String localizedIngredientDisplayName(BuildContext context, String rawValue) {
+  final lowerRaw = rawValue.toLowerCase();
+  if (lowerRaw.contains('bezlakt')) {
+    final normalizedSafe = _normalizeIngredientLabel(rawValue);
+    if (normalizedSafe.contains('mlieko') || normalizedSafe.contains('milk')) {
+      return context.tr(en: 'Lactose-free milk', sk: 'Bezlaktózové mlieko');
+    }
+    if (normalizedSafe.contains('syr') ||
+        normalizedSafe.contains('cheese') ||
+        normalizedSafe.contains('gorgonzola') ||
+        normalizedSafe.contains('mozzarella')) {
+      return context.tr(en: 'Lactose-free cheese', sk: 'Bezlaktózový syr');
+    }
+    if (normalizedSafe.contains('jogurt') || normalizedSafe.contains('yogurt')) {
+      return context.tr(en: 'Lactose-free yogurt', sk: 'Bezlaktózový jogurt');
+    }
+    if (normalizedSafe.contains('smotan') || normalizedSafe.contains('cream')) {
+      return context.tr(en: 'Lactose-free cream', sk: 'Bezlaktózová smotana');
+    }
+    if (normalizedSafe.contains('maslo') || normalizedSafe.contains('butter')) {
+      return context.tr(en: 'Lactose-free butter', sk: 'Bezlaktózové maslo');
+    }
+    return rawValue;
+  }
+  if (lowerRaw.contains('bezlepk')) {
+    final normalizedSafe = _normalizeIngredientLabel(rawValue);
+    if (normalizedSafe.contains('cestovin') || normalizedSafe.contains('pasta')) {
+      return context.tr(en: 'Gluten-free pasta', sk: 'Bezlepkové cestoviny');
+    }
+    if (normalizedSafe.contains('baget')) {
+      return context.tr(en: 'Gluten-free baguette', sk: 'Bezlepková bageta');
+    }
+    if (normalizedSafe.contains('chlieb') ||
+        normalizedSafe.contains('peciv') ||
+        normalizedSafe.contains('bread')) {
+      return context.tr(en: 'Gluten-free bread', sk: 'Bezlepkový chlieb');
+    }
+    if (normalizedSafe.contains('muka') || normalizedSafe.contains('flour')) {
+      return context.tr(en: 'Gluten-free flour', sk: 'Bezlepková múka');
+    }
+    return rawValue;
+  }
+  if (lowerRaw.contains('nahrada vajec') || lowerRaw.contains('bezvajec')) {
+    if (lowerRaw.contains('nahrada vajec')) {
+      return context.tr(en: 'Egg replacement', sk: 'Náhrada vajec');
+    }
+    return context.tr(en: 'Egg-free alternative', sk: 'Bezvaječná alternatíva');
+  }
+
   final normalized = _normalizeIngredientLabel(rawValue);
   const canonicalMap = {
     'eggs': 'eggs',

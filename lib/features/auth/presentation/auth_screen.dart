@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/localization/app_locale.dart';
 import '../../../core/forms/app_input_decoration.dart';
 import '../data/auth_repository.dart';
 
@@ -38,7 +39,10 @@ class _AuthScreenState extends State<AuthScreen> {
     try {
       await widget.repository.signInWithMagicLink(_emailController.text.trim());
       setState(() {
-        _message = 'Check your email for the sign-in link.';
+        _message = context.tr(
+          en: 'Check your email for the sign-in link.',
+          sk: 'Skontroluj si e-mail pre prihlasovací odkaz.',
+        );
       });
     } catch (error) {
       setState(() {
@@ -111,7 +115,10 @@ class _AuthScreenState extends State<AuthScreen> {
                   ),
                   const SizedBox(height: 18),
                   Text(
-                    'Smart pantry,\nwithout the chaos.',
+                    context.tr(
+                      en: 'Smart pantry,\nwithout the chaos.',
+                      sk: 'Šikovná špajza,\nbez chaosu.',
+                    ),
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.w800,
                       height: 1.05,
@@ -119,7 +126,10 @@ class _AuthScreenState extends State<AuthScreen> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'Track food, plan shopping, and keep your first MVP simple and fast.',
+                    context.tr(
+                      en: 'Track food, plan shopping, and keep your first MVP simple and fast.',
+                      sk: 'Sleduj potraviny, plánuj nákupy a udrž prvé MVP jednoduché a rýchle.',
+                    ),
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                       color: const Color(0xFF4B5A4D),
                     ),
@@ -141,28 +151,39 @@ class _AuthScreenState extends State<AuthScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Get started',
+                      context.tr(en: 'Get started', sk: 'Začni'),
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Use email sign-in for your permanent household. Guest mode is only for quick testing.',
+                      context.tr(
+                        en: 'Use email sign-in for your permanent household. Guest mode is only for quick testing.',
+                        sk: 'Použi prihlásenie e-mailom pre svoju trvalú domácnosť. Režim hosťa je len na rýchle testovanie.',
+                      ),
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                     const SizedBox(height: 20),
                     TextFormField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
-                      decoration: appInputDecoration('Email'),
+                      decoration: appInputDecoration(
+                        context.tr(en: 'Email', sk: 'E-mail'),
+                      ),
                       validator: (value) {
                         final email = value?.trim() ?? '';
                         if (email.isEmpty) {
-                          return 'Enter your email';
+                          return context.tr(
+                            en: 'Enter your email',
+                            sk: 'Zadaj svoj e-mail',
+                          );
                         }
                         if (!email.contains('@')) {
-                          return 'Enter a valid email';
+                          return context.tr(
+                            en: 'Enter a valid email',
+                            sk: 'Zadaj platný e-mail',
+                          );
                         }
                         return null;
                       },
@@ -173,7 +194,12 @@ class _AuthScreenState extends State<AuthScreen> {
                       child: FilledButton.tonal(
                         onPressed: _isSubmitting ? null : _submit,
                         child: Text(
-                          _isSubmitting ? 'Sending...' : 'Continue with email',
+                          _isSubmitting
+                              ? context.tr(en: 'Sending...', sk: 'Odosielam...')
+                              : context.tr(
+                                  en: 'Continue with email',
+                                  sk: 'Pokračovať e-mailom',
+                                ),
                         ),
                       ),
                     ),
@@ -185,14 +211,20 @@ class _AuthScreenState extends State<AuthScreen> {
                         color: const Color(0xFFF3EEE4),
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      child: const Text(
-                        'Email sign-in keeps the same account, household, and data after refresh or reopening the app.',
+                      child: Text(
+                        context.tr(
+                          en: 'Email sign-in keeps the same account, household, and data after refresh or reopening the app.',
+                          sk: 'Prihlásenie e-mailom zachová rovnaký účet, domácnosť a dáta aj po obnovení alebo znovuotvorení aplikácie.',
+                        ),
                       ),
                     ),
                     const SizedBox(height: 18),
                     Center(
                       child: Text(
-                        'or use guest mode',
+                        context.tr(
+                          en: 'or use guest mode',
+                          sk: 'alebo použi režim hosťa',
+                        ),
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
                     ),
@@ -203,14 +235,23 @@ class _AuthScreenState extends State<AuthScreen> {
                         onPressed: _isSubmitting ? null : _continueAsGuest,
                         child: Text(
                           _isSubmitting
-                              ? 'Please wait...'
-                              : 'Continue as guest',
+                              ? context.tr(
+                                  en: 'Please wait...',
+                                  sk: 'Počkaj chvíľu...',
+                                )
+                              : context.tr(
+                                  en: 'Continue as guest',
+                                  sk: 'Pokračovať ako hosť',
+                                ),
                         ),
                       ),
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      'Guest is best for quick testing. It may not preserve your identity as reliably as email sign-in.',
+                      context.tr(
+                        en: 'Guest is best for quick testing. It may not preserve your identity as reliably as email sign-in.',
+                        sk: 'Hosť je najlepší na rýchle testovanie. Nemusí zachovať tvoju identitu tak spoľahlivo ako prihlásenie e-mailom.',
+                      ),
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: const Color(0xFF617065),
                       ),

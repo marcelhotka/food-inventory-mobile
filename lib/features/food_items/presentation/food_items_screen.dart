@@ -4,6 +4,8 @@ import '../../../app/localization/app_locale.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/app_feedback.dart';
 import '../../auth/data/auth_repository.dart';
+import '../../household_activity/data/household_activity_repository.dart';
+import '../../household_activity/domain/household_activity_event.dart';
 import '../../households/domain/household.dart';
 import '../../households/presentation/household_screen.dart';
 import '../../shopping_list/data/shopping_list_repository.dart';
@@ -19,7 +21,7 @@ import 'food_item_form_screen.dart';
 import 'fridge_scan_screen.dart';
 import 'scan_history_screen.dart';
 
-enum PantryFilter { all, expiringSoon, noExpiry }
+enum PantryFilter { all, noExpiry }
 
 class FoodItemsScreen extends StatefulWidget {
   final AuthRepository authRepository;
@@ -27,6 +29,7 @@ class FoodItemsScreen extends StatefulWidget {
   final VoidCallback onPantryChanged;
   final VoidCallback onShoppingListChanged;
   final int refreshToken;
+  final int expiringSoonOpenToken;
 
   const FoodItemsScreen({
     super.key,
@@ -35,6 +38,7 @@ class FoodItemsScreen extends StatefulWidget {
     required this.onPantryChanged,
     required this.onShoppingListChanged,
     required this.refreshToken,
+    required this.expiringSoonOpenToken,
   });
 
   @override
@@ -47,12 +51,15 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
   );
   late final ShoppingListRepository _shoppingListRepository =
       ShoppingListRepository(householdId: widget.household.id);
+  late final HouseholdActivityRepository _activityRepository =
+      HouseholdActivityRepository(householdId: widget.household.id);
   late final UserPreferencesRepository _userPreferencesRepository =
       UserPreferencesRepository();
   final TextEditingController _searchController = TextEditingController();
 
   late Future<_PantryViewData> _pantryFuture;
   PantryFilter _selectedFilter = PantryFilter.all;
+  int? _handledExpiringSoonOpenToken;
 
   @override
   void initState() {
@@ -65,6 +72,9 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.refreshToken != widget.refreshToken) {
       _reload();
+    }
+    if (oldWidget.expiringSoonOpenToken != widget.expiringSoonOpenToken) {
+      _maybeOpenExpiringSoonFromShell();
     }
   }
 
@@ -80,6 +90,23 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
     });
 
     await _pantryFuture;
+  }
+
+  void _maybeOpenExpiringSoonFromShell() {
+    if (_handledExpiringSoonOpenToken == widget.expiringSoonOpenToken) {
+      return;
+    }
+    _handledExpiringSoonOpenToken = widget.expiringSoonOpenToken;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) {
+        return;
+      }
+      final viewData = await _pantryFuture;
+      if (!mounted) {
+        return;
+      }
+      await _openExpiringSoonScreen(viewData.items, viewData.preferences);
+    });
   }
 
   Future<_PantryViewData> _loadPantryViewData() async {
@@ -118,6 +145,12 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
         createdItem,
         existingItems: currentItems,
         promptForMerge: true,
+      );
+      _logActivity(
+        eventType: result.wasMerged ? 'pantry_increased' : 'pantry_added',
+        itemName: result.item.name,
+        quantity: createdItem.quantity,
+        unit: createdItem.unit,
       );
       await _reconcileShoppingListAfterPantryIncrease(
         name: createdItem.name,
@@ -443,6 +476,12 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
 
     try {
       await repository.editFoodItem(updatedItem);
+      _logActivity(
+        eventType: 'pantry_updated',
+        itemName: updatedItem.name,
+        quantity: updatedItem.quantity,
+        unit: updatedItem.unit,
+      );
       await _reload();
       widget.onPantryChanged();
       if (!mounted) return;
@@ -494,6 +533,12 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
         updatedAt: DateTime.now().toUtc(),
       );
       await repository.editFoodItem(updatedItem);
+      _logActivity(
+        eventType: 'pantry_increased',
+        itemName: updatedItem.name,
+        quantity: additionalItem.quantity,
+        unit: additionalItem.unit,
+      );
       await _reconcileShoppingListAfterPantryIncrease(
         name: item.name,
         quantity: additionalItem.quantity,
@@ -552,6 +597,12 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
 
     try {
       await repository.removeFoodItem(item.id);
+      _logActivity(
+        eventType: 'pantry_deleted',
+        itemName: item.name,
+        quantity: item.quantity,
+        unit: item.unit,
+      );
       await _reload();
       widget.onPantryChanged();
       if (!mounted) return;
@@ -672,6 +723,12 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
         );
         await repository.editFoodItem(updatedItem);
       }
+      _logActivity(
+        eventType: 'pantry_used',
+        itemName: item.name,
+        quantity: usedQuantity,
+        unit: item.unit,
+      );
       if (!mounted) return;
       setState(() {
         _pantryFuture = _loadPantryViewData();
@@ -914,6 +971,12 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
         );
         await repository.addFoodItem(openedItem);
       }
+      _logActivity(
+        eventType: 'pantry_opened',
+        itemName: item.name,
+        quantity: openedQuantity,
+        unit: item.unit,
+      );
       await _reload();
       widget.onPantryChanged();
       if (!mounted) return;
@@ -948,6 +1011,35 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
 
   double? _parseQuantity(String value) {
     return double.tryParse(value.trim().replaceAll(',', '.'));
+  }
+
+  Future<void> _logActivity({
+    required String eventType,
+    required String itemName,
+    double? quantity,
+    String? unit,
+    String? details,
+  }) async {
+    final userId = widget.authRepository.currentSession?.user.id;
+    if (userId == null) {
+      return;
+    }
+
+    try {
+      await _activityRepository.addEvent(
+        HouseholdActivityEvent(
+          id: '',
+          householdId: widget.household.id,
+          userId: userId,
+          eventType: eventType,
+          itemName: itemName,
+          quantity: quantity,
+          unit: unit,
+          details: details,
+          createdAt: DateTime.now().toUtc(),
+        ),
+      );
+    } catch (_) {}
   }
 
   String _shoppingKey(String name, String unit) {
@@ -1325,39 +1417,9 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
             );
           }
 
-          final filteredItems = _applyFilters(items);
-          if (filteredItems.isEmpty) {
-            return RefreshIndicator(
-              onRefresh: _reload,
-              child: ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(16),
-                children: [
-                  _SearchAndFilterBar(
-                    controller: _searchController,
-                    selectedFilter: _selectedFilter,
-                    onSearchChanged: (_) => setState(() {}),
-                    onFilterChanged: (value) {
-                      setState(() {
-                        _selectedFilter = value;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  AppEmptyState(
-                    message: context.tr(
-                      en: 'No pantry items match your search.',
-                      sk: 'Tvojmu hľadaniu nezodpovedajú žiadne pantry položky.',
-                    ),
-                    onRefresh: _reload,
-                  ),
-                ],
-              ),
-            );
-          }
-
           final expiringSoonCount = items.where(_isExpiringSoon).length;
           final lowStockCount = items.where(_isLowStock).length;
+          final filteredItems = _applyFilters(items);
           final shouldShowDuplicateMerge =
               _selectedFilter == PantryFilter.all &&
               _searchController.text.trim().isEmpty;
@@ -1386,6 +1448,24 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
                   _selectedFilter = value;
                 });
               },
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.tonal(
+                onPressed: () => _openExpiringSoonScreen(items, preferences),
+                child: Text(
+                  expiringSoonCount > 0
+                      ? context.tr(
+                          en: 'View $expiringSoonCount expiring soon item${expiringSoonCount == 1 ? '' : 's'}',
+                          sk: 'Zobraziť $expiringSoonCount polož${expiringSoonCount == 1 ? 'ku' : 'ky'} Čoskoro sa minie',
+                        )
+                      : context.tr(
+                          en: 'View expiring soon items',
+                          sk: 'Zobraziť položky Čoskoro sa minie',
+                        ),
+                ),
+              ),
             ),
             const SizedBox(height: 16),
             if (lowStockCount > 0)
@@ -1442,10 +1522,20 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
             child: ListView.builder(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
-              itemCount: headerWidgets.length + groupedEntries.length,
+              itemCount: headerWidgets.length + (groupedEntries.isEmpty ? 1 : groupedEntries.length),
               itemBuilder: (context, index) {
                 if (index < headerWidgets.length) {
                   return headerWidgets[index];
+                }
+
+                if (groupedEntries.isEmpty) {
+                  return AppEmptyState(
+                    message: context.tr(
+                      en: 'No pantry items match your search.',
+                      sk: 'Tvojmu hľadaniu nezodpovedajú žiadne pantry položky.',
+                    ),
+                    onRefresh: _reload,
+                  );
                 }
 
                 final entry = groupedEntries[index - headerWidgets.length];
@@ -1475,7 +1565,6 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
 
       return switch (_selectedFilter) {
         PantryFilter.all => true,
-        PantryFilter.expiringSoon => _isExpiringSoon(item),
         PantryFilter.noExpiry => item.expirationDate == null,
       };
     }).toList();
@@ -1671,6 +1760,47 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
     );
   }
 
+  Future<void> _openExpiringSoonScreen(
+    List<FoodItem> items,
+    UserPreferences? preferences,
+  ) async {
+    final expiringSoonItems = items.where(_isExpiringSoon).toList()
+      ..sort(_compareFoodItemsForDisplay);
+
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          appBar: AppBar(
+            title: Text(context.tr(en: 'Expiring soon', sk: 'Čoskoro sa minie')),
+          ),
+          body: expiringSoonItems.isEmpty
+              ? AppEmptyState(
+                  message: context.tr(
+                    en: 'No expiring soon items.',
+                    sk: 'Žiadne položky Čoskoro sa minie.',
+                  ),
+                  onRefresh: _reload,
+                )
+              : ListView.separated(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: expiringSoonItems.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final item = expiringSoonItems[index];
+                    return _buildFoodItemCard(
+                      item,
+                      subtitle:
+                          '${_formatCompactNumber(item.quantity)} ${item.unit} • ${_categoryLabel(item.category)} • ${_storageLocationLabel(item.storageLocation)}'
+                          '${item.expirationDate == null ? '' : ' • ${_expiryShortLabel(item.expirationDate!)}'}',
+                      warning: _buildFoodSafetyWarning(item, preferences),
+                    );
+                  },
+                ),
+        ),
+      ),
+    );
+  }
+
   List<_PantryListEntry> _buildGroupedEntries(List<FoodItem> items) {
     const orderedLocations = ['fridge', 'freezer', 'pantry'];
     final entries = <_PantryListEntry>[];
@@ -1778,10 +1908,13 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
             if (item.openedAt != null) ...[
               const SizedBox(height: 6),
               Text(
-                context.tr(
-                  en: 'Opened ${_formatShortDate(item.openedAt!)}',
-                  sk: 'Otvorené ${_formatShortDate(item.openedAt!)}',
-                ),
+                [
+                  context.tr(
+                    en: 'Opened ${_formatShortDate(item.openedAt!)}',
+                    sk: 'Otvorené ${_formatShortDate(item.openedAt!)}',
+                  ),
+                  _openedUseSoonLabel(item),
+                ].join(' • '),
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: const Color(0xFF8A4B00),
                   fontWeight: FontWeight.w600,
@@ -1994,6 +2127,13 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
   }
 
   int _compareFoodItemsForDisplay(FoodItem a, FoodItem b) {
+    final openedPriorityComparison = _openedDaysLeft(
+      a,
+    ).compareTo(_openedDaysLeft(b));
+    if (openedPriorityComparison != 0) {
+      return openedPriorityComparison;
+    }
+
     final aDate = a.expirationDate;
     final bDate = b.expirationDate;
 
@@ -2041,6 +2181,70 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
     return value == value.roundToDouble()
         ? value.toInt().toString()
         : value.toString();
+  }
+
+  int _openedUseWithinDays(FoodItem item) {
+    switch (item.category) {
+      case 'dairy':
+        return 3;
+      case 'meat':
+        return 2;
+      case 'produce':
+        return 3;
+      case 'canned':
+        return 4;
+      case 'frozen':
+        return 2;
+      case 'beverages':
+        return 5;
+      case 'grains':
+        return 7;
+      default:
+        return 3;
+    }
+  }
+
+  int _daysSinceOpened(DateTime? value) {
+    if (value == null) {
+      return 0;
+    }
+    final today = DateTime.now();
+    final normalizedToday = DateTime(today.year, today.month, today.day);
+    final normalizedOpened = DateTime(value.year, value.month, value.day);
+    return normalizedToday.difference(normalizedOpened).inDays;
+  }
+
+  int _openedDaysLeft(FoodItem item) {
+    if (item.openedAt == null) {
+      return 9999;
+    }
+    return _openedUseWithinDays(item) - _daysSinceOpened(item.openedAt);
+  }
+
+  String _openedUseSoonLabel(FoodItem item) {
+    final daysLeft = _openedDaysLeft(item);
+    if (daysLeft < 0) {
+      return context.tr(
+        en: 'Use as soon as possible',
+        sk: 'Použi čo najskôr',
+      );
+    }
+    if (daysLeft == 0) {
+      return context.tr(
+        en: 'Use today after opening',
+        sk: 'Použi dnes po otvorení',
+      );
+    }
+    if (daysLeft == 1) {
+      return context.tr(
+        en: 'Use within 1 day',
+        sk: 'Použi do 1 dňa',
+      );
+    }
+    return context.tr(
+      en: 'Use within $daysLeft days',
+      sk: 'Použi do $daysLeft dní',
+    );
   }
 
   String _categoryLabel(String value) {
@@ -2495,11 +2699,6 @@ class _SearchAndFilterBar extends StatelessWidget {
               label: context.tr(en: 'All', sk: 'Všetko'),
               selected: selectedFilter == PantryFilter.all,
               onTap: () => onFilterChanged(PantryFilter.all),
-            ),
-            _PantryFilterChip(
-              label: context.tr(en: 'Expiring soon', sk: 'Čoskoro sa minie'),
-              selected: selectedFilter == PantryFilter.expiringSoon,
-              onTap: () => onFilterChanged(PantryFilter.expiringSoon),
             ),
             _PantryFilterChip(
               label: context.tr(en: 'No expiry', sk: 'Bez expirácie'),

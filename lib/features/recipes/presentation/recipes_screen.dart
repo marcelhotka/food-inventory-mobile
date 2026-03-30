@@ -20,6 +20,7 @@ import '../data/recipes_repository.dart';
 import '../domain/recipe.dart';
 import '../domain/recipe_ingredient.dart';
 import '../domain/recipe_match_result.dart';
+import '../domain/recipe_nutrition_estimate.dart';
 import 'recipe_display_text.dart';
 import 'recipe_form_screen.dart';
 
@@ -324,14 +325,19 @@ class _RecipesScreenState extends State<RecipesScreen> {
                 if (focusedRecipe != null &&
                     _presentedFocusedRecipeId != focusedRecipe.id) {
                   final selectedRecipe = focusedRecipe;
+                  final selectedServings = _selectedServingsFor(selectedRecipe);
                   final focusedResult = _matchRecipe(
                     selectedRecipe,
                     pantryItems,
-                    servings: _selectedServingsFor(selectedRecipe),
+                    servings: selectedServings,
                   );
                   final focusedWarning = _buildRecipeSafetyWarning(
                     selectedRecipe,
                     preferences,
+                  );
+                  final focusedNutrition = estimateRecipeNutrition(
+                    selectedRecipe,
+                    servings: selectedServings,
                   );
                   WidgetsBinding.instance.addPostFrameCallback((_) {
                     if (!mounted) {
@@ -342,6 +348,7 @@ class _RecipesScreenState extends State<RecipesScreen> {
                       selectedRecipe,
                       focusedResult,
                       focusedWarning,
+                      focusedNutrition,
                     );
                   });
                 }
@@ -363,6 +370,10 @@ class _RecipesScreenState extends State<RecipesScreen> {
                       final warning = _buildRecipeSafetyWarning(
                         recipe,
                         preferences,
+                      );
+                      final nutrition = estimateRecipeNutrition(
+                        recipe,
+                        servings: selectedServings,
                       );
                       final isFocused = recipe.id == widget.focusedRecipeId;
 
@@ -468,6 +479,8 @@ class _RecipesScreenState extends State<RecipesScreen> {
                               ),
                               const SizedBox(height: 12),
                               Text(localizedRecipeDescription(context, recipe)),
+                              const SizedBox(height: 12),
+                              _RecipeNutritionSummary(nutrition: nutrition),
                               const SizedBox(height: 16),
                               Wrap(
                                 spacing: 8,
@@ -649,6 +662,7 @@ class _RecipesScreenState extends State<RecipesScreen> {
     Recipe recipe,
     RecipeMatchResult result,
     _FoodSafetyWarning? warning,
+    RecipeNutritionEstimate nutrition,
   ) async {
     await showModalBottomSheet<void>(
       context: context,
@@ -695,6 +709,8 @@ class _RecipesScreenState extends State<RecipesScreen> {
                 ),
                 const SizedBox(height: 12),
                 Text(localizedRecipeDescription(context, recipe)),
+                const SizedBox(height: 12),
+                _RecipeNutritionSummary(nutrition: nutrition),
                 const SizedBox(height: 16),
                 Wrap(
                   spacing: 8,
@@ -1247,6 +1263,25 @@ class _RecipesScreenState extends State<RecipesScreen> {
     final normalized = _normalize(value);
     final aliases = _ingredientAliases(value);
 
+    if (normalized.contains('mlieko') || normalized.contains('milk')) {
+      return 'milk';
+    }
+    if (normalized.contains('syr') ||
+        normalized.contains('cheese') ||
+        normalized.contains('gorgonzola') ||
+        normalized.contains('mozzarella')) {
+      return 'cheese';
+    }
+    if (normalized.contains('jogurt') || normalized.contains('yogurt')) {
+      return 'yogurt';
+    }
+    if (normalized.contains('smotan') || normalized.contains('cream')) {
+      return 'cream';
+    }
+    if (normalized.contains('maslo') || normalized.contains('butter')) {
+      return 'butter';
+    }
+
     const canonicalMap = {
       'eggs': 'eggs',
       'egg': 'eggs',
@@ -1679,15 +1714,41 @@ class _RecipesScreenState extends State<RecipesScreen> {
             sk: 'Upozornenie na intoleranciu',
           );
     final warningText = warning.matchedSignals.join(', ');
+    final suggestions = _suggestSafeRecipeAlternatives(recipe, warning);
 
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(title),
-        content: Text(
-          context.tr(
-            en: 'This recipe may conflict with your preferences because it contains $warningText.\n\nDo you still want to $actionLabel?',
-            sk: 'Tento recept môže kolidovať s tvojimi preferenciami, pretože obsahuje $warningText.\n\nNapriek tomu chceš $actionLabel?',
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                context.tr(
+                  en: 'This recipe may conflict with your preferences because it contains $warningText.\n\nDo you still want to $actionLabel?',
+                  sk: 'Tento recept môže kolidovať s tvojimi preferenciami, pretože obsahuje $warningText.\n\nNapriek tomu chceš $actionLabel?',
+                ),
+              ),
+              if (suggestions.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Text(
+                  context.tr(
+                    en: 'Safer alternatives:',
+                    sk: 'Bezpečnejšie alternatívy:',
+                  ),
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 8),
+                ...suggestions.map(
+                  (suggestion) => Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Text('• $suggestion'),
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
         actions: [
@@ -1706,6 +1767,63 @@ class _RecipesScreenState extends State<RecipesScreen> {
     return confirmed == true;
   }
 
+  List<String> _suggestSafeRecipeAlternatives(
+    Recipe recipe,
+    _FoodSafetyWarning warning,
+  ) {
+    final suggestions = <String>{};
+    final ingredientKeys = recipe.ingredients
+        .map((ingredient) => _canonicalIngredientKey(ingredient.name))
+        .toSet();
+
+    for (final signal in warning.matchedSignals) {
+      switch (signal) {
+        case 'lactose':
+          suggestions.add(
+            context.tr(
+              en: 'Use lactose-free dairy alternatives',
+              sk: 'Použi bezlaktózové mliečne alternatívy',
+            ),
+          );
+          if (ingredientKeys.contains('milk')) {
+            suggestions.add(
+              context.tr(
+                en: 'Swap milk for lactose-free milk',
+                sk: 'Nahraď mlieko bezlaktózovým mliekom',
+              ),
+            );
+          }
+          if (ingredientKeys.contains('cheese')) {
+            suggestions.add(
+              context.tr(
+                en: 'Swap cheese for lactose-free cheese',
+                sk: 'Nahraď syr bezlaktózovým syrom',
+              ),
+            );
+          }
+          break;
+        case 'gluten':
+          suggestions.add(
+            context.tr(
+              en: 'Try gluten-free alternatives for grains or pasta',
+              sk: 'Skús bezlepkové alternatívy pre obilniny alebo cestoviny',
+            ),
+          );
+          break;
+        case 'eggs':
+          suggestions.add(
+            context.tr(
+              en: 'Try an egg-free version of this recipe',
+              sk: 'Skús bezvaječnú verziu tohto receptu',
+            ),
+          );
+          break;
+      }
+    }
+
+    return suggestions.take(3).toList();
+  }
+
   Future<int> _addMissingToShoppingListInternal(
     RecipeMatchResult result,
   ) async {
@@ -1720,6 +1838,13 @@ class _RecipesScreenState extends State<RecipesScreen> {
     }
 
     final existingItems = await _shoppingListRepository.getShoppingListItems();
+    UserPreferences? preferences;
+    try {
+      preferences = await _userPreferencesRepository
+          .getCurrentUserPreferences();
+    } catch (_) {
+      preferences = null;
+    }
     int changedCount = 0;
 
     for (final missing in result.missing) {
@@ -1727,7 +1852,10 @@ class _RecipesScreenState extends State<RecipesScreen> {
       changedCount += await _upsertShoppingNeed(
         userId: user.id,
         existingItems: existingItems,
-        ingredientName: ingredient.name,
+        ingredientName: _preferredShoppingIngredientName(
+          ingredient.name,
+          preferences,
+        ),
         quantity: missing.missingQuantityInRecipeUnit,
         unit: ingredient.unit,
       );
@@ -1738,7 +1866,10 @@ class _RecipesScreenState extends State<RecipesScreen> {
       changedCount += await _upsertShoppingNeed(
         userId: user.id,
         existingItems: existingItems,
-        ingredientName: ingredient.name,
+        ingredientName: _preferredShoppingIngredientName(
+          ingredient.name,
+          preferences,
+        ),
         quantity: partial.missingQuantityInRecipeUnit,
         unit: ingredient.unit,
       );
@@ -1903,14 +2034,21 @@ class _RecipesScreenState extends State<RecipesScreen> {
       existing.source,
       ShoppingListItem.sourceRecipeMissing,
     );
-    var mergedQuantity = existing.quantity > quantity
-        ? existing.quantity
-        : quantity;
+    final convertedIncomingQuantity = _convertToIngredientUnit(
+      quantity: quantity,
+      fromUnit: unit,
+      toUnit: existing.unit,
+    );
+    var mergedQuantity =
+        existing.quantity + (convertedIncomingQuantity ?? quantity);
 
     for (final duplicate in matchingItems.skip(1)) {
-      if (duplicate.quantity > mergedQuantity) {
-        mergedQuantity = duplicate.quantity;
-      }
+      final duplicateConvertedQuantity = _convertToIngredientUnit(
+        quantity: duplicate.quantity,
+        fromUnit: duplicate.unit,
+        toUnit: existing.unit,
+      );
+      mergedQuantity += duplicateConvertedQuantity ?? duplicate.quantity;
     }
 
     if (existing.quantity == mergedQuantity &&
@@ -1978,6 +2116,51 @@ class _RecipesScreenState extends State<RecipesScreen> {
     return null;
   }
 
+  String _preferredShoppingIngredientName(
+    String ingredientName,
+    UserPreferences? preferences,
+  ) {
+    if (preferences == null) {
+      return ingredientName;
+    }
+
+    final matchedIntolerances = _matchPreferenceSignals(
+      preferenceEntries: preferences.intolerances,
+      candidateSignals: {
+        _canonicalFoodSignal(_normalize(ingredientName)),
+        _canonicalIngredientKey(ingredientName),
+      },
+    );
+
+    if (matchedIntolerances.contains('lactose')) {
+      final normalizedName = _normalize(ingredientName);
+      if (normalizedName.contains('milk') ||
+          normalizedName.contains('mlieko')) {
+        return 'Bezlaktózové mlieko';
+      }
+      if (normalizedName.contains('cheese') ||
+          normalizedName.contains('syr') ||
+          normalizedName.contains('gorgonzola') ||
+          normalizedName.contains('mozzarella')) {
+        return 'Bezlaktózový syr';
+      }
+      if (normalizedName.contains('yogurt') ||
+          normalizedName.contains('jogurt')) {
+        return 'Bezlaktózový jogurt';
+      }
+      if (normalizedName.contains('cream') ||
+          normalizedName.contains('smotan')) {
+        return 'Bezlaktózová smotana';
+      }
+      if (normalizedName.contains('butter') ||
+          normalizedName.contains('maslo')) {
+        return 'Bezlaktózové maslo';
+      }
+    }
+
+    return ingredientName;
+  }
+
   Set<String> _ingredientSignalSet(RecipeIngredient ingredient) {
     final signals = <String>{};
     final normalizedName = _normalize(ingredient.name);
@@ -2021,13 +2204,21 @@ class _RecipesScreenState extends State<RecipesScreen> {
   String _canonicalFoodSignal(String value) {
     switch (value) {
       case 'lactose':
+      case 'laktoza':
+      case 'laktozu':
+      case 'laktozy':
       case 'dairy':
+      case 'mliecne':
+      case 'mliecnych':
+      case 'mliecna':
       case 'milk':
       case 'cheese':
       case 'mlieko':
       case 'syr':
         return 'lactose';
       case 'gluten':
+      case 'lepok':
+      case 'lepku':
       case 'wheat':
       case 'pasta':
       case 'bread':
@@ -2039,6 +2230,7 @@ class _RecipesScreenState extends State<RecipesScreen> {
       case 'eggs':
       case 'vajce':
       case 'vajcia':
+      case 'vajec':
         return 'eggs';
       case 'peanut':
       case 'peanuts':
@@ -2103,6 +2295,74 @@ class _SummaryChip extends StatelessWidget {
       ),
       child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
     );
+  }
+}
+
+class _RecipeNutritionSummary extends StatelessWidget {
+  const _RecipeNutritionSummary({required this.nutrition});
+
+  final RecipeNutritionEstimate nutrition;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          context.tr(
+            en: 'Nutrition for ${nutrition.selectedServings} ${nutrition.selectedServings == 1 ? 'serving' : 'servings'}',
+            sk: 'Nutričný odhad pre ${nutrition.selectedServings} ${nutrition.selectedServings == 1 ? 'porciu' : 'porcie'}',
+          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _SummaryChip(
+              label:
+                  '${nutrition.caloriesTotal} ${context.tr(en: 'kcal', sk: 'kcal')}',
+              color: const Color(0xFFFFF0D9),
+            ),
+            _SummaryChip(
+              label:
+                  '${nutrition.proteinTotal.toStringAsFixed(1)} g ${context.tr(en: 'protein', sk: 'bielkoviny')}',
+              color: const Color(0xFFE7F3E8),
+            ),
+            _SummaryChip(
+              label:
+                  '${nutrition.fiberTotal.toStringAsFixed(1)} g ${context.tr(en: 'fiber', sk: 'vláknina')}',
+              color: const Color(0xFFE8EEF8),
+            ),
+            _SummaryChip(
+              label: _balanceLabel(context, nutrition.balanceScore),
+              color: const Color(0xFFEDE8F8),
+            ),
+            _SummaryChip(
+              label:
+                  '${context.tr(en: 'per serving', sk: 'na porciu')}: ${nutrition.caloriesPerServing} ${context.tr(en: 'kcal', sk: 'kcal')}',
+              color: const Color(0xFFF4F1FB),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  String _balanceLabel(BuildContext context, int score) {
+    if (score >= 75) {
+      return context.tr(en: 'Well balanced', sk: 'Dobre vyvážené');
+    }
+    if (score >= 60) {
+      return context.tr(en: 'Good choice', sk: 'Dobrá voľba');
+    }
+    if (score >= 45) {
+      return context.tr(en: 'More energy', sk: 'Viac energie');
+    }
+    return context.tr(en: 'Treat meal', sk: 'Skôr maškrta');
   }
 }
 

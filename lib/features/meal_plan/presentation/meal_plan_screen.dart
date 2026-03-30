@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../app/localization/app_locale.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/app_feedback.dart';
 import '../../food_items/data/food_items_repository.dart';
@@ -96,7 +97,10 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
 
     final confirmed = await _confirmMealPlanSafetyForEntry(
       entry,
-      actionLabel: 'add this meal to your plan',
+      actionLabel: context.tr(
+        en: 'add this meal to your plan',
+        sk: 'pridať toto jedlo do tvojho jedálnička',
+      ),
       recipes: recipes,
       preferences: null,
     );
@@ -108,10 +112,22 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
       await _mealPlanRepository.addEntry(entry);
       await _reload();
       if (!mounted) return;
-      showSuccessFeedback(context, 'Meal plan entry added.');
+      showSuccessFeedback(
+        context,
+        context.tr(
+          en: 'Meal plan entry added.',
+          sk: 'Položka jedálnička bola pridaná.',
+        ),
+      );
     } catch (_) {
       if (!mounted) return;
-      showErrorFeedback(context, 'Failed to add meal plan entry.');
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Failed to add meal plan entry.',
+          sk: 'Položku jedálnička sa nepodarilo pridať.',
+        ),
+      );
     }
   }
 
@@ -137,7 +153,10 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
 
     final confirmed = await _confirmMealPlanSafetyForEntries(
       importedEntries,
-      actionLabel: 'import these meals into your plan',
+      actionLabel: context.tr(
+        en: 'import these meals into your plan',
+        sk: 'importovať tieto jedlá do tvojho jedálnička',
+      ),
       recipes: recipes,
       preferences: null,
     );
@@ -153,11 +172,20 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
       if (!mounted) return;
       showSuccessFeedback(
         context,
-        '${importedEntries.length} meal plan entr${importedEntries.length == 1 ? 'y' : 'ies'} imported.',
+        context.tr(
+          en: '${importedEntries.length} meal plan entr${importedEntries.length == 1 ? 'y' : 'ies'} imported.',
+          sk: 'Importovaných položiek jedálnička: ${importedEntries.length}.',
+        ),
       );
     } catch (_) {
       if (!mounted) return;
-      showErrorFeedback(context, 'Failed to import meal plan.');
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Failed to import meal plan.',
+          sk: 'Jedálniček sa nepodarilo importovať.',
+        ),
+      );
     }
   }
 
@@ -182,7 +210,10 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
 
     final confirmed = await _confirmMealPlanSafetyForEntry(
       updated,
-      actionLabel: 'save this meal plan entry',
+      actionLabel: context.tr(
+        en: 'save this meal plan entry',
+        sk: 'uložiť túto položku jedálnička',
+      ),
       recipes: recipes,
       preferences: null,
     );
@@ -194,10 +225,22 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
       await _mealPlanRepository.editEntry(updated);
       await _reload();
       if (!mounted) return;
-      showSuccessFeedback(context, 'Meal plan entry updated.');
+      showSuccessFeedback(
+        context,
+        context.tr(
+          en: 'Meal plan entry updated.',
+          sk: 'Položka jedálnička bola upravená.',
+        ),
+      );
     } catch (_) {
       if (!mounted) return;
-      showErrorFeedback(context, 'Failed to update meal plan entry.');
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Failed to update meal plan entry.',
+          sk: 'Položku jedálnička sa nepodarilo upraviť.',
+        ),
+      );
     }
   }
 
@@ -205,16 +248,26 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete meal plan entry'),
-        content: Text('Do you want to delete "${entry.recipeName}"?'),
+        title: Text(
+          context.tr(
+            en: 'Delete meal plan entry',
+            sk: 'Odstrániť položku jedálnička',
+          ),
+        ),
+        content: Text(
+          context.tr(
+            en: 'Do you want to delete "${entry.recipeName}"?',
+            sk: 'Chceš odstrániť „${entry.recipeName}“?',
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(context.tr(en: 'Cancel', sk: 'Zrušiť')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
+            child: Text(context.tr(en: 'Delete', sk: 'Odstrániť')),
           ),
         ],
       ),
@@ -228,10 +281,22 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
       await _mealPlanRepository.removeEntry(entry.id);
       await _reload();
       if (!mounted) return;
-      showSuccessFeedback(context, 'Meal plan entry deleted.');
+      showSuccessFeedback(
+        context,
+        context.tr(
+          en: 'Meal plan entry deleted.',
+          sk: 'Položka jedálnička bola odstránená.',
+        ),
+      );
     } catch (_) {
       if (!mounted) return;
-      showErrorFeedback(context, 'Failed to delete meal plan entry.');
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Failed to delete meal plan entry.',
+          sk: 'Položku jedálnička sa nepodarilo odstrániť.',
+        ),
+      );
     }
   }
 
@@ -240,7 +305,13 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
   ) async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) {
-      showErrorFeedback(context, 'No signed-in user.');
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'No signed-in user.',
+          sk: 'Nie je prihlásený žiadny používateľ.',
+        ),
+      );
       return;
     }
 
@@ -283,19 +354,31 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
 
       if (!mounted) return;
       if (changedCount == 0) {
-        showSuccessFeedback(context, 'Meal plan is already covered.');
+        showSuccessFeedback(
+          context,
+          context.tr(
+            en: 'Meal plan is already covered.',
+            sk: 'Jedálniček je už pokrytý.',
+          ),
+        );
       } else {
         widget.onShoppingListChanged?.call();
         showSuccessFeedback(
           context,
-          '$changedCount shopping item${changedCount == 1 ? '' : 's'} updated from meal plan.',
+          context.tr(
+            en: '$changedCount shopping item${changedCount == 1 ? '' : 's'} updated from meal plan.',
+            sk: 'Aktualizované nákupné položky z jedálnička: $changedCount.',
+          ),
         );
       }
     } catch (_) {
       if (!mounted) return;
       showErrorFeedback(
         context,
-        'Failed to update shopping list from meal plan.',
+        context.tr(
+          en: 'Failed to update shopping list from meal plan.',
+          sk: 'Nákupný zoznam sa nepodarilo aktualizovať z jedálnička.',
+        ),
       );
     }
   }
@@ -455,11 +538,19 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     required List<String> affectedMealNames,
   }) async {
     final isAllergy = warning.type == _FoodSafetyWarningType.allergy;
-    final title = isAllergy ? 'Allergy warning' : 'Intolerance warning';
+    final title = isAllergy
+        ? context.tr(en: 'Allergy warning', sk: 'Upozornenie na alergiu')
+        : context.tr(
+            en: 'Intolerance warning',
+            sk: 'Upozornenie na intoleranciu',
+          );
     final mealPreview = affectedMealNames.take(3).join(', ');
     final hasMoreMeals = affectedMealNames.length > 3;
     final affectedMealsText = hasMoreMeals
-        ? '$mealPreview and ${affectedMealNames.length - 3} more'
+        ? context.tr(
+            en: '$mealPreview and ${affectedMealNames.length - 3} more',
+            sk: '$mealPreview a ďalších ${affectedMealNames.length - 3}',
+          )
         : mealPreview;
 
     final confirmed = await showDialog<bool>(
@@ -467,16 +558,19 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
       builder: (context) => AlertDialog(
         title: Text(title),
         content: Text(
-          'Some planned meals may conflict with your preferences because they contain ${warning.matchedSignals.join(', ')}.\n\nAffected meals: $affectedMealsText.\n\nDo you still want to $actionLabel?',
+          context.tr(
+            en: 'Some planned meals may conflict with your preferences because they contain ${warning.matchedSignals.join(', ')}.\n\nAffected meals: $affectedMealsText.\n\nDo you still want to $actionLabel?',
+            sk: 'Niektoré plánované jedlá môžu kolidovať s tvojimi preferenciami, pretože obsahujú ${warning.matchedSignals.join(', ')}.\n\nOvplyvnené jedlá: $affectedMealsText.\n\nStále chceš $actionLabel?',
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(context.tr(en: 'Cancel', sk: 'Zrušiť')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Continue'),
+            child: Text(context.tr(en: 'Continue', sk: 'Pokračovať')),
           ),
         ],
       ),
@@ -489,17 +583,20 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Meal Plan'),
+        title: Text(context.tr(en: 'Meal Plan', sk: 'Jedálniček')),
         actions: [
           IconButton(
             onPressed: _openImportMealPlan,
             icon: const Icon(Icons.upload_file_outlined),
-            tooltip: 'Import meal plan',
+            tooltip: context.tr(
+              en: 'Import meal plan',
+              sk: 'Importovať jedálniček',
+            ),
           ),
           IconButton(
             onPressed: _openCreateForm,
             icon: const Icon(Icons.add),
-            tooltip: 'Add meal',
+            tooltip: context.tr(en: 'Add meal', sk: 'Pridať jedlo'),
           ),
         ],
       ),
@@ -512,7 +609,10 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
 
           if (snapshot.hasError) {
             return AppErrorState(
-              message: 'Failed to load meal plan.',
+              message: context.tr(
+                en: 'Failed to load meal plan.',
+                sk: 'Jedálniček sa nepodarilo načítať.',
+              ),
               onRetry: _reload,
             );
           }
@@ -542,7 +642,10 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
             onRefresh: _reload,
             child: entries.isEmpty
                 ? AppEmptyState(
-                    message: 'No meal plan entries yet.',
+                    message: context.tr(
+                      en: 'No meal plan entries yet.',
+                      sk: 'Zatiaľ nemáš žiadne položky jedálnička.',
+                    ),
                     onRefresh: _reload,
                   )
                 : ListView(
@@ -551,7 +654,12 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                       FilledButton.tonalIcon(
                         onPressed: _openImportMealPlan,
                         icon: const Icon(Icons.upload_file_outlined),
-                        label: const Text('Import meal plan'),
+                        label: Text(
+                          context.tr(
+                            en: 'Import meal plan',
+                            sk: 'Importovať jedálniček',
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 12),
                       FilledButton.tonal(
@@ -560,8 +668,11 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                             : () => _addMissingPlannedIngredients(
                                 upcomingEntries,
                               ),
-                        child: const Text(
-                          'Add missing planned ingredients to shopping list',
+                        child: Text(
+                          context.tr(
+                            en: 'Add missing planned ingredients to shopping list',
+                            sk: 'Pridať chýbajúce plánované ingrediencie do nákupného zoznamu',
+                          ),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -608,7 +719,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         Text(
-                                          '${_mealTypeLabel(entry.mealType)} • ${entry.servings} serving${entry.servings == 1 ? '' : 's'}${entry.note == null || entry.note!.isEmpty ? '' : ' • ${entry.note}'}',
+                                          '${_mealTypeLabel(context, entry.mealType)} • ${entry.servings} ${context.tr(en: entry.servings == 1 ? 'serving' : 'servings', sk: entry.servings == 1 ? 'porcia' : 'porcie')}${entry.note == null || entry.note!.isEmpty ? '' : ' • ${entry.note}'}',
                                         ),
                                         if (warning != null) ...[
                                           const SizedBox(height: 6),
@@ -624,7 +735,12 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                           TextButton(
                                             onPressed: () =>
                                                 _openEditForm(entry),
-                                            child: const Text('Link recipe'),
+                                            child: Text(
+                                              context.tr(
+                                                en: 'Link recipe',
+                                                sk: 'Prepojiť recept',
+                                              ),
+                                            ),
                                           ),
                                         IconButton(
                                           onPressed: () => _deleteEntry(entry),
@@ -649,7 +765,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openCreateForm,
         icon: const Icon(Icons.add),
-        label: const Text('Add meal'),
+        label: Text(context.tr(en: 'Add meal', sk: 'Pridať jedlo')),
       ),
     );
   }
@@ -751,13 +867,13 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     return null;
   }
 
-  String _mealTypeLabel(String value) {
+  String _mealTypeLabel(BuildContext context, String value) {
     return switch (value) {
-      'breakfast' => 'Breakfast',
-      'lunch' => 'Lunch',
-      'dinner' => 'Dinner',
-      'snack' => 'Snack',
-      _ => 'Meal',
+      'breakfast' => context.tr(en: 'Breakfast', sk: 'Raňajky'),
+      'lunch' => context.tr(en: 'Lunch', sk: 'Obed'),
+      'dinner' => context.tr(en: 'Dinner', sk: 'Večera'),
+      'snack' => context.tr(en: 'Snack', sk: 'Desiata'),
+      _ => context.tr(en: 'Meal', sk: 'Jedlo'),
     };
   }
 
@@ -960,7 +1076,12 @@ class _MealSafetyBadge extends StatelessWidget {
     final foregroundColor = isAllergy
         ? const Color(0xFF9F1D2C)
         : const Color(0xFF8A5A00);
-    final title = isAllergy ? 'Allergy warning' : 'Intolerance warning';
+    final title = isAllergy
+        ? context.tr(en: 'Allergy warning', sk: 'Upozornenie na alergiu')
+        : context.tr(
+            en: 'Intolerance warning',
+            sk: 'Upozornenie na intoleranciu',
+          );
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -969,7 +1090,7 @@ class _MealSafetyBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
       ),
       child: Text(
-        '$title: contains ${warning.matchedSignals.join(', ')}.',
+        '$title: ${context.tr(en: 'contains', sk: 'obsahuje')} ${warning.matchedSignals.join(', ')}.',
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
           color: foregroundColor,
           fontWeight: FontWeight.w600,

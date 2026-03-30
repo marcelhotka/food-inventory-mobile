@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../app/localization/app_locale.dart';
 import '../../../core/forms/app_input_decoration.dart';
 import '../domain/staple_food.dart';
 
@@ -89,7 +90,17 @@ class _StapleFoodFormScreenState extends State<StapleFoodFormScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.isEditing ? 'Edit Staple Food' : 'Add Staple Food'),
+        title: Text(
+          widget.isEditing
+              ? context.tr(
+                  en: 'Edit Staple Food',
+                  sk: 'Upraviť základnú potravinu',
+                )
+              : context.tr(
+                  en: 'Add Staple Food',
+                  sk: 'Pridať základnú potravinu',
+                ),
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -99,10 +110,12 @@ class _StapleFoodFormScreenState extends State<StapleFoodFormScreen> {
             children: [
               TextFormField(
                 controller: _nameController,
-                decoration: appInputDecoration('Name'),
+                decoration: appInputDecoration(
+                  context.tr(en: 'Name', sk: 'Názov'),
+                ),
                 validator: (value) {
                   if ((value ?? '').trim().isEmpty) {
-                    return 'Enter a name';
+                    return context.tr(en: 'Enter a name', sk: 'Zadaj názov');
                   }
                   return null;
                 },
@@ -110,7 +123,9 @@ class _StapleFoodFormScreenState extends State<StapleFoodFormScreen> {
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 initialValue: _selectedCategory,
-                decoration: appInputDecoration('Category'),
+                decoration: appInputDecoration(
+                  context.tr(en: 'Category', sk: 'Kategória'),
+                ),
                 items: _categoryOptions
                     .map(
                       (value) => DropdownMenuItem(
@@ -137,13 +152,24 @@ class _StapleFoodFormScreenState extends State<StapleFoodFormScreen> {
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
-                      decoration: appInputDecoration('Target quantity'),
+                      decoration: appInputDecoration(
+                        context.tr(
+                          en: 'Target quantity',
+                          sk: 'Cieľové množstvo',
+                        ),
+                      ),
                       validator: (value) {
                         if ((value ?? '').trim().isEmpty) {
-                          return 'Enter quantity';
+                          return context.tr(
+                            en: 'Enter quantity',
+                            sk: 'Zadaj množstvo',
+                          );
                         }
                         if (double.tryParse(value!.trim()) == null) {
-                          return 'Enter a valid number';
+                          return context.tr(
+                            en: 'Enter a valid number',
+                            sk: 'Zadaj platné číslo',
+                          );
                         }
                         return null;
                       },
@@ -153,10 +179,15 @@ class _StapleFoodFormScreenState extends State<StapleFoodFormScreen> {
                   Expanded(
                     child: TextFormField(
                       controller: _unitController,
-                      decoration: appInputDecoration('Unit'),
+                      decoration: appInputDecoration(
+                        context.tr(en: 'Unit', sk: 'Jednotka'),
+                      ),
                       validator: (value) {
                         if ((value ?? '').trim().isEmpty) {
-                          return 'Enter a unit';
+                          return context.tr(
+                            en: 'Enter a unit',
+                            sk: 'Zadaj jednotku',
+                          );
                         }
                         return null;
                       },
@@ -169,7 +200,14 @@ class _StapleFoodFormScreenState extends State<StapleFoodFormScreen> {
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: _save,
-                  child: Text(widget.isEditing ? 'Save changes' : 'Add staple'),
+                  child: Text(
+                    widget.isEditing
+                        ? context.tr(en: 'Save changes', sk: 'Uložiť zmeny')
+                        : context.tr(
+                            en: 'Add staple',
+                            sk: 'Pridať základnú potravinu',
+                          ),
+                  ),
                 ),
               ),
             ],
@@ -181,14 +219,14 @@ class _StapleFoodFormScreenState extends State<StapleFoodFormScreen> {
 
   String _categoryLabel(String value) {
     return switch (value) {
-      'produce' => 'Produce',
-      'dairy' => 'Dairy',
-      'meat' => 'Meat',
-      'grains' => 'Grains',
-      'canned' => 'Canned',
-      'frozen' => 'Frozen',
-      'beverages' => 'Beverages',
-      _ => 'Other',
+      'produce' => context.tr(en: 'Produce', sk: 'Ovocie a zelenina'),
+      'dairy' => context.tr(en: 'Dairy', sk: 'Mliečne výrobky'),
+      'meat' => context.tr(en: 'Meat', sk: 'Mäso'),
+      'grains' => context.tr(en: 'Grains', sk: 'Obilniny'),
+      'canned' => context.tr(en: 'Canned', sk: 'Konzervy'),
+      'frozen' => context.tr(en: 'Frozen', sk: 'Mrazené'),
+      'beverages' => context.tr(en: 'Beverages', sk: 'Nápoje'),
+      _ => context.tr(en: 'Other', sk: 'Ostatné'),
     };
   }
 }

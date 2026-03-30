@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/localization/app_locale.dart';
 import '../../../core/forms/app_input_decoration.dart';
 import '../../../core/widgets/app_feedback.dart';
 import '../data/barcode_lookup_service.dart';
@@ -50,18 +51,23 @@ class _BarcodeLookupScreenState extends State<BarcodeLookupScreen> {
       final fallback = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Product not found'),
+          title: Text(
+            context.tr(en: 'Product not found', sk: 'Produkt sa nenašiel'),
+          ),
           content: Text(
-            'We could not find barcode "$barcode". Do you want to continue with a basic prefilled item and edit it manually?',
+            context.tr(
+              en: 'We could not find barcode "$barcode". Do you want to continue with a basic prefilled item and edit it manually?',
+              sk: 'Čiarový kód „$barcode“ sa nepodarilo nájsť. Chceš pokračovať so základne predvyplnenou položkou a upraviť ju ručne?',
+            ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
+              child: Text(context.tr(en: 'Cancel', sk: 'Zrušiť')),
             ),
             FilledButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Use anyway'),
+              child: Text(context.tr(en: 'Use anyway', sk: 'Použiť aj tak')),
             ),
           ],
         ),
@@ -70,7 +76,7 @@ class _BarcodeLookupScreenState extends State<BarcodeLookupScreen> {
       if (fallback == true && mounted) {
         Navigator.of(context).pop(
           FoodItemPrefill(
-            name: 'Scanned product',
+            name: context.tr(en: 'Scanned product', sk: 'Naskenovaný produkt'),
             barcode: barcode,
             quantity: 1,
             unit: 'pcs',
@@ -82,11 +88,29 @@ class _BarcodeLookupScreenState extends State<BarcodeLookupScreen> {
 
     switch (result.source) {
       case BarcodeLookupSource.cache:
-        showSuccessFeedback(context, 'Loaded instantly from recent lookup.');
+        showSuccessFeedback(
+          context,
+          context.tr(
+            en: 'Loaded instantly from recent lookup.',
+            sk: 'Načítané okamžite z nedávneho vyhľadávania.',
+          ),
+        );
       case BarcodeLookupSource.online:
-        showSuccessFeedback(context, 'Product found online.');
+        showSuccessFeedback(
+          context,
+          context.tr(
+            en: 'Product found online.',
+            sk: 'Produkt bol nájdený online.',
+          ),
+        );
       case BarcodeLookupSource.demo:
-        showSuccessFeedback(context, 'Using local demo product.');
+        showSuccessFeedback(
+          context,
+          context.tr(
+            en: 'Using local demo product.',
+            sk: 'Používam lokálny demo produkt.',
+          ),
+        );
     }
 
     Navigator.of(context).pop(result.prefill);
@@ -102,7 +126,9 @@ class _BarcodeLookupScreenState extends State<BarcodeLookupScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Scan code')),
+      appBar: AppBar(
+        title: Text(context.tr(en: 'Scan code', sk: 'Skenovať kód')),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -133,7 +159,10 @@ class _BarcodeLookupScreenState extends State<BarcodeLookupScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'Barcode lookup',
+                        context.tr(
+                          en: 'Barcode lookup',
+                          sk: 'Vyhľadanie čiarového kódu',
+                        ),
                         style: theme.textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
@@ -143,7 +172,10 @@ class _BarcodeLookupScreenState extends State<BarcodeLookupScreen> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'We first try an online product lookup. If nothing is found, we fall back to the local demo products. After lookup, the pantry form opens prefilled.',
+                  context.tr(
+                    en: 'We first try an online product lookup. If nothing is found, we fall back to the local demo products. After lookup, the pantry form opens prefilled.',
+                    sk: 'Najprv skúšame online vyhľadanie produktu. Ak sa nič nenájde, použijeme lokálne demo produkty. Po vyhľadaní sa otvorí formulár špajze s predvyplnenými údajmi.',
+                  ),
                   style: theme.textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 20),
@@ -152,14 +184,22 @@ class _BarcodeLookupScreenState extends State<BarcodeLookupScreen> {
                   child: TextFormField(
                     controller: _barcodeController,
                     keyboardType: TextInputType.number,
-                    decoration: appInputDecoration('Barcode'),
+                    decoration: appInputDecoration(
+                      context.tr(en: 'Barcode', sk: 'Čiarový kód'),
+                    ),
                     validator: (value) {
                       final barcode = value?.trim() ?? '';
                       if (barcode.isEmpty) {
-                        return 'Enter a barcode';
+                        return context.tr(
+                          en: 'Enter a barcode',
+                          sk: 'Zadaj čiarový kód',
+                        );
                       }
                       if (barcode.length < 8) {
-                        return 'Enter a valid barcode';
+                        return context.tr(
+                          en: 'Enter a valid barcode',
+                          sk: 'Zadaj platný čiarový kód',
+                        );
                       }
                       return null;
                     },
@@ -172,7 +212,12 @@ class _BarcodeLookupScreenState extends State<BarcodeLookupScreen> {
                     onPressed: _isLookingUp ? null : _submit,
                     icon: const Icon(Icons.search_rounded),
                     label: Text(
-                      _isLookingUp ? 'Looking up...' : 'Lookup barcode',
+                      _isLookingUp
+                          ? context.tr(en: 'Looking up...', sk: 'Vyhľadávam...')
+                          : context.tr(
+                              en: 'Lookup barcode',
+                              sk: 'Vyhľadať kód',
+                            ),
                     ),
                   ),
                 ),
@@ -181,7 +226,7 @@ class _BarcodeLookupScreenState extends State<BarcodeLookupScreen> {
           ),
           const SizedBox(height: 20),
           Text(
-            'Try a demo code',
+            context.tr(en: 'Try a demo code', sk: 'Skús demo kód'),
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w700,
             ),

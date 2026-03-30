@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../app/localization/app_locale.dart';
+import '../../../app/supabase.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/app_feedback.dart';
+import '../../household_activity/data/household_activity_repository.dart';
+import '../../household_activity/domain/household_activity_event.dart';
+import '../../recipes/presentation/recipe_display_text.dart';
 import '../data/household_repository.dart';
 import '../domain/household.dart';
 import '../domain/household_member.dart';
@@ -18,21 +23,40 @@ class HouseholdScreen extends StatefulWidget {
 
 class _HouseholdScreenState extends State<HouseholdScreen> {
   late final HouseholdRepository _repository = HouseholdRepository();
-  late Future<List<HouseholdMember>> _membersFuture = _repository.getMembers(
-    widget.household.id,
-  );
+  late final HouseholdActivityRepository _activityRepository =
+      HouseholdActivityRepository(householdId: widget.household.id);
+  late Future<_HouseholdViewData> _viewFuture = _loadViewData();
+
+  String? get _currentUserId => tryGetSupabaseClient()?.auth.currentUser?.id;
 
   Future<void> _reload() async {
     setState(() {
-      _membersFuture = _repository.getMembers(widget.household.id);
+      _viewFuture = _loadViewData();
     });
-    await _membersFuture;
+    await _viewFuture;
+  }
+
+  Future<_HouseholdViewData> _loadViewData() async {
+    final members = await _repository.getMembers(widget.household.id);
+    List<HouseholdActivityEvent> events;
+    try {
+      events = await _activityRepository.getRecentEvents();
+    } catch (_) {
+      events = const <HouseholdActivityEvent>[];
+    }
+    return _HouseholdViewData(members: members, events: events);
   }
 
   Future<void> _copyCode() async {
     await Clipboard.setData(ClipboardData(text: widget.household.id));
     if (!mounted) return;
-    showSuccessFeedback(context, 'Household code copied.');
+    showSuccessFeedback(
+      context,
+      context.tr(
+        en: 'Household code copied.',
+        sk: 'Kód domácnosti bol skopírovaný.',
+      ),
+    );
   }
 
   @override
@@ -42,12 +66,12 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
         leading: IconButton(
           onPressed: () => Navigator.of(context).maybePop(),
           icon: const Icon(Icons.arrow_back),
-          tooltip: 'Back',
+          tooltip: context.tr(en: 'Back', sk: 'Späť'),
         ),
-        title: const Text('Household'),
+        title: Text(context.tr(en: 'Household', sk: 'Domácnosť')),
       ),
-      body: FutureBuilder<List<HouseholdMember>>(
-        future: _membersFuture,
+      body: FutureBuilder<_HouseholdViewData>(
+        future: _viewFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const AppLoadingState();
@@ -55,12 +79,30 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
 
           if (snapshot.hasError) {
             return AppErrorState(
-              message: 'Failed to load household members.',
+              message: context.tr(
+                en: 'Failed to load household members.',
+                sk: 'Nepodarilo sa načítať členov domácnosti.',
+              ),
               onRetry: _reload,
             );
           }
 
-          final members = snapshot.data ?? [];
+          final viewData =
+              snapshot.data ??
+              const _HouseholdViewData(
+                members: <HouseholdMember>[],
+                events: <HouseholdActivityEvent>[],
+              );
+          final members = viewData.members;
+          final events = viewData.events;
+          final topBought = _topHabitItems(
+            events,
+            matchingTypes: const {'shopping_added', 'shopping_increased', 'shopping_bought'},
+          );
+          final topUsed = _topHabitItems(
+            events,
+            matchingTypes: const {'pantry_used', 'pantry_opened'},
+          );
           return RefreshIndicator(
             onRefresh: _reload,
             child: ListView(
@@ -79,7 +121,10 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          'Share this household code with another family member so they can join the same pantry and shopping list.',
+                          context.tr(
+                            en: 'Share this household code with another family member so they can join the same pantry and shopping list.',
+                            sk: 'Zdieľaj tento kód domácnosti s ďalším členom rodiny, aby sa pripojil do rovnakej špajze a nákupného zoznamu.',
+                          ),
                           style: Theme.of(context).textTheme.bodyMedium,
                         ),
                         const SizedBox(height: 16),
@@ -100,7 +145,9 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
                         FilledButton.tonalIcon(
                           onPressed: _copyCode,
                           icon: const Icon(Icons.copy_outlined),
-                          label: const Text('Copy code'),
+                          label: Text(
+                            context.tr(en: 'Copy code', sk: 'Kopírovať kód'),
+                          ),
                         ),
                       ],
                     ),
@@ -108,7 +155,7 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Members',
+                  context.tr(en: 'Members', sk: 'Členovia'),
                   style: Theme.of(
                     context,
                   ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
@@ -122,13 +169,19 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
                         children: [
                           const Icon(Icons.group_outlined, size: 36),
                           const SizedBox(height: 12),
-                          const Text(
-                            'No household members visible yet.',
+                          Text(
+                            context.tr(
+                              en: 'No household members visible yet.',
+                              sk: 'Zatiaľ tu nevidno žiadnych členov domácnosti.',
+                            ),
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Try pulling to refresh after another user joins with your household code.',
+                            context.tr(
+                              en: 'Try pulling to refresh after another user joins with your household code.',
+                              sk: 'Skús potiahnuť na obnovenie po tom, ako sa ďalší používateľ pripojí cez kód tvojej domácnosti.',
+                            ),
                             textAlign: TextAlign.center,
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
@@ -146,17 +199,322 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
                             child: Text(member.role == 'owner' ? 'O' : 'M'),
                           ),
                           title: Text(
-                            member.role == 'owner' ? 'Owner' : 'Member',
+                            member.role == 'owner'
+                                ? context.tr(en: 'Owner', sk: 'Vlastník')
+                                : context.tr(en: 'Member', sk: 'Člen'),
                           ),
                           subtitle: Text(member.userId),
                         ),
                       ),
                     ),
                   ),
+                const SizedBox(height: 16),
+                Text(
+                  context.tr(en: 'Household habits', sk: 'Návyky domácnosti'),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: _HabitSummaryCard(
+                        title: context.tr(
+                          en: 'Bought often',
+                          sk: 'Často kupované',
+                        ),
+                        emptyMessage: context.tr(
+                          en: 'No buying patterns yet.',
+                          sk: 'Zatiaľ nemáme nákupné návyky.',
+                        ),
+                        items: topBought,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _HabitSummaryCard(
+                        title: context.tr(
+                          en: 'Used often',
+                          sk: 'Často používané',
+                        ),
+                        emptyMessage: context.tr(
+                          en: 'No usage patterns yet.',
+                          sk: 'Zatiaľ nemáme spotrebné návyky.',
+                        ),
+                        items: topUsed,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  context.tr(en: 'Recent activity', sk: 'Posledná aktivita'),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 12),
+                if (events.isEmpty)
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(18),
+                      child: Column(
+                        children: [
+                          const Icon(Icons.history_outlined, size: 36),
+                          const SizedBox(height: 12),
+                          Text(
+                            context.tr(
+                              en: 'No household activity yet.',
+                              sk: 'Zatiaľ tu nie je žiadna aktivita domácnosti.',
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            context.tr(
+                              en: 'Activity will appear here when someone adds, updates, opens, uses, or buys items.',
+                              sk: 'Aktivita sa tu zobrazí, keď niekto pridá, upraví, otvorí, použije alebo kúpi položky.',
+                            ),
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  ...events
+                      .take(8)
+                      .map(
+                        (event) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Card(
+                            child: ListTile(
+                              leading: const Icon(Icons.bolt_outlined),
+                              title: Text(_eventTitle(event)),
+                              subtitle: Text(_eventSubtitle(event)),
+                            ),
+                          ),
+                        ),
+                      ),
               ],
             ),
           );
         },
+      ),
+    );
+  }
+
+  String _eventTitle(HouseholdActivityEvent event) {
+    final action = switch (event.eventType) {
+      'pantry_added' => context.tr(
+        en: 'Added to pantry',
+        sk: 'Pridané do špajze',
+      ),
+      'pantry_increased' => context.tr(
+        en: 'Added more to pantry',
+        sk: 'Pridané viac do špajze',
+      ),
+      'pantry_updated' => context.tr(
+        en: 'Updated pantry item',
+        sk: 'Upravená položka v špajzi',
+      ),
+      'pantry_used' => context.tr(
+        en: 'Used from pantry',
+        sk: 'Použité zo špajze',
+      ),
+      'pantry_opened' => context.tr(
+        en: 'Marked as opened',
+        sk: 'Označené ako otvorené',
+      ),
+      'pantry_deleted' => context.tr(
+        en: 'Deleted from pantry',
+        sk: 'Zmazané zo špajze',
+      ),
+      'shopping_added' => context.tr(
+        en: 'Added to shopping list',
+        sk: 'Pridané do nákupného zoznamu',
+      ),
+      'shopping_increased' => context.tr(
+        en: 'Added more to shopping list',
+        sk: 'Pridané viac do nákupného zoznamu',
+      ),
+      'shopping_updated' => context.tr(
+        en: 'Updated shopping item',
+        sk: 'Upravená nákupná položka',
+      ),
+      'shopping_bought' => context.tr(
+        en: 'Marked as bought',
+        sk: 'Označené ako kúpené',
+      ),
+      'shopping_unbought' => context.tr(
+        en: 'Marked as not bought',
+        sk: 'Označené ako nekúpené',
+      ),
+      'shopping_deleted' => context.tr(
+        en: 'Deleted from shopping list',
+        sk: 'Zmazané z nákupného zoznamu',
+      ),
+      _ => context.tr(
+        en: 'Updated household item',
+        sk: 'Upravená položka domácnosti',
+      ),
+    };
+    return '$action: ${event.itemName}';
+  }
+
+  String _eventSubtitle(HouseholdActivityEvent event) {
+    final parts = <String>[
+      _actorLabel(event.userId),
+      if (event.quantity != null && event.unit != null)
+        '${_formatCompactNumber(event.quantity!)} ${event.unit}',
+      _formatDateTime(event.createdAt),
+      if (event.details != null && event.details!.trim().isNotEmpty)
+        event.details!.trim(),
+    ];
+    return parts.join(' • ');
+  }
+
+  String _actorLabel(String userId) {
+    if (userId == _currentUserId) {
+      return context.tr(en: 'You', sk: 'Ty');
+    }
+    return _shortUserId(userId);
+  }
+
+  String _shortUserId(String userId) {
+    if (userId.length <= 8) {
+      return userId;
+    }
+    return '${userId.substring(0, 8)}...';
+  }
+
+  String _formatCompactNumber(double value) {
+    if (value == value.roundToDouble()) {
+      return value.toInt().toString();
+    }
+    return value.toStringAsFixed(1);
+  }
+
+  String _formatDateTime(DateTime value) {
+    final local = value.toLocal();
+    final day = local.day.toString().padLeft(2, '0');
+    final month = local.month.toString().padLeft(2, '0');
+    final hour = local.hour.toString().padLeft(2, '0');
+    final minute = local.minute.toString().padLeft(2, '0');
+    return '$day.$month.${local.year} $hour:$minute';
+  }
+
+  List<_HabitItem> _topHabitItems(
+    List<HouseholdActivityEvent> events, {
+    required Set<String> matchingTypes,
+  }) {
+    final counts = <String, int>{};
+
+    for (final event in events) {
+      if (!matchingTypes.contains(event.eventType)) {
+        continue;
+      }
+      final key = event.itemName.trim().toLowerCase();
+      if (key.isEmpty) {
+        continue;
+      }
+      counts.update(key, (value) => value + 1, ifAbsent: () => 1);
+    }
+
+    final items = counts.entries
+        .map(
+          (entry) => _HabitItem(
+            nameKey: entry.key,
+            displayName: localizedIngredientDisplayName(context, entry.key),
+            count: entry.value,
+          ),
+        )
+        .toList()
+      ..sort((a, b) {
+        final byCount = b.count.compareTo(a.count);
+        if (byCount != 0) {
+          return byCount;
+        }
+        return a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase());
+      });
+
+    return items.take(3).toList();
+  }
+}
+
+class _HouseholdViewData {
+  final List<HouseholdMember> members;
+  final List<HouseholdActivityEvent> events;
+
+  const _HouseholdViewData({required this.members, required this.events});
+}
+
+class _HabitItem {
+  final String nameKey;
+  final String displayName;
+  final int count;
+
+  const _HabitItem({
+    required this.nameKey,
+    required this.displayName,
+    required this.count,
+  });
+}
+
+class _HabitSummaryCard extends StatelessWidget {
+  final String title;
+  final String emptyMessage;
+  final List<_HabitItem> items;
+
+  const _HabitSummaryCard({
+    required this.title,
+    required this.emptyMessage,
+    required this.items,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 12),
+            if (items.isEmpty)
+              Text(
+                emptyMessage,
+                style: Theme.of(context).textTheme.bodySmall,
+              )
+            else
+              ...items.map(
+                (item) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    children: [
+                      Expanded(child: Text(item.displayName)),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${item.count}x',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
