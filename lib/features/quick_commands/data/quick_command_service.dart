@@ -32,22 +32,60 @@ class QuickCommandService {
       throw const QuickCommandException('Musíš byť prihlásený.');
     }
 
-    final parsed = _parse(rawCommand);
-    if (parsed.items.isEmpty) {
+    final parsedCommands = _parseMany(rawCommand);
+    if (parsedCommands.isEmpty ||
+        parsedCommands.every((parsed) => parsed.items.isEmpty)) {
       throw const QuickCommandException(
         'V tomto príkaze sa mi nepodarilo rozpoznať žiadnu potravinu.',
       );
     }
 
-    return switch (parsed.intent) {
-      QuickCommandIntent.addToPantry => _addToPantry(user.id, parsed.items),
-      QuickCommandIntent.addToShoppingList => _addToShoppingList(
-        user.id,
-        parsed.items,
-      ),
-      QuickCommandIntent.consumeFromPantry => _consumeFromPantry(parsed.items),
-      QuickCommandIntent.markOpened => _markOpened(parsed.items),
-    };
+    final details = <String>[];
+    var changedPantry = false;
+    var changedShoppingList = false;
+
+    for (final parsed in parsedCommands) {
+      if (parsed.items.isEmpty) {
+        continue;
+      }
+      final result = await switch (parsed.intent) {
+        QuickCommandIntent.addToPantry => _addToPantry(user.id, parsed.items),
+        QuickCommandIntent.addToShoppingList => _addToShoppingList(
+          user.id,
+          parsed.items,
+        ),
+        QuickCommandIntent.consumeFromPantry => _consumeFromPantry(
+          parsed.items,
+        ),
+        QuickCommandIntent.markOpened => _markOpened(parsed.items),
+      };
+      details.addAll(result.details);
+      changedPantry = changedPantry || result.changedPantry;
+      changedShoppingList = changedShoppingList || result.changedShoppingList;
+    }
+
+    return QuickCommandExecutionResult(
+      summary: parsedCommands.length > 1
+          ? 'Príkaz bol vykonaný vo viacerých krokoch.'
+          : (changedShoppingList && !changedPantry
+                ? 'Príkaz bol vykonaný pre nákupný zoznam.'
+                : changedPantry && !changedShoppingList
+                ? 'Príkaz bol vykonaný pre špajzu.'
+                : 'Príkaz bol úspešne vykonaný.'),
+      details: details,
+      changedPantry: changedPantry,
+      changedShoppingList: changedShoppingList,
+    );
+  }
+
+  List<QuickCommandParseResult> _parseMany(String rawCommand) {
+    final clauses = rawCommand
+        .split(RegExp(r'\s*(?:;|\.|\n|\s+potom\s+)\s*', caseSensitive: false))
+        .map((part) => part.trim())
+        .where((part) => part.isNotEmpty)
+        .toList();
+
+    return clauses.map(_parse).toList();
   }
 
   QuickCommandParseResult _parse(String rawCommand) {
@@ -112,19 +150,31 @@ class QuickCommandService {
         final trailing = (wordMatch.group(3) ?? '').trim();
         final parsedUnit = _normalizeUnit(unitOrName);
         if (_looksLikeKnownUnit(parsedUnit)) {
+          final expiration = _extractExpiration(trailing);
+          final cleanedTrailing = _removeExpirationPhrase(trailing);
           items.add(
             QuickCommandItem(
-              name: _cleanItemName(trailing),
+              name: _extractStorage(_cleanItemName(cleanedTrailing)).itemName,
               quantity: quantity,
               unit: parsedUnit,
+              expirationDate: expiration,
+              storageLocation: _extractStorage(
+                _cleanItemName(cleanedTrailing),
+              ).storage,
             ),
           );
         } else {
+          final combined = '$unitOrName $trailing';
+          final expiration = _extractExpiration(combined);
+          final cleanedCombined = _removeExpirationPhrase(combined);
+          final extracted = _extractStorage(_cleanItemName(cleanedCombined));
           items.add(
             QuickCommandItem(
-              name: _cleanItemName('$unitOrName $trailing'),
+              name: extracted.itemName,
               quantity: quantity,
               unit: 'pcs',
+              storageLocation: extracted.storage,
+              expirationDate: expiration,
             ),
           );
         }
@@ -142,30 +192,46 @@ class QuickCommandService {
         final trailing = match.group(3)!.trim();
         final parsedUnit = _normalizeUnit(unitOrName);
         if (_looksLikeKnownUnit(parsedUnit)) {
+          final expiration = _extractExpiration(trailing);
+          final cleanedTrailing = _removeExpirationPhrase(trailing);
+          final extracted = _extractStorage(_cleanItemName(cleanedTrailing));
           items.add(
             QuickCommandItem(
-              name: _cleanItemName(trailing),
+              name: extracted.itemName,
               quantity: quantity,
               unit: parsedUnit,
+              storageLocation: extracted.storage,
+              expirationDate: expiration,
             ),
           );
         } else {
+          final combined = '$unitOrName $trailing';
+          final expiration = _extractExpiration(combined);
+          final cleanedCombined = _removeExpirationPhrase(combined);
+          final extracted = _extractStorage(_cleanItemName(cleanedCombined));
           items.add(
             QuickCommandItem(
-              name: _cleanItemName('$unitOrName $trailing'),
+              name: extracted.itemName,
               quantity: quantity,
               unit: 'pcs',
+              storageLocation: extracted.storage,
+              expirationDate: expiration,
             ),
           );
         }
         continue;
       }
 
+      final expiration = _extractExpiration(part);
+      final cleanedPart = _removeExpirationPhrase(part);
+      final extracted = _extractStorage(_cleanItemName(cleanedPart));
       items.add(
         QuickCommandItem(
-          name: _cleanItemName(part),
+          name: extracted.itemName,
           quantity: 1,
-          unit: _defaultUnitForName(part),
+          unit: _defaultUnitForName(extracted.itemName),
+          storageLocation: extracted.storage,
+          expirationDate: expiration,
         ),
       );
     }
@@ -194,11 +260,11 @@ class QuickCommandService {
             name: commandItem.name.trim(),
             barcode: null,
             category: 'other',
-            storageLocation: 'pantry',
+            storageLocation: commandItem.storageLocation ?? 'pantry',
             quantity: commandItem.quantity,
             lowStockThreshold: null,
             unit: commandItem.unit,
-            expirationDate: null,
+            expirationDate: commandItem.expirationDate,
             openedAt: null,
             createdAt: now,
             updatedAt: now,
@@ -206,7 +272,7 @@ class QuickCommandService {
         );
         pantryItems.add(created);
         details.add(
-          'Pridané do špajze: ${_formatQuantity(commandItem.quantity)} ${commandItem.unit} ${commandItem.name}.',
+          'Pridané do ${_storageLabel(commandItem.storageLocation ?? 'pantry')}: ${_formatQuantity(commandItem.quantity)} ${commandItem.unit} ${commandItem.name}${commandItem.expirationDate != null ? ' (${_formatDate(commandItem.expirationDate!)})' : ''}.',
         );
         final shoppingAdjusted = await _adjustShoppingAgainstPantry(
           shoppingItems,
@@ -230,6 +296,7 @@ class QuickCommandService {
       final updated = await _foodItemsRepository.editFoodItem(
         existing.copyWith(
           quantity: existing.quantity + incomingInExistingUnit,
+          expirationDate: commandItem.expirationDate ?? existing.expirationDate,
           updatedAt: now,
         ),
       );
@@ -238,7 +305,7 @@ class QuickCommandService {
         pantryItems[index] = updated;
       }
       details.add(
-        'Updated ${updated.name} to ${_formatQuantity(updated.quantity)} ${updated.unit}.',
+        'Aktualizované ${updated.name} na ${_formatQuantity(updated.quantity)} ${updated.unit} v ${_storageLabel(updated.storageLocation)}.',
       );
       final shoppingAdjusted = await _adjustShoppingAgainstPantry(
         shoppingItems,
@@ -501,6 +568,10 @@ class QuickCommandService {
       if (item.openedAt != null) {
         continue;
       }
+      if (commandItem.storageLocation != null &&
+          item.storageLocation != commandItem.storageLocation) {
+        continue;
+      }
       if (!_matchesCommandItem(item.name, commandItem.name)) {
         continue;
       }
@@ -707,6 +778,58 @@ class QuickCommandService {
     return normalized;
   }
 
+  DateTime? _extractExpiration(String value) {
+    final normalized = _normalizeName(value);
+    if (normalized.contains('dnes')) {
+      return _dateFromToday(0);
+    }
+    if (normalized.contains('zajtra')) {
+      return _dateFromToday(1);
+    }
+
+    final inDaysMatch = RegExp(
+      r'(?:expiracia|expiraciu)?(?:o|na)(\d+)d(?:ni|en|na)?',
+      caseSensitive: false,
+    ).firstMatch(normalized);
+    if (inDaysMatch != null) {
+      final days = int.tryParse(inDaysMatch.group(1) ?? '');
+      if (days != null) {
+        return _dateFromToday(days);
+      }
+    }
+
+    return null;
+  }
+
+  String _removeExpirationPhrase(String value) {
+    return value
+        .replaceAll(
+          RegExp(
+            r'\bexpir(?:a|á)c(?:ia|iu)\s*(?:dnes|zajtra|(?:o|na)\s*\d+\s*d(?:ni|en|na)?)\b',
+            caseSensitive: false,
+          ),
+          '',
+        )
+        .replaceAll(
+          RegExp(r'\b(?:dnes|zajtra|(?:o|na)\s*\d+\s*d(?:ni|en|na)?)\b'),
+          '',
+        )
+        .replaceAll(RegExp(r'\s{2,}'), ' ')
+        .trim();
+  }
+
+  DateTime _dateFromToday(int days) {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day).add(Duration(days: days));
+  }
+
+  String _formatDate(DateTime value) {
+    final date = value.toLocal();
+    final day = date.day.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    return '$day.$month.${date.year}';
+  }
+
   bool _looksLikeKnownUnit(String unit) {
     return const {'pcs', 'g', 'kg', 'ml', 'l'}.contains(unit);
   }
@@ -812,6 +935,43 @@ class QuickCommandService {
       RegExp(r'^(sa|si|som|je|su|sú)\s+', caseSensitive: false),
       '',
     );
+  }
+
+  ({String itemName, String? storage}) _extractStorage(String value) {
+    final normalized = value.trim();
+    final patterns = <Pattern, String>{
+      RegExp(r'\s+do\s+chladnicky$', caseSensitive: false): 'fridge',
+      RegExp(r'\s+do\s+chladničky$', caseSensitive: false): 'fridge',
+      RegExp(r'\s+do\s+mraznicky$', caseSensitive: false): 'freezer',
+      RegExp(r'\s+do\s+mrazničky$', caseSensitive: false): 'freezer',
+      RegExp(r'\s+do\s+spajze$', caseSensitive: false): 'pantry',
+      RegExp(r'\s+do\s+špajze$', caseSensitive: false): 'pantry',
+      RegExp(r'\s+do\s+komory$', caseSensitive: false): 'pantry',
+    };
+
+    for (final entry in patterns.entries) {
+      final pattern = entry.key;
+      if (pattern is RegExp && pattern.hasMatch(normalized)) {
+        return (
+          itemName: normalized.replaceFirst(pattern, '').trim(),
+          storage: entry.value,
+        );
+      }
+    }
+
+    return (itemName: normalized, storage: null);
+  }
+
+  String _storageLabel(String storageLocation) {
+    switch (storageLocation) {
+      case 'fridge':
+        return 'chladničky';
+      case 'freezer':
+        return 'mrazničky';
+      case 'pantry':
+      default:
+        return 'špajze';
+    }
   }
 }
 

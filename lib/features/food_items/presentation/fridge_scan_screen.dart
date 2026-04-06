@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../app/localization/app_locale.dart';
+import '../../../core/food/food_signal_catalog.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/app_feedback.dart';
 import '../data/scan_sessions_repository.dart';
@@ -13,6 +14,7 @@ import '../domain/food_item_prefill.dart';
 import '../domain/scan_candidate.dart';
 import '../domain/scan_session.dart';
 import 'food_item_form_screen.dart';
+import '../../recipes/presentation/recipe_display_text.dart';
 
 class FridgeScanScreen extends StatefulWidget {
   final String householdId;
@@ -280,10 +282,40 @@ class _FridgeScanReview extends StatefulWidget {
 }
 
 class _FridgeScanReviewState extends State<_FridgeScanReview> {
-  late List<ScanCandidate> _candidates = widget.session.candidates;
+  late List<ScanCandidate> _candidates = widget.session.candidates
+      .map(_applySuggestedDefaults)
+      .toList();
   late final ScanSessionsRepository _scanSessionsRepository =
       ScanSessionsRepository(householdId: widget.householdId);
   bool _isSaving = false;
+
+  ScanCandidate _applySuggestedDefaults(ScanCandidate candidate) {
+    final prefill = candidate.prefill;
+    final info = deriveFoodSignalInfo(prefill.name);
+    final suggestion = _suggestedScanDefaults(info.itemKey);
+
+    return candidate.copyWith(
+      prefill: FoodItemPrefill(
+        name: prefill.name,
+        barcode: prefill.barcode,
+        category: prefill.category == 'other'
+            ? suggestion.category
+            : prefill.category,
+        storageLocation:
+            prefill.storageLocation == 'pantry' &&
+                suggestion.storageLocation != 'pantry'
+            ? suggestion.storageLocation
+            : prefill.storageLocation,
+        quantity: prefill.quantity,
+        unit: prefill.unit == 'pcs' && suggestion.unit != 'pcs'
+            ? suggestion.unit
+            : prefill.unit,
+        expirationDate: prefill.expirationDate ?? suggestion.expirationDate,
+        lowStockThreshold:
+            prefill.lowStockThreshold ?? suggestion.lowStockThreshold,
+      ),
+    );
+  }
 
   Future<void> _editCandidate(ScanCandidate candidate) async {
     final edited = await Navigator.of(context).push<FoodItem>(
@@ -334,6 +366,52 @@ class _FridgeScanReviewState extends State<_FridgeScanReview> {
   void _removeCandidate(String id) {
     setState(() {
       _candidates = _candidates.where((item) => item.id != id).toList();
+    });
+  }
+
+  void _setCandidateStorage(String id, String storageLocation) {
+    setState(() {
+      _candidates = _candidates
+          .map(
+            (item) => item.id == id
+                ? item.copyWith(
+                    prefill: FoodItemPrefill(
+                      name: item.prefill.name,
+                      barcode: item.prefill.barcode,
+                      category: item.prefill.category,
+                      storageLocation: storageLocation,
+                      quantity: item.prefill.quantity,
+                      unit: item.prefill.unit,
+                      expirationDate: item.prefill.expirationDate,
+                      lowStockThreshold: item.prefill.lowStockThreshold,
+                    ),
+                  )
+                : item,
+          )
+          .toList();
+    });
+  }
+
+  void _setCandidateExpiration(String id, DateTime? expirationDate) {
+    setState(() {
+      _candidates = _candidates
+          .map(
+            (item) => item.id == id
+                ? item.copyWith(
+                    prefill: FoodItemPrefill(
+                      name: item.prefill.name,
+                      barcode: item.prefill.barcode,
+                      category: item.prefill.category,
+                      storageLocation: item.prefill.storageLocation,
+                      quantity: item.prefill.quantity,
+                      unit: item.prefill.unit,
+                      expirationDate: expirationDate,
+                      lowStockThreshold: item.prefill.lowStockThreshold,
+                    ),
+                  )
+                : item,
+          )
+          .toList();
     });
   }
 
@@ -522,9 +600,97 @@ class _FridgeScanReviewState extends State<_FridgeScanReview> {
                     _toggleSelection(candidate.id, value ?? false);
                   },
                 ),
-                title: Text(candidate.prefill.name),
-                subtitle: Text(
-                  '${candidate.prefill.quantity} ${candidate.prefill.unit} • ${_storageLabel(context, candidate.prefill.storageLocation)} • ${(candidate.confidence * 100).round()}%',
+                title: Text(
+                  localizedIngredientDisplayName(
+                    context,
+                    candidate.prefill.name,
+                  ),
+                ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '${candidate.prefill.quantity} ${candidate.prefill.unit} • ${_storageLabel(context, candidate.prefill.storageLocation)} • ${(candidate.confidence * 100).round()}%',
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        _QuickSelectChip(
+                          label: context.tr(en: 'Fridge', sk: 'Chladnička'),
+                          selected:
+                              candidate.prefill.storageLocation == 'fridge',
+                          onTap: () =>
+                              _setCandidateStorage(candidate.id, 'fridge'),
+                        ),
+                        _QuickSelectChip(
+                          label: context.tr(en: 'Freezer', sk: 'Mraznička'),
+                          selected:
+                              candidate.prefill.storageLocation == 'freezer',
+                          onTap: () =>
+                              _setCandidateStorage(candidate.id, 'freezer'),
+                        ),
+                        _QuickSelectChip(
+                          label: context.tr(en: 'Pantry', sk: 'Špajza'),
+                          selected:
+                              candidate.prefill.storageLocation == 'pantry',
+                          onTap: () =>
+                              _setCandidateStorage(candidate.id, 'pantry'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        _QuickSelectChip(
+                          label: context.tr(
+                            en: 'No expiry',
+                            sk: 'Bez expirácie',
+                          ),
+                          selected: candidate.prefill.expirationDate == null,
+                          onTap: () =>
+                              _setCandidateExpiration(candidate.id, null),
+                        ),
+                        _QuickSelectChip(
+                          label: context.tr(en: 'Tomorrow', sk: 'Zajtra'),
+                          selected: _isSameDayOffset(
+                            candidate.prefill.expirationDate,
+                            1,
+                          ),
+                          onTap: () => _setCandidateExpiration(
+                            candidate.id,
+                            _dateFromToday(1),
+                          ),
+                        ),
+                        _QuickSelectChip(
+                          label: context.tr(en: '3 days', sk: '3 dni'),
+                          selected: _isSameDayOffset(
+                            candidate.prefill.expirationDate,
+                            3,
+                          ),
+                          onTap: () => _setCandidateExpiration(
+                            candidate.id,
+                            _dateFromToday(3),
+                          ),
+                        ),
+                        _QuickSelectChip(
+                          label: context.tr(en: '7 days', sk: '7 dní'),
+                          selected: _isSameDayOffset(
+                            candidate.prefill.expirationDate,
+                            7,
+                          ),
+                          onTap: () => _setCandidateExpiration(
+                            candidate.id,
+                            _dateFromToday(7),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
                 trailing: SizedBox(
                   width: 96,
@@ -568,6 +734,93 @@ class _FridgeScanReviewState extends State<_FridgeScanReview> {
   }
 }
 
+class _ScanDefaultsSuggestion {
+  final String category;
+  final String storageLocation;
+  final String unit;
+  final DateTime? expirationDate;
+  final double? lowStockThreshold;
+
+  const _ScanDefaultsSuggestion({
+    required this.category,
+    required this.storageLocation,
+    required this.unit,
+    this.expirationDate,
+    this.lowStockThreshold,
+  });
+}
+
+_ScanDefaultsSuggestion _suggestedScanDefaults(String itemKey) {
+  final now = DateTime.now();
+  switch (itemKey) {
+    case 'milk':
+      return _ScanDefaultsSuggestion(
+        category: 'dairy',
+        storageLocation: 'fridge',
+        unit: 'l',
+        expirationDate: now.add(const Duration(days: 5)),
+        lowStockThreshold: 1,
+      );
+    case 'cheese':
+    case 'yogurt':
+    case 'butter':
+      return _ScanDefaultsSuggestion(
+        category: 'dairy',
+        storageLocation: 'fridge',
+        unit: itemKey == 'butter' ? 'g' : 'pcs',
+        expirationDate: now.add(const Duration(days: 5)),
+        lowStockThreshold: itemKey == 'butter' ? 200 : 2,
+      );
+    case 'eggs':
+      return _ScanDefaultsSuggestion(
+        category: 'dairy',
+        storageLocation: 'fridge',
+        unit: 'pcs',
+        expirationDate: now.add(const Duration(days: 7)),
+        lowStockThreshold: 6,
+      );
+    case 'bread':
+      return _ScanDefaultsSuggestion(
+        category: 'grains',
+        storageLocation: 'pantry',
+        unit: 'pcs',
+        expirationDate: now.add(const Duration(days: 3)),
+        lowStockThreshold: 1,
+      );
+    case 'pasta':
+    case 'rice':
+    case 'flour':
+      return _ScanDefaultsSuggestion(
+        category: 'grains',
+        storageLocation: 'pantry',
+        unit: itemKey == 'rice' || itemKey == 'flour' ? 'kg' : 'g',
+        expirationDate: now.add(const Duration(days: 30)),
+        lowStockThreshold: itemKey == 'pasta' ? 500 : 1,
+      );
+    default:
+      return const _ScanDefaultsSuggestion(
+        category: 'other',
+        storageLocation: 'pantry',
+        unit: 'pcs',
+      );
+  }
+}
+
+DateTime _dateFromToday(int days) {
+  final now = DateTime.now();
+  return DateTime(now.year, now.month, now.day).add(Duration(days: days));
+}
+
+bool _isSameDayOffset(DateTime? date, int days) {
+  if (date == null) {
+    return false;
+  }
+  final target = _dateFromToday(days);
+  return date.year == target.year &&
+      date.month == target.month &&
+      date.day == target.day;
+}
+
 String _storageLabel(BuildContext context, String value) {
   return switch (value) {
     'fridge' => context.tr(en: 'Fridge', sk: 'Chladnička'),
@@ -575,6 +828,27 @@ String _storageLabel(BuildContext context, String value) {
     'pantry' => context.tr(en: 'Pantry', sk: 'Špajza'),
     _ => value,
   };
+}
+
+class _QuickSelectChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _QuickSelectChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ChoiceChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: (_) => onTap(),
+    );
+  }
 }
 
 class _ScanMetaChip extends StatelessWidget {

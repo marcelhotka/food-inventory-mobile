@@ -39,6 +39,10 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
   String? _selectedDietStyle;
   String? _selectedCookingFrequency;
   String? _selectedLanguage;
+  Set<String> _selectedFavoriteMeals = <String>{};
+  Set<String> _selectedFavoriteFoods = <String>{};
+  Set<String> _selectedAllergies = <String>{};
+  Set<String> _selectedIntolerances = <String>{};
   bool _onboardingCompleted = false;
   bool _isSaving = false;
   UserPreferences? _loadedPreferences;
@@ -58,6 +62,42 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
     'weekends_only',
     'rarely',
   ];
+
+  static const _favoriteMealOptions = [
+    'pasta',
+    'omelette',
+    'rice_bowl',
+    'sandwich',
+    'salad',
+    'soup',
+    'curry',
+    'breakfast',
+  ];
+
+  static const _favoriteFoodOptions = [
+    'milk',
+    'cheese',
+    'eggs',
+    'yogurt',
+    'bread',
+    'rice',
+    'pasta',
+    'chicken',
+    'beans',
+    'tomatoes',
+  ];
+
+  static const _allergyOptions = [
+    'peanuts',
+    'tree_nuts',
+    'eggs',
+    'soy',
+    'fish',
+    'shellfish',
+    'sesame',
+  ];
+
+  static const _intoleranceOptions = ['lactose', 'gluten', 'milk', 'eggs'];
 
   @override
   void dispose() {
@@ -80,10 +120,36 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
       return;
     }
     _loadedPreferences = preferences;
-    _favoriteMealsController.text = _joinList(preferences?.favoriteMeals);
-    _favoriteFoodsController.text = _joinList(preferences?.favoriteFoods);
-    _allergiesController.text = _joinList(preferences?.allergies);
-    _intolerancesController.text = _joinList(preferences?.intolerances);
+    final favoriteMeals = preferences?.favoriteMeals ?? const <String>[];
+    final favoriteFoods = preferences?.favoriteFoods ?? const <String>[];
+    final allergies = preferences?.allergies ?? const <String>[];
+    final intolerances = preferences?.intolerances ?? const <String>[];
+    _selectedFavoriteMeals = _selectKnownValues(
+      favoriteMeals,
+      _favoriteMealOptions,
+    );
+    _selectedFavoriteFoods = _selectKnownValues(
+      favoriteFoods,
+      _favoriteFoodOptions,
+    );
+    _selectedAllergies = _selectKnownValues(allergies, _allergyOptions);
+    _selectedIntolerances = _selectKnownValues(
+      intolerances,
+      _intoleranceOptions,
+    );
+    _favoriteMealsController.text = _joinCustomValues(
+      favoriteMeals,
+      _favoriteMealOptions,
+    );
+    _favoriteFoodsController.text = _joinCustomValues(
+      favoriteFoods,
+      _favoriteFoodOptions,
+    );
+    _allergiesController.text = _joinCustomValues(allergies, _allergyOptions);
+    _intolerancesController.text = _joinCustomValues(
+      intolerances,
+      _intoleranceOptions,
+    );
     _householdSizeController.text =
         preferences?.householdSize?.toString() ?? '';
     _selectedDietStyle = preferences?.dietStyle;
@@ -119,10 +185,22 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
     final current = _loadedPreferences;
     final preferences = UserPreferences(
       userId: user.id,
-      favoriteMeals: _splitList(_favoriteMealsController.text),
-      favoriteFoods: _splitList(_favoriteFoodsController.text),
-      allergies: _splitList(_allergiesController.text),
-      intolerances: _splitList(_intolerancesController.text),
+      favoriteMeals: _combineSelectedAndCustom(
+        _selectedFavoriteMeals,
+        _favoriteMealsController.text,
+      ),
+      favoriteFoods: _combineSelectedAndCustom(
+        _selectedFavoriteFoods,
+        _favoriteFoodsController.text,
+      ),
+      allergies: _combineSelectedAndCustom(
+        _selectedAllergies,
+        _allergiesController.text,
+      ),
+      intolerances: _combineSelectedAndCustom(
+        _selectedIntolerances,
+        _intolerancesController.text,
+      ),
       dietStyle: _selectedDietStyle,
       cookingFrequency: _selectedCookingFrequency,
       preferredLanguage: _selectedLanguage,
@@ -175,6 +253,46 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
         });
       }
     }
+  }
+
+  void _applySampleProfile() {
+    setState(() {
+      _selectedFavoriteMeals = {'pasta', 'omelette', 'soup'};
+      _selectedFavoriteFoods = {'milk', 'eggs', 'bread', 'cheese'};
+      _selectedAllergies = <String>{};
+      _selectedIntolerances = {'lactose'};
+      _favoriteMealsController.text = '';
+      _favoriteFoodsController.text = '';
+      _allergiesController.text = '';
+      _intolerancesController.text = '';
+      _householdSizeController.text = '2';
+      _selectedDietStyle = 'omnivore';
+      _selectedCookingFrequency = 'few_times_week';
+      _selectedLanguage ??= context.localeController.locale.languageCode;
+      if (!widget.isOnboarding) {
+        _onboardingCompleted = true;
+      }
+    });
+    showSuccessFeedback(
+      context,
+      context.tr(
+        en: 'Sample tester profile filled in.',
+        sk: 'Ukážkový testerský profil je predvyplnený.',
+      ),
+    );
+  }
+
+  void _resetOnboardingForTesting() {
+    setState(() {
+      _onboardingCompleted = false;
+    });
+    showSuccessFeedback(
+      context,
+      context.tr(
+        en: 'Onboarding was reset. Save preferences to apply it.',
+        sk: 'Onboarding bol resetovaný. Ulož preferencie, aby sa to použilo.',
+      ),
+    );
   }
 
   @override
@@ -271,17 +389,24 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
                               sk: 'Obľúbené jedlá',
                             ),
                             hint: context.tr(
-                              en: 'Pasta, omelette, curry',
-                              sk: 'Cestoviny, omeleta, kari',
+                              en: 'Choose common meals and optionally add your own',
+                              sk: 'Vyber bežné jedlá a prípadne dopíš vlastné',
                             ),
-                            child: TextFormField(
-                              controller: _favoriteMealsController,
-                              decoration: appInputDecoration(
-                                context.tr(
-                                  en: 'Favorite meals (comma separated)',
-                                  sk: 'Obľúbené jedlá (oddelené čiarkou)',
-                                ),
+                            child: _PreferenceChipSelector(
+                              options: _favoriteMealOptions,
+                              selectedValues: _selectedFavoriteMeals,
+                              labelBuilder: (value) =>
+                                  _favoriteMealLabel(context, value),
+                              customController: _favoriteMealsController,
+                              customLabel: context.tr(
+                                en: 'Other favorite meals',
+                                sk: 'Iné obľúbené jedlá',
                               ),
+                              onChanged: (values) {
+                                setState(() {
+                                  _selectedFavoriteMeals = values;
+                                });
+                              },
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -291,17 +416,24 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
                               sk: 'Obľúbené potraviny',
                             ),
                             hint: context.tr(
-                              en: 'Cheese, rice, yogurt',
-                              sk: 'Syr, ryža, jogurt',
+                              en: 'Pick the foods you buy or use most often',
+                              sk: 'Vyber potraviny, ktoré kupuješ alebo používaš najčastejšie',
                             ),
-                            child: TextFormField(
-                              controller: _favoriteFoodsController,
-                              decoration: appInputDecoration(
-                                context.tr(
-                                  en: 'Favorite foods (comma separated)',
-                                  sk: 'Obľúbené potraviny (oddelené čiarkou)',
-                                ),
+                            child: _PreferenceChipSelector(
+                              options: _favoriteFoodOptions,
+                              selectedValues: _selectedFavoriteFoods,
+                              labelBuilder: (value) =>
+                                  _favoriteFoodLabel(context, value),
+                              customController: _favoriteFoodsController,
+                              customLabel: context.tr(
+                                en: 'Other favorite foods',
+                                sk: 'Iné obľúbené potraviny',
                               ),
+                              onChanged: (values) {
+                                setState(() {
+                                  _selectedFavoriteFoods = values;
+                                });
+                              },
                             ),
                           ),
                         ],
@@ -320,17 +452,24 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
                           _PreferenceField(
                             label: context.tr(en: 'Allergies', sk: 'Alergie'),
                             hint: context.tr(
-                              en: 'Peanuts, shellfish',
-                              sk: 'Arašidy, morské plody',
+                              en: 'Choose known allergies and optionally add your own',
+                              sk: 'Vyber známe alergie a prípadne dopíš vlastné',
                             ),
-                            child: TextFormField(
-                              controller: _allergiesController,
-                              decoration: appInputDecoration(
-                                context.tr(
-                                  en: 'Allergies (comma separated)',
-                                  sk: 'Alergie (oddelené čiarkou)',
-                                ),
+                            child: _PreferenceChipSelector(
+                              options: _allergyOptions,
+                              selectedValues: _selectedAllergies,
+                              labelBuilder: (value) =>
+                                  _allergyLabel(context, value),
+                              customController: _allergiesController,
+                              customLabel: context.tr(
+                                en: 'Other allergies',
+                                sk: 'Iné alergie',
                               ),
+                              onChanged: (values) {
+                                setState(() {
+                                  _selectedAllergies = values;
+                                });
+                              },
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -340,17 +479,24 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
                               sk: 'Intolerancie',
                             ),
                             hint: context.tr(
-                              en: 'Lactose, gluten',
-                              sk: 'Laktóza, lepok',
+                              en: 'Choose common intolerances and optionally add your own',
+                              sk: 'Vyber bežné intolerancie a prípadne dopíš vlastné',
                             ),
-                            child: TextFormField(
-                              controller: _intolerancesController,
-                              decoration: appInputDecoration(
-                                context.tr(
-                                  en: 'Intolerances (comma separated)',
-                                  sk: 'Intolerancie (oddelené čiarkou)',
-                                ),
+                            child: _PreferenceChipSelector(
+                              options: _intoleranceOptions,
+                              selectedValues: _selectedIntolerances,
+                              labelBuilder: (value) =>
+                                  _intoleranceLabel(context, value),
+                              customController: _intolerancesController,
+                              customLabel: context.tr(
+                                en: 'Other intolerances',
+                                sk: 'Iné intolerancie',
                               ),
+                              onChanged: (values) {
+                                setState(() {
+                                  _selectedIntolerances = values;
+                                });
+                              },
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -519,6 +665,49 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
                           ),
                         ],
                       ),
+                      if (!widget.isOnboarding) ...[
+                        const SizedBox(height: 18),
+                        _PreferenceSection(
+                          title: context.tr(
+                            en: 'Testing tools',
+                            sk: 'Testovacie nástroje',
+                          ),
+                          subtitle: context.tr(
+                            en: 'Use these shortcuts to speed up repeated tester flows.',
+                            sk: 'Tieto skratky urýchlia opakované testerské scenáre.',
+                          ),
+                          children: [
+                            Wrap(
+                              spacing: 12,
+                              runSpacing: 12,
+                              children: [
+                                FilledButton.tonalIcon(
+                                  onPressed: _applySampleProfile,
+                                  icon: const Icon(
+                                    Icons.auto_fix_high_outlined,
+                                  ),
+                                  label: Text(
+                                    context.tr(
+                                      en: 'Fill sample profile',
+                                      sk: 'Vyplniť ukážkový profil',
+                                    ),
+                                  ),
+                                ),
+                                OutlinedButton.icon(
+                                  onPressed: _resetOnboardingForTesting,
+                                  icon: const Icon(Icons.restart_alt_rounded),
+                                  label: Text(
+                                    context.tr(
+                                      en: 'Reset onboarding flag',
+                                      sk: 'Resetovať onboarding',
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
                       const SizedBox(height: 8),
                       if (!widget.isOnboarding) ...[
                         CheckboxListTile(
@@ -573,11 +762,20 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
     );
   }
 
-  static String _joinList(List<String>? values) {
-    if (values == null || values.isEmpty) {
-      return '';
-    }
-    return values.join(', ');
+  static Set<String> _selectKnownValues(
+    List<String> values,
+    List<String> knownOptions,
+  ) {
+    final known = knownOptions.toSet();
+    return values.where(known.contains).toSet();
+  }
+
+  static String _joinCustomValues(
+    List<String> values,
+    List<String> knownOptions,
+  ) {
+    final known = knownOptions.toSet();
+    return values.where((value) => !known.contains(value)).join(', ');
   }
 
   static List<String> _splitList(String rawValue) {
@@ -586,6 +784,14 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
         .map((item) => item.trim())
         .where((item) => item.isNotEmpty)
         .toList();
+  }
+
+  static List<String> _combineSelectedAndCustom(
+    Set<String> selectedValues,
+    String rawCustomValues,
+  ) {
+    final values = <String>{...selectedValues, ..._splitList(rawCustomValues)};
+    return values.toList()..sort();
   }
 
   static int? _parseHouseholdSize(String value) {
@@ -620,6 +826,59 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
       ),
       'weekends_only' => context.tr(en: 'Weekends only', sk: 'Len cez víkend'),
       'rarely' => context.tr(en: 'Rarely', sk: 'Zriedka'),
+      _ => value,
+    };
+  }
+
+  static String _favoriteMealLabel(BuildContext context, String value) {
+    return switch (value) {
+      'pasta' => context.tr(en: 'Pasta', sk: 'Cestoviny'),
+      'omelette' => context.tr(en: 'Omelette', sk: 'Omeleta'),
+      'rice_bowl' => context.tr(en: 'Rice bowl', sk: 'Ryžový bowl'),
+      'sandwich' => context.tr(en: 'Sandwich', sk: 'Sendvič'),
+      'salad' => context.tr(en: 'Salad', sk: 'Šalát'),
+      'soup' => context.tr(en: 'Soup', sk: 'Polievka'),
+      'curry' => context.tr(en: 'Curry', sk: 'Kari'),
+      'breakfast' => context.tr(en: 'Breakfast', sk: 'Raňajky'),
+      _ => value,
+    };
+  }
+
+  static String _favoriteFoodLabel(BuildContext context, String value) {
+    return switch (value) {
+      'milk' => context.tr(en: 'Milk', sk: 'Mlieko'),
+      'cheese' => context.tr(en: 'Cheese', sk: 'Syr'),
+      'eggs' => context.tr(en: 'Eggs', sk: 'Vajcia'),
+      'yogurt' => context.tr(en: 'Yogurt', sk: 'Jogurt'),
+      'bread' => context.tr(en: 'Bread', sk: 'Chlieb'),
+      'rice' => context.tr(en: 'Rice', sk: 'Ryža'),
+      'pasta' => context.tr(en: 'Pasta', sk: 'Cestoviny'),
+      'chicken' => context.tr(en: 'Chicken', sk: 'Kuracie mäso'),
+      'beans' => context.tr(en: 'Beans', sk: 'Fazuľa'),
+      'tomatoes' => context.tr(en: 'Tomatoes', sk: 'Paradajky'),
+      _ => value,
+    };
+  }
+
+  static String _allergyLabel(BuildContext context, String value) {
+    return switch (value) {
+      'peanuts' => context.tr(en: 'Peanuts', sk: 'Arašidy'),
+      'tree_nuts' => context.tr(en: 'Tree nuts', sk: 'Orechy'),
+      'eggs' => context.tr(en: 'Eggs', sk: 'Vajcia'),
+      'soy' => context.tr(en: 'Soy', sk: 'Sója'),
+      'fish' => context.tr(en: 'Fish', sk: 'Ryby'),
+      'shellfish' => context.tr(en: 'Shellfish', sk: 'Morské plody'),
+      'sesame' => context.tr(en: 'Sesame', sk: 'Sezam'),
+      _ => value,
+    };
+  }
+
+  static String _intoleranceLabel(BuildContext context, String value) {
+    return switch (value) {
+      'lactose' => context.tr(en: 'Lactose', sk: 'Laktóza'),
+      'gluten' => context.tr(en: 'Gluten', sk: 'Lepok'),
+      'milk' => context.tr(en: 'Milk', sk: 'Mlieko'),
+      'eggs' => context.tr(en: 'Eggs', sk: 'Vajcia'),
       _ => value,
     };
   }
@@ -690,6 +949,58 @@ class _PreferenceField extends StatelessWidget {
         Text(hint, style: Theme.of(context).textTheme.bodySmall),
         const SizedBox(height: 10),
         child,
+      ],
+    );
+  }
+}
+
+class _PreferenceChipSelector extends StatelessWidget {
+  final List<String> options;
+  final Set<String> selectedValues;
+  final String Function(String value) labelBuilder;
+  final TextEditingController customController;
+  final String customLabel;
+  final ValueChanged<Set<String>> onChanged;
+
+  const _PreferenceChipSelector({
+    required this.options,
+    required this.selectedValues,
+    required this.labelBuilder,
+    required this.customController,
+    required this.customLabel,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: options.map((value) {
+            final selected = selectedValues.contains(value);
+            return FilterChip(
+              label: Text(labelBuilder(value)),
+              selected: selected,
+              onSelected: (isSelected) {
+                final next = {...selectedValues};
+                if (isSelected) {
+                  next.add(value);
+                } else {
+                  next.remove(value);
+                }
+                onChanged(next);
+              },
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: 12),
+        TextFormField(
+          controller: customController,
+          decoration: appInputDecoration(customLabel),
+        ),
       ],
     );
   }

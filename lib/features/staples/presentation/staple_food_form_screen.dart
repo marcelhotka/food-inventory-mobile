@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../app/localization/app_locale.dart';
 import '../../../core/forms/app_input_decoration.dart';
 import '../domain/staple_food.dart';
+import '../domain/staple_food_presets.dart';
 
 class StapleFoodFormScreen extends StatefulWidget {
   final StapleFood? initialItem;
@@ -32,12 +33,22 @@ class _StapleFoodFormScreenState extends State<StapleFoodFormScreen> {
     'beverages',
     'other',
   ];
+  static const List<String> _unitOptions = [
+    'pcs',
+    'g',
+    'kg',
+    'ml',
+    'l',
+    'custom',
+  ];
 
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _quantityController = TextEditingController();
   final _unitController = TextEditingController();
   String _selectedCategory = 'other';
+  String _selectedUnit = 'pcs';
+  String? _selectedPresetId;
 
   @override
   void initState() {
@@ -47,6 +58,20 @@ class _StapleFoodFormScreenState extends State<StapleFoodFormScreen> {
     _quantityController.text = item?.quantity.toString() ?? '1';
     _unitController.text = item?.unit ?? 'pcs';
     _selectedCategory = item?.category ?? 'other';
+    _selectedUnit = _unitOptions.contains(_unitController.text.trim())
+        ? _unitController.text.trim()
+        : 'custom';
+  }
+
+  void _applyPreset(StapleFoodPreset preset) {
+    setState(() {
+      _selectedPresetId = preset.id;
+      _nameController.text = context.tr(en: preset.nameEn, sk: preset.nameSk);
+      _quantityController.text = _formatQuantity(preset.quantity);
+      _unitController.text = preset.unit;
+      _selectedCategory = preset.category;
+      _selectedUnit = preset.unit;
+    });
   }
 
   @override
@@ -108,6 +133,43 @@ class _StapleFoodFormScreenState extends State<StapleFoodFormScreen> {
           key: _formKey,
           child: Column(
             children: [
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  context.tr(
+                    en: 'Popular staples',
+                    sk: 'Obľúbené základné potraviny',
+                  ),
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  context.tr(
+                    en: 'Tap one to prefill the form faster.',
+                    sk: 'Ťukni na niektorú a formulár sa rýchlo predvyplní.',
+                  ),
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: stapleFoodPresets.map((preset) {
+                  final isSelected = _selectedPresetId == preset.id;
+                  return FilterChip(
+                    selected: isSelected,
+                    label: Text(
+                      context.tr(en: preset.nameEn, sk: preset.nameSk),
+                    ),
+                    onSelected: (_) => _applyPreset(preset),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 20),
               TextFormField(
                 controller: _nameController,
                 decoration: appInputDecoration(
@@ -177,24 +239,54 @@ class _StapleFoodFormScreenState extends State<StapleFoodFormScreen> {
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: TextFormField(
-                      controller: _unitController,
+                    child: DropdownButtonFormField<String>(
+                      initialValue: _selectedUnit,
                       decoration: appInputDecoration(
                         context.tr(en: 'Unit', sk: 'Jednotka'),
                       ),
-                      validator: (value) {
-                        if ((value ?? '').trim().isEmpty) {
-                          return context.tr(
-                            en: 'Enter a unit',
-                            sk: 'Zadaj jednotku',
-                          );
+                      items: _unitOptions
+                          .map(
+                            (value) => DropdownMenuItem(
+                              value: value,
+                              child: Text(_unitLabel(value)),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) {
+                        if (value == null) {
+                          return;
                         }
-                        return null;
+                        setState(() {
+                          _selectedUnit = value;
+                          if (value != 'custom') {
+                            _unitController.text = value;
+                          } else if (_unitController.text.trim().isEmpty) {
+                            _unitController.clear();
+                          }
+                        });
                       },
                     ),
                   ),
                 ],
               ),
+              if (_selectedUnit == 'custom') ...[
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _unitController,
+                  decoration: appInputDecoration(
+                    context.tr(en: 'Custom unit', sk: 'Vlastná jednotka'),
+                  ),
+                  validator: (value) {
+                    if ((value ?? '').trim().isEmpty) {
+                      return context.tr(
+                        en: 'Enter a unit',
+                        sk: 'Zadaj jednotku',
+                      );
+                    }
+                    return null;
+                  },
+                ),
+              ],
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
@@ -227,6 +319,25 @@ class _StapleFoodFormScreenState extends State<StapleFoodFormScreen> {
       'frozen' => context.tr(en: 'Frozen', sk: 'Mrazené'),
       'beverages' => context.tr(en: 'Beverages', sk: 'Nápoje'),
       _ => context.tr(en: 'Other', sk: 'Ostatné'),
+    };
+  }
+
+  String _formatQuantity(double value) {
+    if (value == value.roundToDouble()) {
+      return value.toInt().toString();
+    }
+    return value.toStringAsFixed(1);
+  }
+
+  String _unitLabel(String value) {
+    return switch (value) {
+      'pcs' => context.tr(en: 'Pieces', sk: 'Kusy'),
+      'g' => context.tr(en: 'Grams', sk: 'Gramy'),
+      'kg' => context.tr(en: 'Kilograms', sk: 'Kilogramy'),
+      'ml' => context.tr(en: 'Milliliters', sk: 'Mililitre'),
+      'l' => context.tr(en: 'Liters', sk: 'Litre'),
+      'custom' => context.tr(en: 'Custom', sk: 'Vlastná'),
+      _ => value,
     };
   }
 }

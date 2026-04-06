@@ -9,6 +9,7 @@ import '../../food_items/domain/food_item.dart';
 import '../../recipes/data/recipes_repository.dart';
 import '../../recipes/domain/recipe.dart';
 import '../../recipes/domain/recipe_ingredient.dart';
+import '../../recipes/domain/recipe_nutrition_estimate.dart';
 import '../../recipes/presentation/recipe_display_text.dart';
 import '../../shopping_list/data/shopping_list_repository.dart';
 import '../../shopping_list/domain/shopping_list_item.dart';
@@ -706,6 +707,12 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                     recipe,
                                     preferences,
                                   );
+                                  final nutrition = recipe == null
+                                      ? null
+                                      : estimateRecipeNutrition(
+                                          recipe,
+                                          servings: entry.servings,
+                                        );
                                   final displayedRecipeName = recipe == null
                                       ? entry.recipeName
                                       : localizedRecipeName(context, recipe);
@@ -721,6 +728,12 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                         Text(
                                           '${_mealTypeLabel(context, entry.mealType)} • ${entry.servings} ${context.tr(en: entry.servings == 1 ? 'serving' : 'servings', sk: entry.servings == 1 ? 'porcia' : 'porcie')}${entry.note == null || entry.note!.isEmpty ? '' : ' • ${entry.note}'}',
                                         ),
+                                        if (nutrition != null) ...[
+                                          const SizedBox(height: 6),
+                                          _MealNutritionRow(
+                                            nutrition: nutrition,
+                                          ),
+                                        ],
                                         if (warning != null) ...[
                                           const SizedBox(height: 6),
                                           _MealSafetyBadge(warning: warning),
@@ -1095,6 +1108,61 @@ class _MealSafetyBadge extends StatelessWidget {
           color: foregroundColor,
           fontWeight: FontWeight.w600,
         ),
+      ),
+    );
+  }
+}
+
+class _MealNutritionRow extends StatelessWidget {
+  const _MealNutritionRow({required this.nutrition});
+
+  final RecipeNutritionEstimate nutrition;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: [
+        _MealInfoChip(
+          label:
+              '${nutrition.caloriesTotal} ${context.tr(en: 'kcal', sk: 'kcal')}',
+          color: const Color(0xFFFFF0D9),
+        ),
+        _MealInfoChip(
+          label:
+              '${nutrition.proteinTotal.toStringAsFixed(1)} g ${context.tr(en: 'protein', sk: 'bielkoviny')}',
+          color: const Color(0xFFE7F3E8),
+        ),
+        _MealInfoChip(
+          label:
+              '${nutrition.fiberTotal.toStringAsFixed(1)} g ${context.tr(en: 'fiber', sk: 'vláknina')}',
+          color: const Color(0xFFE8EEF8),
+        ),
+      ],
+    );
+  }
+}
+
+class _MealInfoChip extends StatelessWidget {
+  const _MealInfoChip({required this.label, required this.color});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(
+          context,
+        ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600),
       ),
     );
   }

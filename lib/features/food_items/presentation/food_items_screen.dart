@@ -10,6 +10,7 @@ import '../../households/domain/household.dart';
 import '../../households/presentation/household_screen.dart';
 import '../../shopping_list/data/shopping_list_repository.dart';
 import '../../shopping_list/domain/shopping_list_item.dart';
+import '../../recipes/presentation/recipe_display_text.dart';
 import '../../user_preferences/data/user_preferences_repository.dart';
 import '../../user_preferences/domain/user_preferences.dart';
 import '../data/food_item_remote_data_source.dart';
@@ -1522,7 +1523,9 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
             child: ListView.builder(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
-              itemCount: headerWidgets.length + (groupedEntries.isEmpty ? 1 : groupedEntries.length),
+              itemCount:
+                  headerWidgets.length +
+                  (groupedEntries.isEmpty ? 1 : groupedEntries.length),
               itemBuilder: (context, index) {
                 if (index < headerWidgets.length) {
                   return headerWidgets[index];
@@ -1771,7 +1774,9 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
       MaterialPageRoute(
         builder: (context) => Scaffold(
           appBar: AppBar(
-            title: Text(context.tr(en: 'Expiring soon', sk: 'Čoskoro sa minie')),
+            title: Text(
+              context.tr(en: 'Expiring soon', sk: 'Čoskoro sa minie'),
+            ),
           ),
           body: expiringSoonItems.isEmpty
               ? AppEmptyState(
@@ -1874,7 +1879,7 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
           children: [
             Expanded(
               child: Text(
-                item.name,
+                localizedIngredientDisplayName(context, item.name),
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: const Color(0xFF1B2A41),
                   fontWeight: FontWeight.w800,
@@ -2224,10 +2229,7 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
   String _openedUseSoonLabel(FoodItem item) {
     final daysLeft = _openedDaysLeft(item);
     if (daysLeft < 0) {
-      return context.tr(
-        en: 'Use as soon as possible',
-        sk: 'Použi čo najskôr',
-      );
+      return context.tr(en: 'Use as soon as possible', sk: 'Použi čo najskôr');
     }
     if (daysLeft == 0) {
       return context.tr(
@@ -2236,10 +2238,7 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
       );
     }
     if (daysLeft == 1) {
-      return context.tr(
-        en: 'Use within 1 day',
-        sk: 'Použi do 1 dňa',
-      );
+      return context.tr(en: 'Use within 1 day', sk: 'Použi do 1 dňa');
     }
     return context.tr(
       en: 'Use within $daysLeft days',

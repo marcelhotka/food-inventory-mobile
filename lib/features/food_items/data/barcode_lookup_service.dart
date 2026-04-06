@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../../../core/food/food_signal_catalog.dart';
 import '../domain/barcode_lookup_result.dart';
 import '../domain/food_item_prefill.dart';
 
@@ -15,25 +16,37 @@ class BarcodeLookupService {
       name: 'Milk',
       barcode: '8588000123456',
       quantity: 1,
-      unit: 'pcs',
+      unit: 'l',
+      category: 'dairy',
+      storageLocation: 'fridge',
+      lowStockThreshold: 1,
     ),
     '8586001234567': FoodItemPrefill(
       name: 'Yogurt',
       barcode: '8586001234567',
       quantity: 1,
       unit: 'pcs',
+      category: 'dairy',
+      storageLocation: 'fridge',
+      lowStockThreshold: 2,
     ),
     '8594000000001': FoodItemPrefill(
       name: 'Rice',
       barcode: '8594000000001',
       quantity: 1,
       unit: 'kg',
+      category: 'grains',
+      storageLocation: 'pantry',
+      lowStockThreshold: 1,
     ),
     '5901234123457': FoodItemPrefill(
       name: 'Pasta',
       barcode: '5901234123457',
       quantity: 1,
-      unit: 'pcs',
+      unit: 'g',
+      category: 'grains',
+      storageLocation: 'pantry',
+      lowStockThreshold: 500,
     ),
   };
 
@@ -100,12 +113,24 @@ class BarcodeLookupService {
     }
 
     final parsedQuantity = _parseQuantity(product['quantity'] as String?);
+    final defaults = _prefillDefaultsForName(name);
+    final parsedUnit = parsedQuantity?.$2;
+    final resolvedUnit = parsedUnit ?? defaults.unit;
+    final resolvedQuantity = parsedQuantity?.$1 ?? defaults.quantity;
+    final resolvedThreshold = _defaultLowStockThreshold(
+      itemKey: defaults.itemKey,
+      unit: resolvedUnit,
+      quantity: resolvedQuantity,
+    );
 
     return FoodItemPrefill(
       name: name,
       barcode: barcode,
-      quantity: parsedQuantity?.$1 ?? 1,
-      unit: parsedQuantity?.$2 ?? 'pcs',
+      quantity: resolvedQuantity,
+      unit: resolvedUnit,
+      category: defaults.category,
+      storageLocation: defaults.storageLocation,
+      lowStockThreshold: resolvedThreshold,
     );
   }
 
@@ -161,5 +186,139 @@ class BarcodeLookupService {
     };
 
     return (quantity, unit);
+  }
+
+  ({
+    String itemKey,
+    String category,
+    String storageLocation,
+    double quantity,
+    String unit,
+  })
+  _prefillDefaultsForName(String name) {
+    final info = deriveFoodSignalInfo(name);
+    return (
+      itemKey: info.itemKey,
+      category: _defaultCategory(info.itemKey),
+      storageLocation: _defaultStorage(info.itemKey),
+      quantity: _defaultQuantity(info.itemKey),
+      unit: _defaultUnit(info.itemKey),
+    );
+  }
+
+  String _defaultCategory(String itemKey) {
+    switch (itemKey) {
+      case 'milk':
+      case 'cheese':
+      case 'yogurt':
+      case 'butter':
+      case 'cream':
+      case 'eggs':
+        return 'dairy';
+      case 'ham':
+      case 'chicken':
+        return 'meat';
+      case 'peas':
+        return 'frozen';
+      case 'bread':
+      case 'pasta':
+      case 'rice':
+      case 'beans':
+      case 'flour':
+        return 'grains';
+      case 'tomato':
+        return 'produce';
+      default:
+        return 'other';
+    }
+  }
+
+  String _defaultStorage(String itemKey) {
+    switch (itemKey) {
+      case 'milk':
+      case 'cheese':
+      case 'yogurt':
+      case 'butter':
+      case 'cream':
+      case 'eggs':
+      case 'ham':
+      case 'chicken':
+        return 'fridge';
+      case 'peas':
+        return 'freezer';
+      default:
+        return 'pantry';
+    }
+  }
+
+  String _defaultUnit(String itemKey) {
+    switch (itemKey) {
+      case 'milk':
+      case 'cream':
+      case 'oil':
+      case 'juice':
+      case 'water':
+        return 'l';
+      case 'rice':
+      case 'flour':
+      case 'beans':
+      case 'pasta':
+      case 'cheese':
+      case 'ham':
+      case 'chicken':
+      case 'peas':
+      case 'butter':
+        return 'g';
+      default:
+        return 'pcs';
+    }
+  }
+
+  double _defaultQuantity(String itemKey) {
+    switch (itemKey) {
+      case 'milk':
+      case 'juice':
+      case 'water':
+      case 'oil':
+        return 1;
+      case 'rice':
+      case 'flour':
+      case 'beans':
+      case 'pasta':
+      case 'cheese':
+      case 'ham':
+      case 'chicken':
+      case 'peas':
+      case 'butter':
+        return 500;
+      default:
+        return 1;
+    }
+  }
+
+  double? _defaultLowStockThreshold({
+    required String itemKey,
+    required String unit,
+    required double quantity,
+  }) {
+    switch (itemKey) {
+      case 'milk':
+        return unit == 'ml' ? 500 : 1;
+      case 'bread':
+        return 1;
+      case 'eggs':
+        return 4;
+      case 'yogurt':
+        return 2;
+      case 'cheese':
+        return unit == 'g' ? 150 : quantity / 2;
+      case 'pasta':
+      case 'rice':
+      case 'beans':
+      case 'flour':
+        return unit == 'g' ? 300 : quantity / 2;
+      default:
+        return null;
+    }
   }
 }

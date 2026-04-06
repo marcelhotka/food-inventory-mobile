@@ -10,6 +10,7 @@ import '../../shopping_list/data/shopping_list_repository.dart';
 import '../../shopping_list/domain/shopping_list_item.dart';
 import '../data/staple_food_repository.dart';
 import '../domain/staple_food.dart';
+import '../domain/staple_food_presets.dart';
 import 'staple_food_form_screen.dart';
 
 class StapleFoodsScreen extends StatefulWidget {
@@ -56,6 +57,77 @@ class _StapleFoodsScreenState extends State<StapleFoodsScreen> {
     if (created == null) {
       return;
     }
+
+    try {
+      await _stapleRepository.addStapleFood(created);
+      await _reload();
+      if (!mounted) return;
+      showSuccessFeedback(
+        context,
+        context.tr(
+          en: 'Staple food added.',
+          sk: 'Základná potravina bola pridaná.',
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Failed to add staple food.',
+          sk: 'Základnú potravinu sa nepodarilo pridať.',
+        ),
+      );
+    }
+  }
+
+  Future<void> _addPresetStaple(
+    StapleFoodPreset preset,
+    List<StapleFood> existingItems,
+  ) async {
+    final key = _itemKey(
+      context.tr(en: preset.nameEn, sk: preset.nameSk),
+      preset.unit,
+    );
+    final alreadyExists = existingItems.any(
+      (item) => _itemKey(item.name, item.unit) == key,
+    );
+
+    if (alreadyExists) {
+      showSuccessFeedback(
+        context,
+        context.tr(
+          en: 'This staple food is already in your list.',
+          sk: 'Táto základná potravina už v zozname je.',
+        ),
+      );
+      return;
+    }
+
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) {
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'No signed-in user.',
+          sk: 'Nie je prihlásený žiadny používateľ.',
+        ),
+      );
+      return;
+    }
+
+    final now = DateTime.now().toUtc();
+    final created = StapleFood(
+      id: '',
+      householdId: widget.householdId,
+      userId: user.id,
+      name: context.tr(en: preset.nameEn, sk: preset.nameSk),
+      quantity: preset.quantity,
+      unit: preset.unit,
+      category: preset.category,
+      createdAt: now,
+      updatedAt: now,
+    );
 
     try {
       await _stapleRepository.addStapleFood(created);
@@ -423,6 +495,33 @@ class _StapleFoodsScreenState extends State<StapleFoodsScreen> {
                             sk: 'Potraviny, ktoré chce vaša domácnosť držať doma pravidelne.',
                           ),
                           style: Theme.of(context).textTheme.bodyLarge,
+                        ),
+                        const SizedBox(height: 16),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            context.tr(
+                              en: 'Quick add common staples',
+                              sk: 'Rýchlo pridať bežné základné potraviny',
+                            ),
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: stapleFoodPresets.take(8).map((preset) {
+                            return ActionChip(
+                              label: Text(
+                                context.tr(
+                                  en: preset.nameEn,
+                                  sk: preset.nameSk,
+                                ),
+                              ),
+                              onPressed: () => _addPresetStaple(preset, items),
+                            );
+                          }).toList(),
                         ),
                         const SizedBox(height: 12),
                         SizedBox(

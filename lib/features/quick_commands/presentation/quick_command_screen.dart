@@ -147,6 +147,19 @@ class _QuickCommandScreenState extends State<QuickCommandScreen> {
                 label: const Text('kup 2 litre mlieka'),
                 onPressed: () => _fillExample('kup 2 litre mlieka'),
               ),
+              ActionChip(
+                label: const Text('pridaj 2 jogurty do chladničky'),
+                onPressed: () => _fillExample('pridaj 2 jogurty do chladničky'),
+              ),
+              ActionChip(
+                label: const Text('pridaj hrášok do mrazničky'),
+                onPressed: () => _fillExample('pridaj hrášok do mrazničky'),
+              ),
+              ActionChip(
+                label: const Text('pridaj mlieko do chladničky; kup chlieb'),
+                onPressed: () =>
+                    _fillExample('pridaj mlieko do chladničky; kup chlieb'),
+              ),
             ],
           ),
           const SizedBox(height: 24),

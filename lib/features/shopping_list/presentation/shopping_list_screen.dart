@@ -5,6 +5,8 @@ import '../../../core/food/food_signal_catalog.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/app_feedback.dart';
 import '../../auth/data/auth_repository.dart';
+import '../../food_items/data/food_items_repository.dart';
+import '../../food_items/domain/food_item.dart';
 import '../../household_activity/data/household_activity_repository.dart';
 import '../../household_activity/domain/household_activity_event.dart';
 import '../../households/domain/household.dart';
@@ -37,6 +39,9 @@ class ShoppingListScreen extends StatefulWidget {
 
 class _ShoppingListScreenState extends State<ShoppingListScreen> {
   late final ShoppingListRepository repository = ShoppingListRepository(
+    householdId: widget.household.id,
+  );
+  late final FoodItemsRepository _foodItemsRepository = FoodItemsRepository(
     householdId: widget.household.id,
   );
   late final HouseholdActivityRepository _activityRepository =
@@ -555,9 +560,22 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
 
   Future<void> _toggleBought(ShoppingListItem item, bool value) async {
     try {
-      await repository.editShoppingListItem(
-        item.copyWith(isBought: value, updatedAt: DateTime.now().toUtc()),
-      );
+      if (value) {
+        final pantryDetails = await _confirmBoughtPantryDetails(item);
+        if (pantryDetails == null) {
+          return;
+        }
+        await _addBoughtItemToPantry(
+          item,
+          storageLocation: pantryDetails.storageLocation,
+          expirationDate: pantryDetails.expirationDate,
+        );
+        await repository.removeShoppingListItem(item.id);
+      } else {
+        await repository.editShoppingListItem(
+          item.copyWith(isBought: value, updatedAt: DateTime.now().toUtc()),
+        );
+      }
       _logActivity(
         eventType: value ? 'shopping_bought' : 'shopping_unbought',
         itemName: item.name,
@@ -569,7 +587,10 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       showSuccessFeedback(
         context,
         value
-            ? context.tr(en: 'Marked as bought.', sk: 'Označené ako kúpené.')
+            ? context.tr(
+                en: 'Moved to pantry and removed from shopping list.',
+                sk: 'Presunuté do špajze a odstránené z nákupného zoznamu.',
+              )
             : context.tr(
                 en: 'Marked as not bought.',
                 sk: 'Označené ako nekúpené.',
@@ -585,6 +606,246 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
         ),
       );
     }
+  }
+
+  Future<({String storageLocation, DateTime? expirationDate})?>
+  _confirmBoughtPantryDetails(ShoppingListItem item) async {
+    var selectedStorage = _defaultPantryStorage(
+      deriveFoodSignalInfo(item.name).itemKey,
+    );
+    DateTime? expirationDate;
+
+    return showDialog<({String storageLocation, DateTime? expirationDate})>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(
+            context.tr(
+              en: 'Move bought item to pantry',
+              sk: 'Presunúť kúpenú položku do špajze',
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                context.tr(
+                  en: 'Choose where to store ${localizedIngredientDisplayName(context, item.name)}.',
+                  sk: 'Vyber, kam uložiť ${localizedIngredientDisplayName(context, item.name)}.',
+                ),
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                initialValue: selectedStorage,
+                decoration: InputDecoration(
+                  labelText: context.tr(
+                    en: 'Storage location',
+                    sk: 'Umiestnenie',
+                  ),
+                ),
+                items: [
+                  DropdownMenuItem(
+                    value: 'fridge',
+                    child: Text(context.tr(en: 'Fridge', sk: 'Chladnička')),
+                  ),
+                  DropdownMenuItem(
+                    value: 'freezer',
+                    child: Text(context.tr(en: 'Freezer', sk: 'Mraznička')),
+                  ),
+                  DropdownMenuItem(
+                    value: 'pantry',
+                    child: Text(context.tr(en: 'Pantry', sk: 'Špajza')),
+                  ),
+                ],
+                onChanged: (value) {
+                  if (value == null) {
+                    return;
+                  }
+                  setDialogState(() {
+                    selectedStorage = value;
+                  });
+                },
+              ),
+              const SizedBox(height: 16),
+              InkWell(
+                onTap: () async {
+                  final now = DateTime.now();
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: expirationDate ?? now,
+                    firstDate: now.subtract(const Duration(days: 365)),
+                    lastDate: now.add(const Duration(days: 3650)),
+                  );
+                  if (picked == null) {
+                    return;
+                  }
+                  setDialogState(() {
+                    expirationDate = picked;
+                  });
+                },
+                child: InputDecorator(
+                  decoration: InputDecoration(
+                    labelText: context.tr(
+                      en: 'Expiration date',
+                      sk: 'Dátum spotreby',
+                    ),
+                  ),
+                  child: Text(
+                    expirationDate == null
+                        ? context.tr(en: 'Optional', sk: 'Voliteľné')
+                        : _formatDate(expirationDate!),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(context.tr(en: 'Cancel', sk: 'Zrušiť')),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop((
+                storageLocation: selectedStorage,
+                expirationDate: expirationDate,
+              )),
+              child: Text(context.tr(en: 'Move', sk: 'Presunúť')),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _addBoughtItemToPantry(
+    ShoppingListItem item, {
+    required String storageLocation,
+    required DateTime? expirationDate,
+  }) async {
+    final pantryItems = await _foodItemsRepository.getFoodItems();
+    final matching = pantryItems.cast<FoodItem?>().firstWhere(
+      (candidate) =>
+          candidate != null &&
+          candidate.openedAt == null &&
+          _itemKey(candidate.name, candidate.unit) ==
+              _itemKey(item.name, item.unit),
+      orElse: () => null,
+    );
+    final now = DateTime.now().toUtc();
+
+    if (matching == null) {
+      final info = deriveFoodSignalInfo(item.name);
+      await _foodItemsRepository.addFoodItem(
+        FoodItem(
+          id: '',
+          userId: item.userId,
+          householdId: item.householdId,
+          name: item.name,
+          barcode: null,
+          category: _defaultPantryCategory(info.itemKey),
+          storageLocation: storageLocation,
+          quantity: item.quantity,
+          lowStockThreshold: null,
+          unit: item.unit,
+          expirationDate: expirationDate,
+          openedAt: null,
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+      return;
+    }
+
+    final incomingInExistingUnit = _convertQuantity(
+      quantity: item.quantity,
+      fromUnit: item.unit,
+      toUnit: matching.unit,
+    );
+    if (incomingInExistingUnit == null) {
+      return;
+    }
+
+    await _foodItemsRepository.editFoodItem(
+      matching.copyWith(
+        name: _preferredPantryBoughtName(matching.name, item.name),
+        quantity: matching.quantity + incomingInExistingUnit,
+        storageLocation: storageLocation,
+        expirationDate: expirationDate ?? matching.expirationDate,
+        updatedAt: now,
+      ),
+    );
+  }
+
+  String _defaultPantryStorage(String itemKey) {
+    switch (itemKey) {
+      case 'milk':
+      case 'cheese':
+      case 'eggs':
+      case 'yogurt':
+      case 'butter':
+      case 'cream':
+      case 'ham':
+        return 'fridge';
+      case 'peas':
+        return 'freezer';
+      default:
+        return 'pantry';
+    }
+  }
+
+  String _defaultPantryCategory(String itemKey) {
+    switch (itemKey) {
+      case 'milk':
+      case 'cheese':
+      case 'yogurt':
+      case 'butter':
+      case 'cream':
+        return 'dairy';
+      case 'eggs':
+        return 'dairy';
+      case 'ham':
+      case 'chicken':
+        return 'meat';
+      case 'peas':
+        return 'frozen';
+      case 'bread':
+      case 'pasta':
+      case 'rice':
+      case 'beans':
+        return 'grains';
+      case 'tomato':
+        return 'produce';
+      default:
+        return 'other';
+    }
+  }
+
+  String _preferredPantryBoughtName(String existingName, String incomingName) {
+    final existingNormalized = _normalizeValue(existingName);
+    final incomingNormalized = _normalizeValue(incomingName);
+
+    const genericEnglishAliases = {
+      'ham',
+      'bread',
+      'milk',
+      'cheese',
+      'eggs',
+      'pasta',
+      'rice',
+      'beans',
+      'peas',
+      'yogurt',
+      'cream',
+      'butter',
+    };
+
+    if (genericEnglishAliases.contains(existingNormalized) &&
+        !genericEnglishAliases.contains(incomingNormalized)) {
+      return incomingName;
+    }
+
+    return existingName;
   }
 
   @override
@@ -850,6 +1111,13 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       return value.toInt().toString();
     }
     return value.toStringAsFixed(1);
+  }
+
+  String _formatDate(DateTime value) {
+    final local = value.toLocal();
+    final day = local.day.toString().padLeft(2, '0');
+    final month = local.month.toString().padLeft(2, '0');
+    return '$day.$month.${local.year}';
   }
 
   String _errorMessage(Object? error) {
@@ -1244,7 +1512,8 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
           }
           return item.copyWith(name: 'Bezlepková alternatíva');
         case 'eggs':
-          if (normalizedName.contains('egg') || normalizedName.contains('vajc')) {
+          if (normalizedName.contains('egg') ||
+              normalizedName.contains('vajc')) {
             return item.copyWith(name: 'Náhrada vajec');
           }
           return item.copyWith(name: 'Bezvaječná alternatíva');

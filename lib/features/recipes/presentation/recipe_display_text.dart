@@ -50,6 +50,7 @@ String localizedIngredientName(
     'eggs' => context.tr(en: 'Eggs', sk: 'Vajcia'),
     'milk' => context.tr(en: 'Milk', sk: 'Mlieko'),
     'cheese' => context.tr(en: 'Cheese', sk: 'Syr'),
+    'carrots' => context.tr(en: 'Carrots', sk: 'Mrkva'),
     'pasta' => context.tr(en: 'Pasta', sk: 'Cestoviny'),
     'tomatosauce' => context.tr(en: 'Tomato sauce', sk: 'Paradajková omáčka'),
     'chicken' => context.tr(en: 'Chicken', sk: 'Kuracie mäso'),
@@ -74,7 +75,8 @@ String localizedIngredientDisplayName(BuildContext context, String rawValue) {
         normalizedSafe.contains('mozzarella')) {
       return context.tr(en: 'Lactose-free cheese', sk: 'Bezlaktózový syr');
     }
-    if (normalizedSafe.contains('jogurt') || normalizedSafe.contains('yogurt')) {
+    if (normalizedSafe.contains('jogurt') ||
+        normalizedSafe.contains('yogurt')) {
       return context.tr(en: 'Lactose-free yogurt', sk: 'Bezlaktózový jogurt');
     }
     if (normalizedSafe.contains('smotan') || normalizedSafe.contains('cream')) {
@@ -87,7 +89,8 @@ String localizedIngredientDisplayName(BuildContext context, String rawValue) {
   }
   if (lowerRaw.contains('bezlepk')) {
     final normalizedSafe = _normalizeIngredientLabel(rawValue);
-    if (normalizedSafe.contains('cestovin') || normalizedSafe.contains('pasta')) {
+    if (normalizedSafe.contains('cestovin') ||
+        normalizedSafe.contains('pasta')) {
       return context.tr(en: 'Gluten-free pasta', sk: 'Bezlepkové cestoviny');
     }
     if (normalizedSafe.contains('baget')) {
@@ -122,6 +125,10 @@ String localizedIngredientDisplayName(BuildContext context, String rawValue) {
     'syr': 'cheese',
     'gorgonzola': 'cheese',
     'mozzarella': 'cheese',
+    'carrot': 'carrots',
+    'carrots': 'carrots',
+    'mrkva': 'carrots',
+    'mrkvy': 'carrots',
     'pasta': 'pasta',
     'cestoviny': 'pasta',
     'tomatosauce': 'tomatosauce',
@@ -141,6 +148,8 @@ String localizedIngredientDisplayName(BuildContext context, String rawValue) {
     'pecivo': 'bread',
     'ham': 'ham',
     'sunka': 'ham',
+    'sunku': 'ham',
+    'sunky': 'ham',
   };
 
   return localizedIngredientName(
