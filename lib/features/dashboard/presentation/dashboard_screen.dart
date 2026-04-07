@@ -164,9 +164,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _openTesterInfo() async {
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const TesterInfoScreen()));
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => TesterInfoScreen(household: widget.household),
+      ),
+    );
+    if (!mounted) {
+      return;
+    }
+    await _reload();
   }
 
   Future<void> _openNotifications() async {
