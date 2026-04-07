@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../../app/localization/app_locale.dart';
 import '../../../app/supabase.dart';
+import '../../../core/food/food_signal_catalog.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/app_feedback.dart';
 import '../../food_items/data/food_items_repository.dart';
@@ -10,6 +11,8 @@ import '../../food_items/domain/food_item.dart';
 import '../../household_activity/data/household_activity_repository.dart';
 import '../../household_activity/domain/household_activity_event.dart';
 import '../../recipes/presentation/recipe_display_text.dart';
+import '../../shopping_list/data/shopping_list_repository.dart';
+import '../../shopping_list/domain/shopping_list_item.dart';
 import '../data/household_repository.dart';
 import '../domain/household.dart';
 import '../domain/household_member.dart';
@@ -28,6 +31,8 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
   late final FoodItemsRepository _foodItemsRepository = FoodItemsRepository(
     householdId: widget.household.id,
   );
+  late final ShoppingListRepository _shoppingListRepository =
+      ShoppingListRepository(householdId: widget.household.id);
   late final HouseholdActivityRepository _activityRepository =
       HouseholdActivityRepository(householdId: widget.household.id);
   late Future<_HouseholdViewData> _viewFuture = _loadViewData();
@@ -44,6 +49,7 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
   Future<_HouseholdViewData> _loadViewData() async {
     final members = await _repository.getMembers(widget.household.id);
     final pantryItems = await _foodItemsRepository.getFoodItems();
+    final shoppingItems = await _shoppingListRepository.getShoppingListItems();
     List<HouseholdActivityEvent> events;
     try {
       events = await _activityRepository.getRecentEvents();
@@ -54,6 +60,7 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
       members: members,
       events: events,
       pantryItems: pantryItems,
+      shoppingItems: shoppingItems,
     );
   }
 
@@ -67,6 +74,40 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
         sk: 'Kód domácnosti bol skopírovaný.',
       ),
     );
+  }
+
+  Future<void> _addKeepAtHomeToShopping(_HabitItem item) async {
+    final userId = _currentUserId;
+    if (userId == null) {
+      return;
+    }
+
+    final now = DateTime.now();
+    final shoppingItem = ShoppingListItem(
+      id: '',
+      userId: userId,
+      householdId: widget.household.id,
+      name: item.displayName,
+      quantity: item.suggestedQuantity,
+      unit: item.suggestedUnit,
+      source: ShoppingListItem.sourceManual,
+      isBought: false,
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    await _shoppingListRepository.addShoppingListItem(shoppingItem);
+    if (!mounted) {
+      return;
+    }
+    showSuccessFeedback(
+      context,
+      context.tr(
+        en: 'Added to shopping list.',
+        sk: 'Pridané do nákupného zoznamu.',
+      ),
+    );
+    await _reload();
   }
 
   @override
@@ -103,10 +144,12 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
                 members: <HouseholdMember>[],
                 events: <HouseholdActivityEvent>[],
                 pantryItems: <FoodItem>[],
+                shoppingItems: <ShoppingListItem>[],
               );
           final members = viewData.members;
           final events = viewData.events;
           final pantryItems = viewData.pantryItems;
+          final shoppingItems = viewData.shoppingItems;
           final topBought = _topHabitItems(
             events,
             matchingTypes: const {
@@ -120,7 +163,11 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
             matchingTypes: const {'pantry_used', 'pantry_opened'},
           );
           final wasteRisk = _wasteRiskItems(pantryItems);
-          final keepAtHome = _keepAtHomeItems(events, pantryItems);
+          final keepAtHome = _keepAtHomeItems(
+            events,
+            pantryItems,
+            shoppingItems,
+          );
           return RefreshIndicator(
             onRefresh: _reload,
             child: ListView(
@@ -274,6 +321,11 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
                     sk: 'Zatiaľ nemáme odporúčané pravidelné zásoby.',
                   ),
                   items: keepAtHome,
+                  actionLabel: context.tr(
+                    en: 'Add to shopping',
+                    sk: 'Do nákupu',
+                  ),
+                  onAction: _addKeepAtHomeToShopping,
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -507,12 +559,13 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
   List<_HabitItem> _keepAtHomeItems(
     List<HouseholdActivityEvent> events,
     List<FoodItem> pantryItems,
+    List<ShoppingListItem> shoppingItems,
   ) {
     final behaviorScores = <String, int>{};
     final displayNames = <String, String>{};
 
     for (final event in events) {
-      final key = event.itemName.trim().toLowerCase();
+      final key = deriveFoodSignalInfo(event.itemName).itemKey;
       if (key.isEmpty) {
         continue;
       }
@@ -535,7 +588,7 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
 
     final pantryCoverage = <String, double>{};
     for (final item in pantryItems) {
-      final key = item.name.trim().toLowerCase();
+      final key = deriveFoodSignalInfo(item.name).itemKey;
       if (key.isEmpty) {
         continue;
       }
@@ -550,9 +603,17 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
       );
     }
 
+    final shoppingKeys = shoppingItems
+        .map((item) => deriveFoodSignalInfo(item.name).itemKey)
+        .where((key) => key.isNotEmpty)
+        .toSet();
+
     final suggestions =
         behaviorScores.entries
             .map((entry) {
+              if (shoppingKeys.contains(entry.key)) {
+                return null;
+              }
               final onHand = pantryCoverage[entry.key] ?? 0;
               final stockPenalty = onHand <= 0
                   ? 4
@@ -586,6 +647,10 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
                     localizedIngredientDisplayName(context, entry.key),
                 count: score,
                 detail: detail,
+                suggestedQuantity: _suggestedPurchaseForItem(
+                  entry.key,
+                ).quantity,
+                suggestedUnit: _suggestedPurchaseForItem(entry.key).unit,
               );
             })
             .whereType<_HabitItem>()
@@ -601,6 +666,31 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
           });
 
     return suggestions.take(3).toList();
+  }
+
+  _SuggestedPurchase _suggestedPurchaseForItem(String itemKey) {
+    switch (itemKey) {
+      case 'milk':
+        return const _SuggestedPurchase(quantity: 1, unit: 'l');
+      case 'cheese':
+        return const _SuggestedPurchase(quantity: 200, unit: 'g');
+      case 'yogurt':
+        return const _SuggestedPurchase(quantity: 4, unit: 'pcs');
+      case 'cream':
+        return const _SuggestedPurchase(quantity: 1, unit: 'pcs');
+      case 'butter':
+        return const _SuggestedPurchase(quantity: 250, unit: 'g');
+      case 'eggs':
+        return const _SuggestedPurchase(quantity: 10, unit: 'pcs');
+      case 'pasta':
+        return const _SuggestedPurchase(quantity: 500, unit: 'g');
+      case 'bread':
+        return const _SuggestedPurchase(quantity: 1, unit: 'pcs');
+      case 'flour':
+        return const _SuggestedPurchase(quantity: 1, unit: 'kg');
+      default:
+        return const _SuggestedPurchase(quantity: 1, unit: 'pcs');
+    }
   }
 
   int _wasteRiskScore(FoodItem item) {
@@ -665,11 +755,13 @@ class _HouseholdViewData {
   final List<HouseholdMember> members;
   final List<HouseholdActivityEvent> events;
   final List<FoodItem> pantryItems;
+  final List<ShoppingListItem> shoppingItems;
 
   const _HouseholdViewData({
     required this.members,
     required this.events,
     required this.pantryItems,
+    required this.shoppingItems,
   });
 }
 
@@ -678,24 +770,39 @@ class _HabitItem {
   final String displayName;
   final int count;
   final String? detail;
+  final double suggestedQuantity;
+  final String suggestedUnit;
 
   const _HabitItem({
     required this.nameKey,
     required this.displayName,
     required this.count,
     this.detail,
+    this.suggestedQuantity = 1,
+    this.suggestedUnit = 'pcs',
   });
+}
+
+class _SuggestedPurchase {
+  final double quantity;
+  final String unit;
+
+  const _SuggestedPurchase({required this.quantity, required this.unit});
 }
 
 class _HabitSummaryCard extends StatelessWidget {
   final String title;
   final String emptyMessage;
   final List<_HabitItem> items;
+  final String? actionLabel;
+  final Future<void> Function(_HabitItem item)? onAction;
 
   const _HabitSummaryCard({
     required this.title,
     required this.emptyMessage,
     required this.items,
+    this.actionLabel,
+    this.onAction,
   });
 
   @override
@@ -724,6 +831,13 @@ class _HabitSummaryCard extends StatelessWidget {
                       Row(
                         children: [
                           Expanded(child: Text(item.displayName)),
+                          if (actionLabel != null && onAction != null) ...[
+                            const SizedBox(width: 8),
+                            TextButton(
+                              onPressed: () => onAction!(item),
+                              child: Text(actionLabel!),
+                            ),
+                          ],
                           const SizedBox(width: 8),
                           Text(
                             '${item.count}x',
