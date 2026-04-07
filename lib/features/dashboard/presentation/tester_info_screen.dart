@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../app/localization/app_locale.dart';
@@ -24,6 +25,10 @@ class TesterInfoScreen extends StatefulWidget {
 }
 
 class _TesterInfoScreenState extends State<TesterInfoScreen> {
+  static const _samplePantryNames = {'Mlieko', 'Vajcia', 'Syr', 'Chlieb'};
+  static const _sampleShoppingNames = {'Maslo', 'Paradajková omáčka'};
+  static const _sampleRecipeIds = {'omelette', 'pasta'};
+
   late final FoodItemsRepository _foodItemsRepository = FoodItemsRepository(
     householdId: widget.household.id,
   );
@@ -37,6 +42,14 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
   );
 
   bool _isLoadingSampleData = false;
+  bool _isClearingSampleData = false;
+
+  String _feedbackTemplate(BuildContext context) {
+    return context.tr(
+      en: 'Tested flow:\nWhat I expected:\nWhat happened:\nSeverity:\nNotes / screenshot:',
+      sk: 'Testovaný flow:\nČo som očakával:\nČo sa stalo:\nZávažnosť:\nPoznámka / screenshot:',
+    );
+  }
 
   Future<void> _loadSampleData() async {
     final user = Supabase.instance.client.auth.currentUser;
@@ -272,6 +285,113 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
     }
   }
 
+  Future<void> _clearSampleData() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          context.tr(en: 'Clear sample data', sk: 'Vymazať ukážkové dáta'),
+        ),
+        content: Text(
+          context.tr(
+            en: 'This removes only the sample Pantry, Shopping List, and Meal plan items added from Tester info.',
+            sk: 'Týmto sa odstránia len ukážkové položky zo špajze, nákupného zoznamu a jedálnička pridané z Tester info.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(context.tr(en: 'Cancel', sk: 'Zrušiť')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(context.tr(en: 'Clear', sk: 'Vymazať')),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) {
+      return;
+    }
+
+    setState(() {
+      _isClearingSampleData = true;
+    });
+
+    try {
+      final pantryItems = await _foodItemsRepository.getFoodItems();
+      final shoppingItems = await _shoppingListRepository
+          .getShoppingListItems();
+      final mealPlanEntries = await _mealPlanRepository.getEntries();
+
+      var removedPantry = 0;
+      for (final item in pantryItems) {
+        if (!_samplePantryNames.contains(item.name)) {
+          continue;
+        }
+        await _foodItemsRepository.removeFoodItem(item.id);
+        removedPantry++;
+      }
+
+      var removedShopping = 0;
+      for (final item in shoppingItems) {
+        if (!_sampleShoppingNames.contains(item.name)) {
+          continue;
+        }
+        await _shoppingListRepository.removeShoppingListItem(item.id);
+        removedShopping++;
+      }
+
+      var removedMeals = 0;
+      for (final entry in mealPlanEntries) {
+        if (!_sampleRecipeIds.contains(entry.recipeId)) {
+          continue;
+        }
+        await _mealPlanRepository.removeEntry(entry.id);
+        removedMeals++;
+      }
+
+      if (!mounted) return;
+      showSuccessFeedback(
+        context,
+        context.tr(
+          en: 'Sample data removed: $removedPantry pantry, $removedShopping shopping, $removedMeals meal plan.',
+          sk: 'Ukážkové dáta odstránené: $removedPantry špajza, $removedShopping nákup, $removedMeals jedálniček.',
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Failed to clear sample data.',
+          sk: 'Ukážkové dáta sa nepodarilo vymazať.',
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isClearingSampleData = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _copyFeedbackTemplate() async {
+    await Clipboard.setData(ClipboardData(text: _feedbackTemplate(context)));
+    if (!mounted) {
+      return;
+    }
+    showSuccessFeedback(
+      context,
+      context.tr(
+        en: 'Feedback template copied.',
+        sk: 'Šablóna na feedback bola skopírovaná.',
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -311,6 +431,25 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
                         : context.tr(
                             en: 'Load sample test data',
                             sk: 'Nahrať ukážkové dáta',
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  onPressed: _isClearingSampleData ? null : _clearSampleData,
+                  icon: _isClearingSampleData
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.delete_sweep_outlined),
+                  label: Text(
+                    _isClearingSampleData
+                        ? context.tr(en: 'Clearing...', sk: 'Mažem...')
+                        : context.tr(
+                            en: 'Clear sample data',
+                            sk: 'Vymazať ukážkové dáta',
                           ),
                   ),
                 ),
@@ -408,6 +547,40 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
                   text: context.tr(
                     en: 'If a flow feels slow, note the exact action that caused it.',
                     sk: 'Ak flow pôsobí pomaly, poznač si presne akciu, pri ktorej sa to stalo.',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          _InfoCard(
+            title: context.tr(
+              en: 'Feedback template',
+              sk: 'Šablóna na feedback',
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(_feedbackTemplate(context)),
+                ),
+                const SizedBox(height: 12),
+                FilledButton.tonalIcon(
+                  onPressed: _copyFeedbackTemplate,
+                  icon: const Icon(Icons.copy_all_outlined),
+                  label: Text(
+                    context.tr(
+                      en: 'Copy feedback template',
+                      sk: 'Skopírovať šablónu',
+                    ),
                   ),
                 ),
               ],
