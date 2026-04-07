@@ -12,6 +12,7 @@ import '../../recipes/data/recipes_repository.dart';
 import '../../recipes/domain/recipe.dart';
 import '../../recipes/domain/recipe_ingredient.dart';
 import '../../recipes/presentation/recipe_display_text.dart';
+import 'tester_info_screen.dart';
 import 'notifications_screen.dart';
 import '../../shopping_list/data/shopping_list_repository.dart';
 import '../../shopping_list/domain/shopping_list_item.dart';
@@ -162,6 +163,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     await _reload();
   }
 
+  Future<void> _openTesterInfo() async {
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const TesterInfoScreen()));
+  }
+
   Future<void> _openNotifications() async {
     await Navigator.of(context).push(
       MaterialPageRoute(
@@ -231,19 +238,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
               final count = data == null
                   ? 0
                   : data.pantryItems
-                          .where((item) => _daysUntil(item.expirationDate) <= 3)
-                          .length +
-                      data.shoppingItems
-                          .where((item) => !item.isBought)
-                          .take(6)
-                          .length +
-                      data.mealPlanEntries
-                          .where((entry) => _daysUntil(entry.scheduledFor) <= 1)
-                          .length +
-                      data.pantryItems
-                          .where((item) => item.openedAt != null)
-                          .length +
-                      data.pantryItems.where(_isLowStock).length;
+                            .where(
+                              (item) => _daysUntil(item.expirationDate) <= 3,
+                            )
+                            .length +
+                        data.shoppingItems
+                            .where((item) => !item.isBought)
+                            .take(6)
+                            .length +
+                        data.mealPlanEntries
+                            .where(
+                              (entry) => _daysUntil(entry.scheduledFor) <= 1,
+                            )
+                            .length +
+                        data.pantryItems
+                            .where((item) => item.openedAt != null)
+                            .length +
+                        data.pantryItems.where(_isLowStock).length;
 
               return IconButton(
                 onPressed: _openNotifications,
@@ -518,6 +529,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         icon: const Icon(Icons.tune_rounded),
                         label: Text(
                           context.tr(en: 'Preferences', sk: 'Preferencie'),
+                        ),
+                      ),
+                      FilledButton.tonalIcon(
+                        onPressed: _openTesterInfo,
+                        icon: const Icon(Icons.fact_check_outlined),
+                        label: Text(
+                          context.tr(en: 'Tester info', sk: 'Tester info'),
                         ),
                       ),
                     ],
@@ -1315,8 +1333,9 @@ List<FoodItem> _buildUseSoonItems({
         return aOpened ? -1 : 1;
       }
 
-      final openedDaysLeftComparison =
-          _openedDaysLeft(a).compareTo(_openedDaysLeft(b));
+      final openedDaysLeftComparison = _openedDaysLeft(
+        a,
+      ).compareTo(_openedDaysLeft(b));
       if (openedDaysLeftComparison != 0) {
         return openedDaysLeftComparison;
       }
@@ -1382,10 +1401,7 @@ String? _openedUseSoonLabel(BuildContext context, FoodItem item) {
 
   final daysLeft = _openedDaysLeft(item);
   if (daysLeft < 0) {
-    return context.tr(
-      en: 'Use as soon as possible',
-      sk: 'Použi čo najskôr',
-    );
+    return context.tr(en: 'Use as soon as possible', sk: 'Použi čo najskôr');
   }
   if (daysLeft == 0) {
     return context.tr(
@@ -1394,10 +1410,7 @@ String? _openedUseSoonLabel(BuildContext context, FoodItem item) {
     );
   }
   if (daysLeft == 1) {
-    return context.tr(
-      en: 'Use within 1 day',
-      sk: 'Použi do 1 dňa',
-    );
+    return context.tr(en: 'Use within 1 day', sk: 'Použi do 1 dňa');
   }
   return context.tr(
     en: 'Use within $daysLeft days',
