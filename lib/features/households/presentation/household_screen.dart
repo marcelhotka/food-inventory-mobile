@@ -5,6 +5,8 @@ import '../../../app/localization/app_locale.dart';
 import '../../../app/supabase.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/app_feedback.dart';
+import '../../food_items/data/food_items_repository.dart';
+import '../../food_items/domain/food_item.dart';
 import '../../household_activity/data/household_activity_repository.dart';
 import '../../household_activity/domain/household_activity_event.dart';
 import '../../recipes/presentation/recipe_display_text.dart';
@@ -23,6 +25,9 @@ class HouseholdScreen extends StatefulWidget {
 
 class _HouseholdScreenState extends State<HouseholdScreen> {
   late final HouseholdRepository _repository = HouseholdRepository();
+  late final FoodItemsRepository _foodItemsRepository = FoodItemsRepository(
+    householdId: widget.household.id,
+  );
   late final HouseholdActivityRepository _activityRepository =
       HouseholdActivityRepository(householdId: widget.household.id);
   late Future<_HouseholdViewData> _viewFuture = _loadViewData();
@@ -38,13 +43,18 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
 
   Future<_HouseholdViewData> _loadViewData() async {
     final members = await _repository.getMembers(widget.household.id);
+    final pantryItems = await _foodItemsRepository.getFoodItems();
     List<HouseholdActivityEvent> events;
     try {
       events = await _activityRepository.getRecentEvents();
     } catch (_) {
       events = const <HouseholdActivityEvent>[];
     }
-    return _HouseholdViewData(members: members, events: events);
+    return _HouseholdViewData(
+      members: members,
+      events: events,
+      pantryItems: pantryItems,
+    );
   }
 
   Future<void> _copyCode() async {
@@ -92,17 +102,25 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
               const _HouseholdViewData(
                 members: <HouseholdMember>[],
                 events: <HouseholdActivityEvent>[],
+                pantryItems: <FoodItem>[],
               );
           final members = viewData.members;
           final events = viewData.events;
+          final pantryItems = viewData.pantryItems;
           final topBought = _topHabitItems(
             events,
-            matchingTypes: const {'shopping_added', 'shopping_increased', 'shopping_bought'},
+            matchingTypes: const {
+              'shopping_added',
+              'shopping_increased',
+              'shopping_bought',
+            },
           );
           final topUsed = _topHabitItems(
             events,
             matchingTypes: const {'pantry_used', 'pantry_opened'},
           );
+          final wasteRisk = _wasteRiskItems(pantryItems);
+          final keepAtHome = _keepAtHomeItems(events, pantryItems);
           return RefreshIndicator(
             onRefresh: _reload,
             child: ListView(
@@ -216,37 +234,46 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
                   ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 12),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: _HabitSummaryCard(
-                        title: context.tr(
-                          en: 'Bought often',
-                          sk: 'Často kupované',
-                        ),
-                        emptyMessage: context.tr(
-                          en: 'No buying patterns yet.',
-                          sk: 'Zatiaľ nemáme nákupné návyky.',
-                        ),
-                        items: topBought,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _HabitSummaryCard(
-                        title: context.tr(
-                          en: 'Used often',
-                          sk: 'Často používané',
-                        ),
-                        emptyMessage: context.tr(
-                          en: 'No usage patterns yet.',
-                          sk: 'Zatiaľ nemáme spotrebné návyky.',
-                        ),
-                        items: topUsed,
-                      ),
-                    ),
-                  ],
+                _HabitSummaryCard(
+                  title: context.tr(en: 'Bought often', sk: 'Často kupované'),
+                  emptyMessage: context.tr(
+                    en: 'No buying patterns yet.',
+                    sk: 'Zatiaľ nemáme nákupné návyky.',
+                  ),
+                  items: topBought,
+                ),
+                const SizedBox(height: 12),
+                _HabitSummaryCard(
+                  title: context.tr(en: 'Used often', sk: 'Často používané'),
+                  emptyMessage: context.tr(
+                    en: 'No usage patterns yet.',
+                    sk: 'Zatiaľ nemáme spotrebné návyky.',
+                  ),
+                  items: topUsed,
+                ),
+                const SizedBox(height: 12),
+                _HabitSummaryCard(
+                  title: context.tr(
+                    en: 'Waste risk now',
+                    sk: 'Riziko odpadu teraz',
+                  ),
+                  emptyMessage: context.tr(
+                    en: 'No risky pantry items right now.',
+                    sk: 'Momentálne tu nie sú rizikové pantry položky.',
+                  ),
+                  items: wasteRisk,
+                ),
+                const SizedBox(height: 12),
+                _HabitSummaryCard(
+                  title: context.tr(
+                    en: 'Worth keeping at home',
+                    sk: 'Oplatí sa držať doma',
+                  ),
+                  emptyMessage: context.tr(
+                    en: 'No regular staples suggested yet.',
+                    sk: 'Zatiaľ nemáme odporúčané pravidelné zásoby.',
+                  ),
+                  items: keepAtHome,
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -424,43 +451,239 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
       counts.update(key, (value) => value + 1, ifAbsent: () => 1);
     }
 
-    final items = counts.entries
-        .map(
-          (entry) => _HabitItem(
-            nameKey: entry.key,
-            displayName: localizedIngredientDisplayName(context, entry.key),
-            count: entry.value,
-          ),
-        )
-        .toList()
-      ..sort((a, b) {
-        final byCount = b.count.compareTo(a.count);
-        if (byCount != 0) {
-          return byCount;
-        }
-        return a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase());
-      });
+    final items =
+        counts.entries
+            .map(
+              (entry) => _HabitItem(
+                nameKey: entry.key,
+                displayName: localizedIngredientDisplayName(context, entry.key),
+                count: entry.value,
+              ),
+            )
+            .toList()
+          ..sort((a, b) {
+            final byCount = b.count.compareTo(a.count);
+            if (byCount != 0) {
+              return byCount;
+            }
+            return a.displayName.toLowerCase().compareTo(
+              b.displayName.toLowerCase(),
+            );
+          });
 
     return items.take(3).toList();
+  }
+
+  List<_HabitItem> _wasteRiskItems(List<FoodItem> pantryItems) {
+    final items =
+        pantryItems
+            .map((item) {
+              final score = _wasteRiskScore(item);
+              if (score <= 0) {
+                return null;
+              }
+              return _HabitItem(
+                nameKey: item.name.toLowerCase(),
+                displayName: localizedIngredientDisplayName(context, item.name),
+                count: score,
+                detail: _wasteRiskLabel(item),
+              );
+            })
+            .whereType<_HabitItem>()
+            .toList()
+          ..sort((a, b) {
+            final byCount = b.count.compareTo(a.count);
+            if (byCount != 0) {
+              return byCount;
+            }
+            return a.displayName.toLowerCase().compareTo(
+              b.displayName.toLowerCase(),
+            );
+          });
+
+    return items.take(3).toList();
+  }
+
+  List<_HabitItem> _keepAtHomeItems(
+    List<HouseholdActivityEvent> events,
+    List<FoodItem> pantryItems,
+  ) {
+    final behaviorScores = <String, int>{};
+    final displayNames = <String, String>{};
+
+    for (final event in events) {
+      final key = event.itemName.trim().toLowerCase();
+      if (key.isEmpty) {
+        continue;
+      }
+      displayNames.putIfAbsent(
+        key,
+        () => localizedIngredientDisplayName(context, event.itemName),
+      );
+      switch (event.eventType) {
+        case 'shopping_added':
+        case 'shopping_increased':
+        case 'shopping_bought':
+          behaviorScores.update(key, (value) => value + 2, ifAbsent: () => 2);
+          break;
+        case 'pantry_used':
+        case 'pantry_opened':
+          behaviorScores.update(key, (value) => value + 3, ifAbsent: () => 3);
+          break;
+      }
+    }
+
+    final pantryCoverage = <String, double>{};
+    for (final item in pantryItems) {
+      final key = item.name.trim().toLowerCase();
+      if (key.isEmpty) {
+        continue;
+      }
+      pantryCoverage.update(
+        key,
+        (value) => value + item.quantity,
+        ifAbsent: () => item.quantity,
+      );
+      displayNames.putIfAbsent(
+        key,
+        () => localizedIngredientDisplayName(context, item.name),
+      );
+    }
+
+    final suggestions =
+        behaviorScores.entries
+            .map((entry) {
+              final onHand = pantryCoverage[entry.key] ?? 0;
+              final stockPenalty = onHand <= 0
+                  ? 4
+                  : onHand <= 1
+                  ? 2
+                  : 0;
+              final score = entry.value + stockPenalty;
+              if (score < 4) {
+                return null;
+              }
+
+              final detail = onHand <= 0
+                  ? context.tr(
+                      en: 'Shows up often, but you do not have it in pantry now.',
+                      sk: 'Objavuje sa často, ale momentálne ju nemáš v špajzi.',
+                    )
+                  : onHand <= 1
+                  ? context.tr(
+                      en: 'Shows up often and you are running low.',
+                      sk: 'Objavuje sa často a zásoba je už nízka.',
+                    )
+                  : context.tr(
+                      en: 'Common item in your household routine.',
+                      sk: 'Bežná položka v rytme vašej domácnosti.',
+                    );
+
+              return _HabitItem(
+                nameKey: entry.key,
+                displayName:
+                    displayNames[entry.key] ??
+                    localizedIngredientDisplayName(context, entry.key),
+                count: score,
+                detail: detail,
+              );
+            })
+            .whereType<_HabitItem>()
+            .toList()
+          ..sort((a, b) {
+            final byCount = b.count.compareTo(a.count);
+            if (byCount != 0) {
+              return byCount;
+            }
+            return a.displayName.toLowerCase().compareTo(
+              b.displayName.toLowerCase(),
+            );
+          });
+
+    return suggestions.take(3).toList();
+  }
+
+  int _wasteRiskScore(FoodItem item) {
+    var score = 0;
+    final daysToExpiry = _daysUntil(item.expirationDate);
+    if (item.openedAt != null) {
+      score += 3;
+    }
+    if (item.expirationDate != null) {
+      if (daysToExpiry <= 0) {
+        score += 4;
+      } else if (daysToExpiry <= 2) {
+        score += 3;
+      } else if (daysToExpiry <= 5) {
+        score += 1;
+      }
+    }
+    return score;
+  }
+
+  int _daysUntil(DateTime? value) {
+    if (value == null) {
+      return 9999;
+    }
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final target = DateTime(value.year, value.month, value.day);
+    return target.difference(today).inDays;
+  }
+
+  String _wasteRiskLabel(FoodItem item) {
+    final daysToExpiry = _daysUntil(item.expirationDate);
+    if (item.openedAt != null && daysToExpiry <= 0) {
+      return context.tr(
+        en: 'Opened and should be used immediately',
+        sk: 'Otvorené a treba spotrebovať hneď',
+      );
+    }
+    if (item.openedAt != null && daysToExpiry <= 2) {
+      return context.tr(
+        en: 'Opened and expiring soon',
+        sk: 'Otvorené a čoskoro sa minie',
+      );
+    }
+    if (item.openedAt != null) {
+      return context.tr(
+        en: 'Opened item to use soon',
+        sk: 'Otvorená položka na skoré použitie',
+      );
+    }
+    if (daysToExpiry <= 0) {
+      return context.tr(en: 'Expired', sk: 'Po záruke');
+    }
+    return context.tr(
+      en: 'Expires in $daysToExpiry days',
+      sk: 'O $daysToExpiry dní',
+    );
   }
 }
 
 class _HouseholdViewData {
   final List<HouseholdMember> members;
   final List<HouseholdActivityEvent> events;
+  final List<FoodItem> pantryItems;
 
-  const _HouseholdViewData({required this.members, required this.events});
+  const _HouseholdViewData({
+    required this.members,
+    required this.events,
+    required this.pantryItems,
+  });
 }
 
 class _HabitItem {
   final String nameKey;
   final String displayName;
   final int count;
+  final String? detail;
 
   const _HabitItem({
     required this.nameKey,
     required this.displayName,
     required this.count,
+    this.detail,
   });
 }
 
@@ -491,24 +714,31 @@ class _HabitSummaryCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             if (items.isEmpty)
-              Text(
-                emptyMessage,
-                style: Theme.of(context).textTheme.bodySmall,
-              )
+              Text(emptyMessage, style: Theme.of(context).textTheme.bodySmall)
             else
               ...items.map(
                 (item) => Padding(
                   padding: const EdgeInsets.only(bottom: 8),
-                  child: Row(
+                  child: Column(
                     children: [
-                      Expanded(child: Text(item.displayName)),
-                      const SizedBox(width: 8),
-                      Text(
-                        '${item.count}x',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
+                      Row(
+                        children: [
+                          Expanded(child: Text(item.displayName)),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${item.count}x',
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(fontWeight: FontWeight.w700),
+                          ),
+                        ],
                       ),
+                      if (item.detail != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          item.detail!,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
                     ],
                   ),
                 ),
