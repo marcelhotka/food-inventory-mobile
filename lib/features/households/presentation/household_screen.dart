@@ -428,6 +428,14 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
         en: 'Marked as bought',
         sk: 'Označené ako kúpené',
       ),
+      'shopping_assigned' => context.tr(
+        en: 'Assigned shopping item',
+        sk: 'Priradená nákupná položka',
+      ),
+      'shopping_unassigned' => context.tr(
+        en: 'Cleared shopping assignment',
+        sk: 'Zrušené priradenie nákupnej položky',
+      ),
       'shopping_unbought' => context.tr(
         en: 'Marked as not bought',
         sk: 'Označené ako nekúpené',

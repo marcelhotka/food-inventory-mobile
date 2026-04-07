@@ -10,6 +10,8 @@ import '../../food_items/domain/food_item.dart';
 import '../../household_activity/data/household_activity_repository.dart';
 import '../../household_activity/domain/household_activity_event.dart';
 import '../../households/domain/household.dart';
+import '../../households/domain/household_member.dart';
+import '../../households/data/household_repository.dart';
 import '../../households/presentation/household_screen.dart';
 import '../../recipes/presentation/recipe_display_text.dart';
 import '../../user_preferences/data/user_preferences_repository.dart';
@@ -46,12 +48,15 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
   );
   late final HouseholdActivityRepository _activityRepository =
       HouseholdActivityRepository(householdId: widget.household.id);
+  late final HouseholdRepository _householdRepository = HouseholdRepository();
   late final UserPreferencesRepository _userPreferencesRepository =
       UserPreferencesRepository();
   final TextEditingController _searchController = TextEditingController();
 
   late Future<_ShoppingListViewData> _shoppingListFuture;
   ShoppingListFilter _selectedFilter = ShoppingListFilter.all;
+
+  String? get _currentUserId => widget.authRepository.currentSession?.user.id;
 
   @override
   void initState() {
@@ -83,6 +88,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
 
   Future<_ShoppingListViewData> _loadShoppingListItems() async {
     var items = await repository.getShoppingListItems();
+    List<HouseholdMember> members = const <HouseholdMember>[];
     UserPreferences? preferences;
 
     try {
@@ -90,6 +96,12 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
           .getCurrentUserPreferences();
     } catch (_) {
       preferences = null;
+    }
+
+    try {
+      members = await _householdRepository.getMembers(widget.household.id);
+    } catch (_) {
+      members = const <HouseholdMember>[];
     }
 
     final groups = <String, List<ShoppingListItem>>{};
@@ -111,6 +123,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       var mergedQuantity = primary.quantity;
       var mergedSource = primary.source;
       var anyBought = primary.isBought;
+      var assignedToUserId = primary.assignedToUserId;
 
       for (final duplicate in group.skip(1)) {
         final convertedQuantity = _convertQuantity(
@@ -124,12 +137,14 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
           duplicate.source,
         );
         anyBought = anyBought || duplicate.isBought;
+        assignedToUserId ??= duplicate.assignedToUserId;
       }
 
       final updatedPrimary = primary.copyWith(
         name: _preferredMergedItemName(primary.name, group.last.name),
         quantity: mergedQuantity,
         source: mergedSource,
+        assignedToUserId: assignedToUserId,
         isBought: anyBought,
         updatedAt: DateTime.now().toUtc(),
       );
@@ -145,7 +160,11 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       items = await repository.getShoppingListItems();
     }
 
-    return _ShoppingListViewData(items: items, preferences: preferences);
+    return _ShoppingListViewData(
+      items: items,
+      preferences: preferences,
+      members: members,
+    );
   }
 
   Future<void> _openCreateForm() async {
@@ -245,6 +264,8 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       existing.copyWith(
         name: _preferredMergedItemName(existing.name, incomingItem.name),
         quantity: mergedQuantity,
+        assignedToUserId:
+            existing.assignedToUserId ?? incomingItem.assignedToUserId,
         isBought: false,
         source: ShoppingListItem.mergeSource(
           existing.source,
@@ -486,6 +507,42 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
               },
             ),
             ListTile(
+              leading: const Icon(Icons.group_add_outlined),
+              title: Text(
+                context.tr(
+                  en: 'Assign to household member',
+                  sk: 'Priradiť členovi domácnosti',
+                ),
+              ),
+              subtitle: Text(
+                context.tr(
+                  en: 'Choose who plans to buy this item',
+                  sk: 'Vyber, kto plánuje kúpiť túto položku',
+                ),
+              ),
+              onTap: () {
+                Navigator.of(context).pop();
+                _pickAssignmentTarget(item);
+              },
+            ),
+            if (item.assignedToUserId != null)
+              ListTile(
+                leading: const Icon(Icons.person_remove_outlined),
+                title: Text(
+                  context.tr(en: 'Clear assignment', sk: 'Zrušiť priradenie'),
+                ),
+                subtitle: Text(
+                  context.tr(
+                    en: 'Anyone in the household can take it again',
+                    sk: 'Položku si môže znova vziať ktokoľvek v domácnosti',
+                  ),
+                ),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _setAssignment(item, null);
+                },
+              ),
+            ListTile(
               leading: const Icon(Icons.delete_outline),
               title: Text(context.tr(en: 'Delete', sk: 'Zmazať')),
               onTap: () {
@@ -497,6 +554,138 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _pickAssignmentTarget(ShoppingListItem item) async {
+    try {
+      final members = await _householdRepository.getMembers(
+        widget.household.id,
+      );
+      if (!mounted) return;
+
+      final selectedUserId = await showDialog<String?>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(
+            context.tr(
+              en: 'Assign shopping item',
+              sk: 'Priradiť nákupnú položku',
+            ),
+          ),
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 380),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: members
+                    .map(
+                      (member) => ListTile(
+                        leading: Icon(
+                          member.userId == _currentUserId
+                              ? Icons.person
+                              : Icons.group_outlined,
+                        ),
+                        title: Text(_memberLabel(member)),
+                        subtitle: Text(_memberSubtitle(member)),
+                        trailing: item.assignedToUserId == member.userId
+                            ? const Icon(
+                                Icons.check_circle,
+                                color: Colors.green,
+                              )
+                            : null,
+                        onTap: () => Navigator.of(context).pop(member.userId),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(context.tr(en: 'Cancel', sk: 'Zrušiť')),
+            ),
+          ],
+        ),
+      );
+
+      if (selectedUserId == null) {
+        return;
+      }
+      await _setAssignment(item, selectedUserId);
+    } catch (_) {
+      if (!mounted) return;
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Failed to load household members.',
+          sk: 'Nepodarilo sa načítať členov domácnosti.',
+        ),
+      );
+    }
+  }
+
+  Future<void> _setAssignment(
+    ShoppingListItem item,
+    String? assignedToUserId,
+  ) async {
+    if (_currentUserId == null && assignedToUserId != null) {
+      return;
+    }
+
+    try {
+      await repository.editShoppingListItem(
+        item.copyWith(
+          assignedToUserId: assignedToUserId,
+          clearAssignedToUserId: assignedToUserId == null,
+          updatedAt: DateTime.now().toUtc(),
+        ),
+      );
+      _logActivity(
+        eventType: assignedToUserId == null
+            ? 'shopping_unassigned'
+            : 'shopping_assigned',
+        itemName: item.name,
+        quantity: item.quantity,
+        unit: item.unit,
+        details: assignedToUserId == null
+            ? context.tr(en: 'Assignment cleared', sk: 'Priradenie zrušené')
+            : assignedToUserId == _currentUserId
+            ? context.tr(en: 'Assigned to me', sk: 'Priradené mne')
+            : context.tr(
+                en: 'Assigned to another household member',
+                sk: 'Priradené inému členovi domácnosti',
+              ),
+      );
+      await _reload();
+      if (!mounted) return;
+      showSuccessFeedback(
+        context,
+        assignedToUserId == null
+            ? context.tr(
+                en: 'Shopping item is no longer assigned.',
+                sk: 'Nákupná položka už nie je nikomu priradená.',
+              )
+            : assignedToUserId == _currentUserId
+            ? context.tr(
+                en: 'Shopping item assigned to you.',
+                sk: 'Nákupná položka je priradená tebe.',
+              )
+            : context.tr(
+                en: 'Shopping item assigned in household.',
+                sk: 'Nákupná položka je priradená v domácnosti.',
+              ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Failed to update assignment.',
+          sk: 'Priradenie sa nepodarilo upraviť.',
+        ),
+      );
+    }
   }
 
   Future<void> _deleteItem(ShoppingListItem item) async {
@@ -896,9 +1085,11 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
               const _ShoppingListViewData(
                 items: <ShoppingListItem>[],
                 preferences: null,
+                members: <HouseholdMember>[],
               );
           final items = viewData.items;
           final preferences = viewData.preferences;
+          final members = viewData.members;
           if (items.isEmpty) {
             return AppEmptyState(
               message: context.tr(
@@ -983,7 +1174,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(_buildSubtitle(item)),
+                        Text(_buildSubtitle(item, members)),
                         ...switch (_buildFoodSafetyWarning(item, preferences)) {
                           final _FoodSafetyWarning warning => [
                             const SizedBox(height: 6),
@@ -1030,8 +1221,52 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     );
   }
 
-  String _buildSubtitle(ShoppingListItem item) {
-    return '${item.quantity} ${item.unit} • ${_sourceLabel(item.source)}';
+  String _buildSubtitle(ShoppingListItem item, List<HouseholdMember> members) {
+    final parts = <String>[
+      '${item.quantity} ${item.unit}',
+      _sourceLabel(item.source),
+      if (item.assignedToUserId == _currentUserId)
+        context.tr(en: 'I will buy this', sk: 'Kúpim to ja')
+      else if (item.assignedToUserId != null)
+        _assignedSubtitle(item.assignedToUserId!, members),
+    ];
+    return parts.join(' • ');
+  }
+
+  String _assignedSubtitle(
+    String assignedToUserId,
+    List<HouseholdMember> members,
+  ) {
+    final member = members.cast<HouseholdMember?>().firstWhere(
+      (member) => member?.userId == assignedToUserId,
+      orElse: () => null,
+    );
+    if (member == null) {
+      return context.tr(
+        en: 'Assigned in household',
+        sk: 'Priradené v domácnosti',
+      );
+    }
+    return context.tr(
+      en: 'Assigned to ${_memberLabel(member)}',
+      sk: 'Priradené: ${_memberLabel(member)}',
+    );
+  }
+
+  String _memberLabel(HouseholdMember member) {
+    if (member.userId == _currentUserId) {
+      return context.tr(en: 'You', sk: 'Ty');
+    }
+    return member.role == 'owner'
+        ? context.tr(en: 'Owner', sk: 'Vlastník')
+        : context.tr(en: 'Member', sk: 'Člen');
+  }
+
+  String _memberSubtitle(HouseholdMember member) {
+    final shortId = member.userId.length <= 8
+        ? member.userId
+        : '${member.userId.substring(0, 8)}...';
+    return shortId;
   }
 
   Future<void> _logActivity({
@@ -1630,8 +1865,13 @@ class _ShoppingSafetyBadge extends StatelessWidget {
 class _ShoppingListViewData {
   final List<ShoppingListItem> items;
   final UserPreferences? preferences;
+  final List<HouseholdMember> members;
 
-  const _ShoppingListViewData({required this.items, required this.preferences});
+  const _ShoppingListViewData({
+    required this.items,
+    required this.preferences,
+    required this.members,
+  });
 }
 
 enum _FoodSafetyWarningType { allergy, intolerance }

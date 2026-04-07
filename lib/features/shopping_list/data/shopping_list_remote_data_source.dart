@@ -37,6 +37,7 @@ class ShoppingListRemoteDataSource {
       'quantity': item.quantity,
       'unit': item.unit,
       'source': item.source,
+      'assigned_to_user_id': item.assignedToUserId,
       'is_bought': item.isBought,
     };
     final response = await client
@@ -56,6 +57,7 @@ class ShoppingListRemoteDataSource {
       'quantity': item.quantity,
       'unit': item.unit,
       'source': item.source,
+      'assigned_to_user_id': item.assignedToUserId,
       'is_bought': item.isBought,
       'updated_at': item.updatedAt.toIso8601String(),
     };

@@ -11,6 +11,7 @@ class ShoppingListItem {
   final double quantity;
   final String unit;
   final String source;
+  final String? assignedToUserId;
   final bool isBought;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -23,6 +24,7 @@ class ShoppingListItem {
     required this.quantity,
     required this.unit,
     required this.source,
+    this.assignedToUserId,
     required this.isBought,
     required this.createdAt,
     required this.updatedAt,
@@ -37,6 +39,7 @@ class ShoppingListItem {
       quantity: _toDouble(map['quantity']),
       unit: (map['unit'] as String?) ?? 'pcs',
       source: (map['source'] as String?) ?? 'manual',
+      assignedToUserId: map['assigned_to_user_id'] as String?,
       isBought: (map['is_bought'] as bool?) ?? false,
       createdAt: DateTime.parse(map['created_at'] as String),
       updatedAt: DateTime.parse(map['updated_at'] as String),
@@ -52,6 +55,7 @@ class ShoppingListItem {
       'quantity': quantity,
       'unit': unit,
       'source': source,
+      'assigned_to_user_id': assignedToUserId,
       'is_bought': isBought,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
@@ -66,6 +70,8 @@ class ShoppingListItem {
     double? quantity,
     String? unit,
     String? source,
+    String? assignedToUserId,
+    bool clearAssignedToUserId = false,
     bool? isBought,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -78,6 +84,9 @@ class ShoppingListItem {
       quantity: quantity ?? this.quantity,
       unit: unit ?? this.unit,
       source: source ?? this.source,
+      assignedToUserId: clearAssignedToUserId
+          ? null
+          : (assignedToUserId ?? this.assignedToUserId),
       isBought: isBought ?? this.isBought,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
