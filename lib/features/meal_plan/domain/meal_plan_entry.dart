@@ -8,6 +8,7 @@ class MealPlanEntry {
   final DateTime scheduledFor;
   final String mealType;
   final String? note;
+  final String? assignedCookUserId;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -21,6 +22,7 @@ class MealPlanEntry {
     required this.scheduledFor,
     required this.mealType,
     required this.note,
+    this.assignedCookUserId,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -36,6 +38,7 @@ class MealPlanEntry {
       scheduledFor: DateTime.parse(map['scheduled_for'] as String),
       mealType: (map['meal_type'] as String?) ?? 'dinner',
       note: map['note'] as String?,
+      assignedCookUserId: map['assigned_cook_user_id'] as String?,
       createdAt: DateTime.parse(map['created_at'] as String),
       updatedAt: DateTime.parse(map['updated_at'] as String),
     );
@@ -53,6 +56,8 @@ class MealPlanEntry {
     String? mealType,
     String? note,
     bool clearNote = false,
+    String? assignedCookUserId,
+    bool clearAssignedCookUserId = false,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -66,6 +71,9 @@ class MealPlanEntry {
       scheduledFor: scheduledFor ?? this.scheduledFor,
       mealType: mealType ?? this.mealType,
       note: clearNote ? null : (note ?? this.note),
+      assignedCookUserId: clearAssignedCookUserId
+          ? null
+          : (assignedCookUserId ?? this.assignedCookUserId),
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

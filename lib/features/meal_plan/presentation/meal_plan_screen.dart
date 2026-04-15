@@ -6,6 +6,8 @@ import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/app_feedback.dart';
 import '../../food_items/data/food_items_repository.dart';
 import '../../food_items/domain/food_item.dart';
+import '../../households/data/household_repository.dart';
+import '../../households/domain/household_member.dart';
 import '../../recipes/data/recipes_repository.dart';
 import '../../recipes/domain/recipe.dart';
 import '../../recipes/domain/recipe_ingredient.dart';
@@ -48,8 +50,11 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
       ShoppingListRepository(householdId: widget.householdId);
   late final UserPreferencesRepository _userPreferencesRepository =
       UserPreferencesRepository();
+  late final HouseholdRepository _householdRepository = HouseholdRepository();
 
   late Future<_MealPlanViewData> _viewFuture = _loadViewData();
+
+  String? get _currentUserId => Supabase.instance.client.auth.currentUser?.id;
 
   Future<void> _reload() async {
     setState(() {
@@ -61,6 +66,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
   Future<_MealPlanViewData> _loadViewData() async {
     final entriesFuture = _mealPlanRepository.getEntries();
     final recipesFuture = _recipesRepository.getRecipes();
+    final membersFuture = _loadHouseholdMembersSafely();
     UserPreferences? preferences;
 
     try {
@@ -70,12 +76,25 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
       preferences = null;
     }
 
-    final results = await Future.wait<Object>([entriesFuture, recipesFuture]);
+    final results = await Future.wait<Object>([
+      entriesFuture,
+      recipesFuture,
+      membersFuture,
+    ]);
     return _MealPlanViewData(
       entries: results[0] as List<MealPlanEntry>,
       recipes: results[1] as List<Recipe>,
+      members: results[2] as List<HouseholdMember>,
       preferences: preferences,
     );
+  }
+
+  Future<List<HouseholdMember>> _loadHouseholdMembersSafely() async {
+    try {
+      return await _householdRepository.getMembers(widget.householdId);
+    } catch (_) {
+      return const <HouseholdMember>[];
+    }
   }
 
   Future<void> _openCreateForm() async {
@@ -296,6 +315,97 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         context.tr(
           en: 'Failed to delete meal plan entry.',
           sk: 'Položku jedálnička sa nepodarilo odstrániť.',
+        ),
+      );
+    }
+  }
+
+  Future<void> _pickCookAssignment(
+    MealPlanEntry entry,
+    List<HouseholdMember> members,
+  ) async {
+    final selectedUserId = await showDialog<String?>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(context.tr(en: 'Assign cook', sk: 'Priradiť varenie')),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 380),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: members
+                  .map(
+                    (member) => ListTile(
+                      leading: Icon(
+                        member.userId == _currentUserId
+                            ? Icons.person
+                            : Icons.group_outlined,
+                      ),
+                      title: Text(_memberLabel(member)),
+                      subtitle: Text(_memberSubtitle(member)),
+                      trailing: entry.assignedCookUserId == member.userId
+                          ? const Icon(Icons.check_circle, color: Colors.green)
+                          : null,
+                      onTap: () => Navigator.of(context).pop(member.userId),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(context.tr(en: 'Cancel', sk: 'Zrušiť')),
+          ),
+        ],
+      ),
+    );
+
+    if (selectedUserId == null) {
+      return;
+    }
+    await _setCookAssignment(entry, selectedUserId);
+  }
+
+  Future<void> _setCookAssignment(
+    MealPlanEntry entry,
+    String? assignedCookUserId,
+  ) async {
+    try {
+      await _mealPlanRepository.editEntry(
+        entry.copyWith(
+          assignedCookUserId: assignedCookUserId,
+          clearAssignedCookUserId: assignedCookUserId == null,
+          updatedAt: DateTime.now().toUtc(),
+        ),
+      );
+      await _reload();
+      if (!mounted) return;
+      showSuccessFeedback(
+        context,
+        assignedCookUserId == null
+            ? context.tr(
+                en: 'Cooking assignment cleared.',
+                sk: 'Priradenie varenia bolo zrušené.',
+              )
+            : assignedCookUserId == _currentUserId
+            ? context.tr(
+                en: 'Meal assigned to you.',
+                sk: 'Varenie je priradené tebe.',
+              )
+            : context.tr(
+                en: 'Meal assigned in household.',
+                sk: 'Varenie je priradené v domácnosti.',
+              ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Failed to update cooking assignment.',
+          sk: 'Priradenie varenia sa nepodarilo upraviť.',
         ),
       );
     }
@@ -623,10 +733,12 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
               const _MealPlanViewData(
                 entries: <MealPlanEntry>[],
                 recipes: <Recipe>[],
+                members: <HouseholdMember>[],
                 preferences: null,
               );
           final entries = viewData.entries;
           final recipes = viewData.recipes;
+          final members = viewData.members;
           final preferences = viewData.preferences;
           final upcomingEntries = entries.where((entry) {
             final today = DateTime.now();
@@ -728,6 +840,22 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                         Text(
                                           '${_mealTypeLabel(context, entry.mealType)} • ${entry.servings} ${context.tr(en: entry.servings == 1 ? 'serving' : 'servings', sk: entry.servings == 1 ? 'porcia' : 'porcie')}${entry.note == null || entry.note!.isEmpty ? '' : ' • ${entry.note}'}',
                                         ),
+                                        if (entry.assignedCookUserId !=
+                                            null) ...[
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            _cookAssignmentLabel(
+                                              entry,
+                                              members,
+                                            ),
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodySmall
+                                                ?.copyWith(
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                          ),
+                                        ],
                                         if (nutrition != null) ...[
                                           const SizedBox(height: 6),
                                           _MealNutritionRow(
@@ -755,6 +883,41 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                               ),
                                             ),
                                           ),
+                                        PopupMenuButton<String>(
+                                          onSelected: (value) {
+                                            if (value == 'assign_cook') {
+                                              _pickCookAssignment(
+                                                entry,
+                                                members,
+                                              );
+                                            } else if (value ==
+                                                'clear_assignment') {
+                                              _setCookAssignment(entry, null);
+                                            }
+                                          },
+                                          itemBuilder: (context) => [
+                                            PopupMenuItem(
+                                              value: 'assign_cook',
+                                              child: Text(
+                                                context.tr(
+                                                  en: 'Assign cook',
+                                                  sk: 'Priradiť varenie',
+                                                ),
+                                              ),
+                                            ),
+                                            if (entry.assignedCookUserId !=
+                                                null)
+                                              PopupMenuItem(
+                                                value: 'clear_assignment',
+                                                child: Text(
+                                                  context.tr(
+                                                    en: 'Clear assignment',
+                                                    sk: 'Zrušiť priradenie',
+                                                  ),
+                                                ),
+                                              ),
+                                          ],
+                                        ),
                                         IconButton(
                                           onPressed: () => _deleteEntry(entry),
                                           icon: const Icon(
@@ -888,6 +1051,46 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
       'snack' => context.tr(en: 'Snack', sk: 'Desiata'),
       _ => context.tr(en: 'Meal', sk: 'Jedlo'),
     };
+  }
+
+  String _cookAssignmentLabel(
+    MealPlanEntry entry,
+    List<HouseholdMember> members,
+  ) {
+    final assignedUserId = entry.assignedCookUserId;
+    if (assignedUserId == null) {
+      return '';
+    }
+    if (assignedUserId == _currentUserId) {
+      return context.tr(en: 'Cooking: you', sk: 'Varíš: ty');
+    }
+    final member = members.cast<HouseholdMember?>().firstWhere(
+      (member) => member?.userId == assignedUserId,
+      orElse: () => null,
+    );
+    if (member == null) {
+      return context.tr(en: 'Cooking assigned', sk: 'Varenie priradené');
+    }
+    return context.tr(
+      en: 'Cooking: ${_memberLabel(member)}',
+      sk: 'Varí: ${_memberLabel(member)}',
+    );
+  }
+
+  String _memberLabel(HouseholdMember member) {
+    if (member.userId == _currentUserId) {
+      return context.tr(en: 'You', sk: 'Ty');
+    }
+    return member.role == 'owner'
+        ? context.tr(en: 'Owner', sk: 'Vlastník')
+        : context.tr(en: 'Member', sk: 'Člen');
+  }
+
+  String _memberSubtitle(HouseholdMember member) {
+    if (member.userId.length <= 8) {
+      return member.userId;
+    }
+    return '${member.userId.substring(0, 8)}...';
   }
 
   String _formatDate(DateTime value) {
@@ -1171,11 +1374,13 @@ class _MealInfoChip extends StatelessWidget {
 class _MealPlanViewData {
   final List<MealPlanEntry> entries;
   final List<Recipe> recipes;
+  final List<HouseholdMember> members;
   final UserPreferences? preferences;
 
   const _MealPlanViewData({
     required this.entries,
     required this.recipes,
+    required this.members,
     required this.preferences,
   });
 }

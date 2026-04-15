@@ -75,6 +75,7 @@ class MealPlanRemoteDataSource {
       'scheduled_for': entry.scheduledFor.toIso8601String().split('T').first,
       'meal_type': entry.mealType,
       'note': entry.note,
+      'assigned_cook_user_id': entry.assignedCookUserId,
       'updated_at': entry.updatedAt.toIso8601String(),
     };
   }
