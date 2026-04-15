@@ -26,12 +26,7 @@ class QuickCommandService {
   final ShoppingListRepository _shoppingListRepository;
   final SupabaseClient? _client;
 
-  Future<QuickCommandExecutionResult> execute(String rawCommand) async {
-    final user = _client?.auth.currentUser;
-    if (user == null) {
-      throw const QuickCommandException('Musíš byť prihlásený.');
-    }
-
+  QuickCommandPreview preview(String rawCommand) {
     final parsedCommands = _parseMany(rawCommand);
     if (parsedCommands.isEmpty ||
         parsedCommands.every((parsed) => parsed.items.isEmpty)) {
@@ -39,6 +34,17 @@ class QuickCommandService {
         'V tomto príkaze sa mi nepodarilo rozpoznať žiadnu potravinu.',
       );
     }
+
+    return QuickCommandPreview(commands: parsedCommands);
+  }
+
+  Future<QuickCommandExecutionResult> execute(String rawCommand) async {
+    final user = _client?.auth.currentUser;
+    if (user == null) {
+      throw const QuickCommandException('Musíš byť prihlásený.');
+    }
+
+    final parsedCommands = preview(rawCommand).commands;
 
     final details = <String>[];
     var changedPantry = false;

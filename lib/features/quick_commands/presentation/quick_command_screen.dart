@@ -51,6 +51,17 @@ class _QuickCommandScreenState extends State<QuickCommandScreen> {
     });
 
     try {
+      final preview = _service.preview(command);
+      final confirmed = await _confirmPreview(preview);
+      if (confirmed != true) {
+        if (mounted) {
+          setState(() {
+            _isSubmitting = false;
+          });
+        }
+        return;
+      }
+
       final result = await _service.execute(command);
       if (!mounted) {
         return;
@@ -90,6 +101,115 @@ class _QuickCommandScreenState extends State<QuickCommandScreen> {
         });
       }
     }
+  }
+
+  Future<bool?> _confirmPreview(QuickCommandPreview preview) {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(
+            context.tr(
+              en: 'Confirm quick command',
+              sk: 'Potvrdiť rýchly príkaz',
+            ),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.tr(
+                    en: 'The app understood this:',
+                    sk: 'Aplikácia pochopila toto:',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ...preview.commands.expand((command) {
+                  return [
+                    Text(
+                      _intentLabel(command.intent),
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    ...command.items.map(
+                      (item) => Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: Text('• ${_itemPreviewLabel(item)}'),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                  ];
+                }),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(context.tr(en: 'Edit', sk: 'Upraviť')),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(context.tr(en: 'Confirm', sk: 'Potvrdiť')),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  String _intentLabel(QuickCommandIntent intent) {
+    return switch (intent) {
+      QuickCommandIntent.addToPantry => context.tr(
+        en: 'Add to pantry',
+        sk: 'Pridať do špajze',
+      ),
+      QuickCommandIntent.addToShoppingList => context.tr(
+        en: 'Add to shopping list',
+        sk: 'Pridať do nákupného zoznamu',
+      ),
+      QuickCommandIntent.consumeFromPantry => context.tr(
+        en: 'Use from pantry',
+        sk: 'Minúť zo špajze',
+      ),
+      QuickCommandIntent.markOpened => context.tr(
+        en: 'Mark as opened',
+        sk: 'Označiť ako otvorené',
+      ),
+    };
+  }
+
+  String _itemPreviewLabel(QuickCommandItem item) {
+    final storage = item.storageLocation == null
+        ? ''
+        : ' • ${_storageLabel(item.storageLocation!)}';
+    final expiration = item.expirationDate == null
+        ? ''
+        : ' • ${context.tr(en: 'exp.', sk: 'exp.')} ${_formatDate(item.expirationDate!)}';
+    return '${_formatQuantity(item.quantity)} ${item.unit} ${item.name}$storage$expiration';
+  }
+
+  String _storageLabel(String storageLocation) {
+    return switch (storageLocation) {
+      'fridge' => context.tr(en: 'fridge', sk: 'chladnička'),
+      'freezer' => context.tr(en: 'freezer', sk: 'mraznička'),
+      _ => context.tr(en: 'pantry', sk: 'špajza'),
+    };
+  }
+
+  String _formatQuantity(double value) {
+    if (value == value.roundToDouble()) {
+      return value.toInt().toString();
+    }
+    return value.toStringAsFixed(1);
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day}.${date.month}.${date.year}';
   }
 
   void _fillExample(String value) {

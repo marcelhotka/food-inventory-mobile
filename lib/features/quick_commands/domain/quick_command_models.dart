@@ -41,3 +41,12 @@ class QuickCommandExecutionResult {
     required this.changedShoppingList,
   });
 }
+
+class QuickCommandPreview {
+  final List<QuickCommandParseResult> commands;
+
+  const QuickCommandPreview({required this.commands});
+
+  int get itemCount =>
+      commands.fold(0, (sum, command) => sum + command.items.length);
+}
