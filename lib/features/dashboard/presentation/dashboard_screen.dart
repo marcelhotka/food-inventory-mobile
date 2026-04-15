@@ -423,6 +423,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
               .toList();
           final myTaskCount =
               visibleShoppingTasks.length + myCookingTasks.length;
+          final hiddenOverviewCount =
+              avoidedRecipes.length +
+              openedItems.length +
+              lowStockItems.length +
+              favoriteRecipes.length +
+              missingStaples.length +
+              latestToBuy.length +
+              upcomingMeals.length +
+              (recentScan == null ? 0 : 1);
+          final hiddenOverviewSubtitle = hiddenOverviewCount == 0
+              ? context.tr(
+                  en: 'No extra details need attention right now.',
+                  sk: 'Momentálne netreba riešiť žiadne ďalšie detaily.',
+                )
+              : context.tr(
+                  en: '$hiddenOverviewCount extra details: avoid, opened, low stock, shopping and meal plan.',
+                  sk: '$hiddenOverviewCount ďalších detailov: vyhnúť sa, otvorené, nízke zásoby, nákup a jedálniček.',
+                );
 
           return RefreshIndicator(
             onRefresh: _reload,
@@ -667,92 +685,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 const SizedBox(height: 14),
                 _SectionCard(
-                  title: context.tr(en: 'Avoid for now', sk: 'Zatiaľ sa vyhni'),
-                  trailing: TextButton(
-                    onPressed: hasSafetyPreferences
-                        ? widget.onOpenRecipes
-                        : _openPreferences,
-                    child: Text(
-                      hasSafetyPreferences
-                          ? context.tr(
-                              en: 'Open recipes',
-                              sk: 'Otvoriť recepty',
-                            )
-                          : context.tr(
-                              en: 'Set preferences',
-                              sk: 'Nastaviť preferencie',
-                            ),
-                    ),
-                  ),
-                  child: !hasSafetyPreferences
-                      ? Text(
-                          context.tr(
-                            en: 'Add allergies or intolerances in Preferences to see which recipes currently conflict with your needs.',
-                            sk: 'Pridaj alergie alebo intolerancie v Preferenciách a uvidíš, ktoré recepty s nimi kolidujú.',
-                          ),
-                        )
-                      : avoidedRecipes.isEmpty
-                      ? Text(
-                          context.tr(
-                            en: 'Nothing currently conflicts with your saved allergies or intolerances.',
-                            sk: 'Momentálne nič nekoliduje s tvojimi uloženými alergiami alebo intoleranciami.',
-                          ),
-                        )
-                      : Column(
-                          children: avoidedRecipes.map((recipe) {
-                            final warning = _buildRecipeSafetyWarning(
-                              recipe,
-                              data.preferences,
-                            );
-                            final warningLabel = warning == null
-                                ? context.tr(
-                                    en: 'Potential conflict',
-                                    sk: 'Možný konflikt',
-                                  )
-                                : '${_warningTypeLabel(context, warning.type)}: ${context.tr(en: 'contains', sk: 'obsahuje')} ${warning.matchedSignals.join(', ')}';
-                            return _DashboardRow(
-                              title: localizedRecipeName(context, recipe),
-                              subtitle: warningLabel,
-                              onTap: () => widget.onOpenRecipe(recipe.id),
-                            );
-                          }).toList(),
-                        ),
-                ),
-                const SizedBox(height: 14),
-                _SectionCard(
-                  title: context.tr(en: 'Opened items', sk: 'Otvorené položky'),
-                  trailing: TextButton(
-                    onPressed: widget.onOpenPantry,
-                    child: Text(
-                      context.tr(en: 'Open pantry', sk: 'Otvoriť špajzu'),
-                    ),
-                  ),
-                  child: openedItems.isEmpty
-                      ? Text(
-                          context.tr(
-                            en: 'No opened pantry items right now.',
-                            sk: 'Momentálne nemáš žiadne otvorené potraviny.',
-                          ),
-                        )
-                      : Column(
-                          children: openedItems.take(4).map((item) {
-                            final openedLabel = _openedUseSoonLabel(
-                              context,
-                              item,
-                            );
-                            return _DashboardRow(
-                              title: localizedIngredientDisplayName(
-                                context,
-                                item.name,
-                              ),
-                              subtitle:
-                                  '${context.tr(en: 'Opened', sk: 'Otvorené')} ${_formatDate(item.openedAt!)}${openedLabel == null ? '' : ' • $openedLabel'} • ${_formatQuantity(item.quantity)} ${item.unit}',
-                            );
-                          }).toList(),
-                        ),
-                ),
-                const SizedBox(height: 14),
-                _SectionCard(
                   title: context.tr(en: 'Use soon', sk: 'Použi čoskoro'),
                   trailing: TextButton(
                     onPressed: widget.onOpenPantry,
@@ -801,252 +733,362 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                 ),
                 const SizedBox(height: 14),
-                _SectionCard(
-                  title: context.tr(
-                    en: 'Low stock items',
-                    sk: 'Položky s nízkou zásobou',
-                  ),
-                  trailing: TextButton(
-                    onPressed: widget.onOpenPantry,
-                    child: Text(
-                      context.tr(en: 'Open pantry', sk: 'Otvoriť špajzu'),
+                ExpansionTile(
+                  tilePadding: const EdgeInsets.symmetric(horizontal: 4),
+                  title: Text(
+                    context.tr(en: 'More overview', sk: 'Ďalšie prehľady'),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
-                  child: lowStockItems.isEmpty
-                      ? Text(
-                          context.tr(
-                            en: 'No low stock items at the moment.',
-                            sk: 'Momentálne nie sú žiadne položky s nízkou zásobou.',
-                          ),
-                        )
-                      : Column(
-                          children: lowStockItems.take(4).map((item) {
-                            return _DashboardRow(
-                              title: localizedIngredientDisplayName(
-                                context,
-                                item.name,
-                              ),
-                              subtitle:
-                                  '${_formatQuantity(item.quantity)} ${item.unit} ${context.tr(en: 'left', sk: 'zostáva')} • ${context.tr(en: 'limit', sk: 'limit')} ${_formatQuantity(item.lowStockThreshold!)} ${item.unit}',
-                            );
-                          }).toList(),
-                        ),
-                ),
-                const SizedBox(height: 14),
-                _SectionCard(
-                  title: context.tr(en: 'Cook again', sk: 'Uvar znova'),
-                  trailing: TextButton(
-                    onPressed: widget.onOpenRecipes,
-                    child: Text(
-                      context.tr(en: 'Open recipes', sk: 'Otvoriť recepty'),
-                    ),
-                  ),
-                  child: favoriteRecipes.isEmpty
-                      ? Text(
-                          context.tr(
-                            en: 'No favorite recipes yet.',
-                            sk: 'Zatiaľ nemáš obľúbené recepty.',
-                          ),
-                        )
-                      : Column(
-                          children: favoriteRecipes.map((recipe) {
-                            final recipeMatch = _matchRecipeSummary(
-                              recipe,
-                              data.pantryItems,
-                            );
-                            return _DashboardRow(
-                              title: localizedRecipeName(context, recipe),
-                              subtitle:
-                                  '${recipeMatch.available} ${context.tr(en: 'available', sk: 'dostupné')} • ${recipeMatch.partial} ${context.tr(en: 'partial', sk: 'čiastočne')} • ${recipeMatch.missing} ${context.tr(en: 'missing', sk: 'chýba')}',
-                              onTap: () => widget.onOpenRecipe(recipe.id),
-                              actionLabel: context.tr(
-                                en: 'Cook now',
-                                sk: 'Variť teraz',
-                              ),
-                              onActionTap: () => widget.onOpenRecipe(recipe.id),
-                            );
-                          }).toList(),
-                        ),
-                ),
-                const SizedBox(height: 14),
-                _SectionCard(
-                  title: context.tr(
-                    en: 'Staples missing',
-                    sk: 'Chýbajúce základy',
-                  ),
-                  trailing: TextButton(
-                    onPressed: _openStaples,
-                    child: Text(
-                      context.tr(en: 'Open staples', sk: 'Otvoriť základy'),
-                    ),
-                  ),
-                  child: missingStaples.isEmpty
-                      ? Text(
-                          context.tr(
-                            en: 'All staple foods are covered right now.',
-                            sk: 'Všetky základné potraviny sú momentálne pokryté.',
-                          ),
-                        )
-                      : Column(
-                          children: missingStaples.take(4).map((gap) {
-                            return _DashboardRow(
-                              title: gap.staple.name,
-                              subtitle:
-                                  '${context.tr(en: 'Missing', sk: 'Chýba')} ${_formatQuantity(gap.missingQuantity)} ${gap.staple.unit} ${context.tr(en: 'to reach target', sk: 'do cieľa')} ${_formatQuantity(gap.staple.quantity)} ${gap.staple.unit}',
-                            );
-                          }).toList(),
-                        ),
-                ),
-                const SizedBox(height: 14),
-                _SectionCard(
-                  title: context.tr(
-                    en: 'Shopping focus',
-                    sk: 'Nákupné priority',
-                  ),
-                  trailing: TextButton(
-                    onPressed: widget.onOpenShoppingList,
-                    child: Text(
-                      context.tr(en: 'Open list', sk: 'Otvoriť zoznam'),
-                    ),
-                  ),
-                  child: latestToBuy.isEmpty
-                      ? Text(
-                          context.tr(
-                            en: 'Shopping list is clear.',
-                            sk: 'Nákupný zoznam je čistý.',
-                          ),
-                        )
-                      : Column(
-                          children: latestToBuy.map((item) {
-                            return _DashboardRow(
-                              title: localizedIngredientDisplayName(
-                                context,
-                                item.name,
-                              ),
-                              subtitle:
-                                  '${_formatQuantity(item.quantity)} ${item.unit} • ${_shoppingSourceLabel(context, item.source)}',
-                            );
-                          }).toList(),
-                        ),
-                ),
-                const SizedBox(height: 14),
-                _SectionCard(
-                  title: context.tr(
-                    en: 'Upcoming meals',
-                    sk: 'Plánované jedlá',
-                  ),
-                  trailing: TextButton(
-                    onPressed: _openMealPlan,
-                    child: Text(
-                      context.tr(
-                        en: 'Open meal plan',
-                        sk: 'Otvoriť jedálniček',
+                  subtitle: Text(hiddenOverviewSubtitle),
+                  children: [
+                    _SectionCard(
+                      title: context.tr(
+                        en: 'Avoid for now',
+                        sk: 'Zatiaľ sa vyhni',
                       ),
+                      trailing: TextButton(
+                        onPressed: hasSafetyPreferences
+                            ? widget.onOpenRecipes
+                            : _openPreferences,
+                        child: Text(
+                          hasSafetyPreferences
+                              ? context.tr(
+                                  en: 'Open recipes',
+                                  sk: 'Otvoriť recepty',
+                                )
+                              : context.tr(
+                                  en: 'Set preferences',
+                                  sk: 'Nastaviť preferencie',
+                                ),
+                        ),
+                      ),
+                      child: !hasSafetyPreferences
+                          ? Text(
+                              context.tr(
+                                en: 'Add allergies or intolerances in Preferences to see which recipes currently conflict with your needs.',
+                                sk: 'Pridaj alergie alebo intolerancie v Preferenciách a uvidíš, ktoré recepty s nimi kolidujú.',
+                              ),
+                            )
+                          : avoidedRecipes.isEmpty
+                          ? Text(
+                              context.tr(
+                                en: 'Nothing currently conflicts with your saved allergies or intolerances.',
+                                sk: 'Momentálne nič nekoliduje s tvojimi uloženými alergiami alebo intoleranciami.',
+                              ),
+                            )
+                          : Column(
+                              children: avoidedRecipes.map((recipe) {
+                                final warning = _buildRecipeSafetyWarning(
+                                  recipe,
+                                  data.preferences,
+                                );
+                                final warningLabel = warning == null
+                                    ? context.tr(
+                                        en: 'Potential conflict',
+                                        sk: 'Možný konflikt',
+                                      )
+                                    : '${_warningTypeLabel(context, warning.type)}: ${context.tr(en: 'contains', sk: 'obsahuje')} ${warning.matchedSignals.join(', ')}';
+                                return _DashboardRow(
+                                  title: localizedRecipeName(context, recipe),
+                                  subtitle: warningLabel,
+                                  onTap: () => widget.onOpenRecipe(recipe.id),
+                                );
+                              }).toList(),
+                            ),
                     ),
-                  ),
-                  child: upcomingMeals.isEmpty
-                      ? Text(
-                          context.tr(
-                            en: 'No meal plan entries yet.',
-                            sk: 'Zatiaľ nemáš naplánované žiadne jedlá.',
-                          ),
-                        )
-                      : Column(
-                          children: upcomingMeals.map((entry) {
-                            final matchingRecipe = _findRecipeById(
-                              data.recipes,
-                              entry.recipeId,
-                            );
-                            return _DashboardRow(
-                              title: matchingRecipe == null
-                                  ? entry.recipeName
-                                  : localizedRecipeName(
-                                      context,
-                                      matchingRecipe,
-                                    ),
-                              subtitle:
-                                  '${_formatDate(entry.scheduledFor)} • ${_mealTypeLabel(context, entry.mealType)} • ${entry.servings} ${context.tr(en: entry.servings == 1 ? 'serving' : 'servings', sk: entry.servings == 1 ? 'porcia' : 'porcie')}',
-                              onTap: _openMealPlan,
-                            );
-                          }).toList(),
+                    const SizedBox(height: 14),
+                    _SectionCard(
+                      title: context.tr(
+                        en: 'Opened items',
+                        sk: 'Otvorené položky',
+                      ),
+                      trailing: TextButton(
+                        onPressed: widget.onOpenPantry,
+                        child: Text(
+                          context.tr(en: 'Open pantry', sk: 'Otvoriť špajzu'),
                         ),
-                ),
-                const SizedBox(height: 14),
-                _SectionCard(
-                  title: context.tr(en: 'Latest scan', sk: 'Posledný scan'),
-                  trailing: recentScan == null
-                      ? null
-                      : TextButton(
-                          onPressed: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => ScanHistoryScreen(
-                                  householdId: widget.household.id,
+                      ),
+                      child: openedItems.isEmpty
+                          ? Text(
+                              context.tr(
+                                en: 'No opened pantry items right now.',
+                                sk: 'Momentálne nemáš žiadne otvorené potraviny.',
+                              ),
+                            )
+                          : Column(
+                              children: openedItems.take(4).map((item) {
+                                final openedLabel = _openedUseSoonLabel(
+                                  context,
+                                  item,
+                                );
+                                return _DashboardRow(
+                                  title: localizedIngredientDisplayName(
+                                    context,
+                                    item.name,
+                                  ),
+                                  subtitle:
+                                      '${context.tr(en: 'Opened', sk: 'Otvorené')} ${_formatDate(item.openedAt!)}${openedLabel == null ? '' : ' • $openedLabel'} • ${_formatQuantity(item.quantity)} ${item.unit}',
+                                );
+                              }).toList(),
+                            ),
+                    ),
+                    const SizedBox(height: 14),
+                    _SectionCard(
+                      title: context.tr(
+                        en: 'Low stock items',
+                        sk: 'Položky s nízkou zásobou',
+                      ),
+                      trailing: TextButton(
+                        onPressed: widget.onOpenPantry,
+                        child: Text(
+                          context.tr(en: 'Open pantry', sk: 'Otvoriť špajzu'),
+                        ),
+                      ),
+                      child: lowStockItems.isEmpty
+                          ? Text(
+                              context.tr(
+                                en: 'No low stock items at the moment.',
+                                sk: 'Momentálne nie sú žiadne položky s nízkou zásobou.',
+                              ),
+                            )
+                          : Column(
+                              children: lowStockItems.take(4).map((item) {
+                                return _DashboardRow(
+                                  title: localizedIngredientDisplayName(
+                                    context,
+                                    item.name,
+                                  ),
+                                  subtitle:
+                                      '${_formatQuantity(item.quantity)} ${item.unit} ${context.tr(en: 'left', sk: 'zostáva')} • ${context.tr(en: 'limit', sk: 'limit')} ${_formatQuantity(item.lowStockThreshold!)} ${item.unit}',
+                                );
+                              }).toList(),
+                            ),
+                    ),
+                    const SizedBox(height: 14),
+                    _SectionCard(
+                      title: context.tr(en: 'Cook again', sk: 'Uvar znova'),
+                      trailing: TextButton(
+                        onPressed: widget.onOpenRecipes,
+                        child: Text(
+                          context.tr(en: 'Open recipes', sk: 'Otvoriť recepty'),
+                        ),
+                      ),
+                      child: favoriteRecipes.isEmpty
+                          ? Text(
+                              context.tr(
+                                en: 'No favorite recipes yet.',
+                                sk: 'Zatiaľ nemáš obľúbené recepty.',
+                              ),
+                            )
+                          : Column(
+                              children: favoriteRecipes.map((recipe) {
+                                final recipeMatch = _matchRecipeSummary(
+                                  recipe,
+                                  data.pantryItems,
+                                );
+                                return _DashboardRow(
+                                  title: localizedRecipeName(context, recipe),
+                                  subtitle:
+                                      '${recipeMatch.available} ${context.tr(en: 'available', sk: 'dostupné')} • ${recipeMatch.partial} ${context.tr(en: 'partial', sk: 'čiastočne')} • ${recipeMatch.missing} ${context.tr(en: 'missing', sk: 'chýba')}',
+                                  onTap: () => widget.onOpenRecipe(recipe.id),
+                                  actionLabel: context.tr(
+                                    en: 'Cook now',
+                                    sk: 'Variť teraz',
+                                  ),
+                                  onActionTap: () =>
+                                      widget.onOpenRecipe(recipe.id),
+                                );
+                              }).toList(),
+                            ),
+                    ),
+                    const SizedBox(height: 14),
+                    _SectionCard(
+                      title: context.tr(
+                        en: 'Staples missing',
+                        sk: 'Chýbajúce základy',
+                      ),
+                      trailing: TextButton(
+                        onPressed: _openStaples,
+                        child: Text(
+                          context.tr(en: 'Open staples', sk: 'Otvoriť základy'),
+                        ),
+                      ),
+                      child: missingStaples.isEmpty
+                          ? Text(
+                              context.tr(
+                                en: 'All staple foods are covered right now.',
+                                sk: 'Všetky základné potraviny sú momentálne pokryté.',
+                              ),
+                            )
+                          : Column(
+                              children: missingStaples.take(4).map((gap) {
+                                return _DashboardRow(
+                                  title: gap.staple.name,
+                                  subtitle:
+                                      '${context.tr(en: 'Missing', sk: 'Chýba')} ${_formatQuantity(gap.missingQuantity)} ${gap.staple.unit} ${context.tr(en: 'to reach target', sk: 'do cieľa')} ${_formatQuantity(gap.staple.quantity)} ${gap.staple.unit}',
+                                );
+                              }).toList(),
+                            ),
+                    ),
+                    const SizedBox(height: 14),
+                    _SectionCard(
+                      title: context.tr(
+                        en: 'Shopping focus',
+                        sk: 'Nákupné priority',
+                      ),
+                      trailing: TextButton(
+                        onPressed: widget.onOpenShoppingList,
+                        child: Text(
+                          context.tr(en: 'Open list', sk: 'Otvoriť zoznam'),
+                        ),
+                      ),
+                      child: latestToBuy.isEmpty
+                          ? Text(
+                              context.tr(
+                                en: 'Shopping list is clear.',
+                                sk: 'Nákupný zoznam je čistý.',
+                              ),
+                            )
+                          : Column(
+                              children: latestToBuy.map((item) {
+                                return _DashboardRow(
+                                  title: localizedIngredientDisplayName(
+                                    context,
+                                    item.name,
+                                  ),
+                                  subtitle:
+                                      '${_formatQuantity(item.quantity)} ${item.unit} • ${_shoppingSourceLabel(context, item.source)}',
+                                );
+                              }).toList(),
+                            ),
+                    ),
+                    const SizedBox(height: 14),
+                    _SectionCard(
+                      title: context.tr(
+                        en: 'Upcoming meals',
+                        sk: 'Plánované jedlá',
+                      ),
+                      trailing: TextButton(
+                        onPressed: _openMealPlan,
+                        child: Text(
+                          context.tr(
+                            en: 'Open meal plan',
+                            sk: 'Otvoriť jedálniček',
+                          ),
+                        ),
+                      ),
+                      child: upcomingMeals.isEmpty
+                          ? Text(
+                              context.tr(
+                                en: 'No meal plan entries yet.',
+                                sk: 'Zatiaľ nemáš naplánované žiadne jedlá.',
+                              ),
+                            )
+                          : Column(
+                              children: upcomingMeals.map((entry) {
+                                final matchingRecipe = _findRecipeById(
+                                  data.recipes,
+                                  entry.recipeId,
+                                );
+                                return _DashboardRow(
+                                  title: matchingRecipe == null
+                                      ? entry.recipeName
+                                      : localizedRecipeName(
+                                          context,
+                                          matchingRecipe,
+                                        ),
+                                  subtitle:
+                                      '${_formatDate(entry.scheduledFor)} • ${_mealTypeLabel(context, entry.mealType)} • ${entry.servings} ${context.tr(en: entry.servings == 1 ? 'serving' : 'servings', sk: entry.servings == 1 ? 'porcia' : 'porcie')}',
+                                  onTap: _openMealPlan,
+                                );
+                              }).toList(),
+                            ),
+                    ),
+                    const SizedBox(height: 14),
+                    _SectionCard(
+                      title: context.tr(en: 'Latest scan', sk: 'Posledný scan'),
+                      trailing: recentScan == null
+                          ? null
+                          : TextButton(
+                              onPressed: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => ScanHistoryScreen(
+                                      householdId: widget.household.id,
+                                    ),
+                                  ),
+                                );
+                              },
+                              child: Text(
+                                context.tr(
+                                  en: 'Open history',
+                                  sk: 'Otvoriť históriu',
                                 ),
                               ),
-                            );
-                          },
-                          child: Text(
-                            context.tr(
-                              en: 'Open history',
-                              sk: 'Otvoriť históriu',
                             ),
-                          ),
-                        ),
-                  child: recentScan == null
-                      ? Text(
-                          context.tr(
-                            en: 'No fridge scan yet.',
-                            sk: 'Zatiaľ nemáš žiadny scan chladničky.',
-                          ),
-                        )
-                      : Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => ScanHistoryScreen(
-                                    householdId: widget.household.id,
-                                  ),
-                                ),
-                              );
-                            },
-                            borderRadius: BorderRadius.circular(18),
-                            child: Ink(
-                              padding: const EdgeInsets.all(4),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    recentScan.imageLabel,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleMedium
-                                        ?.copyWith(fontWeight: FontWeight.w700),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    '${_formatDateTime(recentScan.createdAt)} • ${recentScan.candidates.where((item) => item.isSelected).length} confirmed',
-                                  ),
-                                  if (recentScan.analysisError != null &&
-                                      recentScan.analysisError!.isNotEmpty) ...[
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      context.tr(
-                                        en: 'Used fallback detection.',
-                                        sk: 'Použitá bola náhradná detekcia.',
+                      child: recentScan == null
+                          ? Text(
+                              context.tr(
+                                en: 'No fridge scan yet.',
+                                sk: 'Zatiaľ nemáš žiadny scan chladničky.',
+                              ),
+                            )
+                          : Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => ScanHistoryScreen(
+                                        householdId: widget.household.id,
                                       ),
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.bodySmall,
                                     ),
-                                  ],
-                                ],
+                                  );
+                                },
+                                borderRadius: BorderRadius.circular(18),
+                                child: Ink(
+                                  padding: const EdgeInsets.all(4),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        recentScan.imageLabel,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleMedium
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        '${_formatDateTime(recentScan.createdAt)} • ${recentScan.candidates.where((item) => item.isSelected).length} confirmed',
+                                      ),
+                                      if (recentScan.analysisError != null &&
+                                          recentScan
+                                              .analysisError!
+                                              .isNotEmpty) ...[
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          context.tr(
+                                            en: 'Used fallback detection.',
+                                            sk: 'Použitá bola náhradná detekcia.',
+                                          ),
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.bodySmall,
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
-                        ),
+                    ),
+                  ],
                 ),
               ],
             ),
