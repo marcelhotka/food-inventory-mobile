@@ -218,6 +218,17 @@ class _RecipesScreenState extends State<RecipesScreen> {
         _presentedFocusedRecipeId = null;
       }
     });
+
+    if (!mounted) {
+      return;
+    }
+    showSuccessFeedback(
+      context,
+      context.tr(
+        en: 'Servings updated. Ingredients and nutrition were recalculated.',
+        sk: 'Porcie sú upravené. Suroviny aj nutričné hodnoty sa prepočítali.',
+      ),
+    );
   }
 
   @override
@@ -507,7 +518,7 @@ class _RecipesScreenState extends State<RecipesScreen> {
                                   ),
                                   _SummaryChip(
                                     label:
-                                        '${recipe.defaultServings} ${context.tr(en: recipe.defaultServings == 1 ? 'serving' : 'servings', sk: recipe.defaultServings == 1 ? 'porcia' : 'porcie')}',
+                                        '${context.tr(en: 'Base', sk: 'Základ')}: ${recipe.defaultServings} ${context.tr(en: recipe.defaultServings == 1 ? 'serving' : 'servings', sk: recipe.defaultServings == 1 ? 'porcia' : 'porcie')}',
                                     color: const Color(0xFFEDE8F8),
                                   ),
                                   ActionChip(
@@ -549,77 +560,11 @@ class _RecipesScreenState extends State<RecipesScreen> {
                                 _RecipeSafetyBadge(warning: warning),
                               ],
                               const SizedBox(height: 16),
-                              Text(
-                                context.tr(en: 'Available', sk: 'Dostupné'),
-                                style: Theme.of(context).textTheme.titleMedium
-                                    ?.copyWith(fontWeight: FontWeight.w700),
+                              _RecipeIngredientAvailabilitySections(
+                                result: result,
+                                displayIngredientName: _displayIngredientName,
+                                formatQuantity: _formatQuantity,
                               ),
-                              const SizedBox(height: 8),
-                              if (result.available.isEmpty)
-                                Text(
-                                  context.tr(
-                                    en: 'Nothing from this recipe is fully available right now.',
-                                    sk: 'Z tohto receptu momentálne nie je nič úplne dostupné.',
-                                  ),
-                                )
-                              else
-                                ...result.available.map(
-                                  (item) => Padding(
-                                    padding: const EdgeInsets.only(bottom: 6),
-                                    child: Text(
-                                      '• ${_displayIngredientName(item.ingredient.name)}: ${_formatQuantity(item.availableQuantityInRecipeUnit)} ${item.ingredient.unit} ${context.tr(en: 'available', sk: 'dostupné')}',
-                                    ),
-                                  ),
-                                ),
-                              const SizedBox(height: 16),
-                              Text(
-                                context.tr(
-                                  en: 'Partially available',
-                                  sk: 'Čiastočne dostupné',
-                                ),
-                                style: Theme.of(context).textTheme.titleMedium
-                                    ?.copyWith(fontWeight: FontWeight.w700),
-                              ),
-                              const SizedBox(height: 8),
-                              if (result.partial.isEmpty)
-                                Text(
-                                  context.tr(
-                                    en: 'Nothing is partially available right now.',
-                                    sk: 'Momentálne nie je nič čiastočne dostupné.',
-                                  ),
-                                )
-                              else
-                                ...result.partial.map(
-                                  (item) => Padding(
-                                    padding: const EdgeInsets.only(bottom: 6),
-                                    child: Text(
-                                      '• ${_displayIngredientName(item.ingredient.name)}: ${context.tr(en: 'have', sk: 'máš')} ${_formatQuantity(item.availableQuantityInRecipeUnit)} ${item.ingredient.unit}, ${context.tr(en: 'missing', sk: 'chýba')} ${_formatQuantity(item.missingQuantityInRecipeUnit)} ${item.ingredient.unit}',
-                                    ),
-                                  ),
-                                ),
-                              const SizedBox(height: 16),
-                              Text(
-                                context.tr(en: 'Missing', sk: 'Chýba'),
-                                style: Theme.of(context).textTheme.titleMedium
-                                    ?.copyWith(fontWeight: FontWeight.w700),
-                              ),
-                              const SizedBox(height: 8),
-                              if (result.missing.isEmpty)
-                                Text(
-                                  context.tr(
-                                    en: 'No ingredients are completely missing for this recipe.',
-                                    sk: 'Tomuto receptu momentálne úplne nechýbajú žiadne suroviny.',
-                                  ),
-                                )
-                              else
-                                ...result.missing.map(
-                                  (item) => Padding(
-                                    padding: const EdgeInsets.only(bottom: 6),
-                                    child: Text(
-                                      '• ${_displayIngredientName(item.ingredient.name)} (${_formatQuantity(item.missingQuantityInRecipeUnit)} ${item.ingredient.unit})',
-                                    ),
-                                  ),
-                                ),
                               const SizedBox(height: 16),
                               SizedBox(
                                 width: double.infinity,
@@ -734,7 +679,7 @@ class _RecipesScreenState extends State<RecipesScreen> {
                     ),
                     _SummaryChip(
                       label:
-                          '${recipe.defaultServings} ${context.tr(en: recipe.defaultServings == 1 ? 'default serving' : 'default servings', sk: recipe.defaultServings == 1 ? 'predvolená porcia' : 'predvolené porcie')}',
+                          '${context.tr(en: 'Base', sk: 'Základ')}: ${recipe.defaultServings} ${context.tr(en: recipe.defaultServings == 1 ? 'serving' : 'servings', sk: recipe.defaultServings == 1 ? 'porcia' : 'porcie')}',
                       color: const Color(0xFFEDE8F8),
                     ),
                     ActionChip(
@@ -778,6 +723,12 @@ class _RecipesScreenState extends State<RecipesScreen> {
                   const SizedBox(height: 12),
                   _RecipeSafetyBadge(warning: warning),
                 ],
+                const SizedBox(height: 20),
+                _RecipeIngredientAvailabilitySections(
+                  result: result,
+                  displayIngredientName: _displayIngredientName,
+                  formatQuantity: _formatQuantity,
+                ),
                 const SizedBox(height: 20),
                 SizedBox(
                   width: double.infinity,
@@ -2476,6 +2427,124 @@ class _QuickCookingModeCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _RecipeIngredientAvailabilitySections extends StatelessWidget {
+  const _RecipeIngredientAvailabilitySections({
+    required this.result,
+    required this.displayIngredientName,
+    required this.formatQuantity,
+  });
+
+  final RecipeMatchResult result;
+  final String Function(String value) displayIngredientName;
+  final String Function(double value) formatQuantity;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          context.tr(
+            en: 'Ingredients for ${result.selectedServings} ${result.selectedServings == 1 ? 'serving' : 'servings'}',
+            sk: 'Suroviny pre ${result.selectedServings} ${result.selectedServings == 1 ? 'porciu' : 'porcie'}',
+          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 8),
+        _RecipeIngredientSection(
+          title: context.tr(en: 'Available', sk: 'Dostupné'),
+          emptyText: context.tr(
+            en: 'Nothing from this recipe is fully available right now.',
+            sk: 'Z tohto receptu momentálne nie je nič úplne dostupné.',
+          ),
+          children: result.available.map((item) {
+            return _IngredientRequirementLine(
+              text:
+                  '• ${displayIngredientName(item.ingredient.name)}: ${context.tr(en: 'need', sk: 'treba')} ${formatQuantity(item.requiredQuantityInRecipeUnit)} ${item.ingredient.unit} • ${context.tr(en: 'at home', sk: 'doma')} ${formatQuantity(item.availableQuantityInRecipeUnit)} ${item.ingredient.unit}',
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: 16),
+        _RecipeIngredientSection(
+          title: context.tr(
+            en: 'Partially available',
+            sk: 'Čiastočne dostupné',
+          ),
+          emptyText: context.tr(
+            en: 'Nothing is partially available right now.',
+            sk: 'Momentálne nie je nič čiastočne dostupné.',
+          ),
+          children: result.partial.map((item) {
+            return _IngredientRequirementLine(
+              text:
+                  '• ${displayIngredientName(item.ingredient.name)}: ${context.tr(en: 'need', sk: 'treba')} ${formatQuantity(item.requiredQuantityInRecipeUnit)} ${item.ingredient.unit} • ${context.tr(en: 'have', sk: 'máš')} ${formatQuantity(item.availableQuantityInRecipeUnit)} ${item.ingredient.unit} • ${context.tr(en: 'missing', sk: 'chýba')} ${formatQuantity(item.missingQuantityInRecipeUnit)} ${item.ingredient.unit}',
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: 16),
+        _RecipeIngredientSection(
+          title: context.tr(en: 'Missing', sk: 'Chýba'),
+          emptyText: context.tr(
+            en: 'No ingredients are completely missing for this recipe.',
+            sk: 'Tomuto receptu momentálne úplne nechýbajú žiadne suroviny.',
+          ),
+          children: result.missing.map((item) {
+            return _IngredientRequirementLine(
+              text:
+                  '• ${displayIngredientName(item.ingredient.name)}: ${context.tr(en: 'need', sk: 'treba')} ${formatQuantity(item.requiredQuantityInRecipeUnit)} ${item.ingredient.unit}',
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+}
+
+class _RecipeIngredientSection extends StatelessWidget {
+  const _RecipeIngredientSection({
+    required this.title,
+    required this.emptyText,
+    required this.children,
+  });
+
+  final String title;
+  final String emptyText;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: Theme.of(
+            context,
+          ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 8),
+        if (children.isEmpty) Text(emptyText) else ...children,
+      ],
+    );
+  }
+}
+
+class _IngredientRequirementLine extends StatelessWidget {
+  const _IngredientRequirementLine({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Text(text),
     );
   }
 }
