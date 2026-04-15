@@ -116,6 +116,7 @@ class _HomeShellState extends State<HomeShell> {
         authRepository: widget.authRepository,
         household: widget.household,
         refreshToken: _shoppingListRefreshToken,
+        onShoppingListChanged: _notifyShoppingListChanged,
       ),
       RecipesScreen(
         household: widget.household,

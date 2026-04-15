@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../app/localization/app_locale.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
@@ -84,6 +85,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       UserPreferencesRepository();
 
   late Future<_DashboardData> _dashboardFuture = _loadDashboard();
+
+  String? get _currentUserId => Supabase.instance.client.auth.currentUser?.id;
 
   @override
   void didUpdateWidget(covariant DashboardScreen oldWidget) {
@@ -400,6 +403,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   (a, b) => b.missingQuantity.compareTo(a.missingQuantity),
                 );
           final upcomingMeals = data.mealPlanEntries.take(4).toList();
+          final myShoppingTasks =
+              data.shoppingItems
+                  .where(
+                    (item) =>
+                        !item.isBought &&
+                        item.assignedToUserId == _currentUserId,
+                  )
+                  .toList()
+                ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+          final visibleShoppingTasks = myShoppingTasks.take(4).toList();
+          final myCookingTasks = data.mealPlanEntries
+              .where(
+                (entry) =>
+                    entry.assignedCookUserId == _currentUserId &&
+                    !_isPastMeal(entry.scheduledFor),
+              )
+              .take(3)
+              .toList();
+          final myTaskCount =
+              visibleShoppingTasks.length + myCookingTasks.length;
 
           return RefreshIndicator(
             onRefresh: _reload,
@@ -547,6 +570,45 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ],
                   ),
                 ),
+                if (myTaskCount > 0) ...[
+                  const SizedBox(height: 14),
+                  _SectionCard(
+                    title: context.tr(en: 'My tasks', sk: 'Moje úlohy'),
+                    child: Column(
+                      children: [
+                        ...visibleShoppingTasks.map((item) {
+                          return _DashboardRow(
+                            title: localizedIngredientDisplayName(
+                              context,
+                              item.name,
+                            ),
+                            subtitle:
+                                '${context.tr(en: 'Shopping', sk: 'Nákup')} • ${_formatQuantity(item.quantity)} ${item.unit}',
+                            onTap: widget.onOpenShoppingList,
+                            actionLabel: context.tr(en: 'Open', sk: 'Otvoriť'),
+                            onActionTap: widget.onOpenShoppingList,
+                          );
+                        }),
+                        ...myCookingTasks.map((entry) {
+                          final matchingRecipe = _findRecipeById(
+                            data.recipes,
+                            entry.recipeId,
+                          );
+                          return _DashboardRow(
+                            title: matchingRecipe == null
+                                ? entry.recipeName
+                                : localizedRecipeName(context, matchingRecipe),
+                            subtitle:
+                                '${context.tr(en: 'Cooking', sk: 'Varenie')} • ${_formatDate(entry.scheduledFor)} • ${_mealTypeLabel(context, entry.mealType)}',
+                            onTap: _openMealPlan,
+                            actionLabel: context.tr(en: 'Open', sk: 'Otvoriť'),
+                            onActionTap: _openMealPlan,
+                          );
+                        }),
+                      ],
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 14),
                 _SectionCard(
                   title: context.tr(
@@ -1758,10 +1820,18 @@ int _daysUntil(DateTime? value) {
   if (value == null) {
     return 9999;
   }
+
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day);
   final target = DateTime(value.year, value.month, value.day);
   return target.difference(today).inDays;
+}
+
+bool _isPastMeal(DateTime value) {
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final scheduled = DateTime(value.year, value.month, value.day);
+  return scheduled.isBefore(today);
 }
 
 String _expiryLabel(BuildContext context, DateTime? value) {

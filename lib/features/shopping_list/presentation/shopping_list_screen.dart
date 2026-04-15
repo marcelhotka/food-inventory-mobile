@@ -27,12 +27,14 @@ class ShoppingListScreen extends StatefulWidget {
   final AuthRepository authRepository;
   final Household household;
   final int refreshToken;
+  final VoidCallback onShoppingListChanged;
 
   const ShoppingListScreen({
     super.key,
     required this.authRepository,
     required this.household,
     required this.refreshToken,
+    required this.onShoppingListChanged,
   });
 
   @override
@@ -318,6 +320,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
         unit: safeItem.unit,
       );
       await _reload();
+      widget.onShoppingListChanged();
       if (!mounted) return;
       showSuccessFeedback(
         context,
@@ -657,6 +660,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                 sk: 'Priradené inému členovi domácnosti',
               ),
       );
+      widget.onShoppingListChanged();
       await _reload();
       if (!mounted) return;
       showSuccessFeedback(
