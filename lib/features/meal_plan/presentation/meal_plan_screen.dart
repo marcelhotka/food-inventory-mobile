@@ -22,6 +22,8 @@ import '../domain/meal_plan_entry.dart';
 import 'meal_plan_form_screen.dart';
 import 'meal_plan_import_screen.dart';
 
+enum MealPlanFilter { all, upcoming, assignedToMe }
+
 class MealPlanScreen extends StatefulWidget {
   final String householdId;
   final VoidCallback? onShoppingListChanged;
@@ -53,6 +55,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
   late final HouseholdRepository _householdRepository = HouseholdRepository();
 
   late Future<_MealPlanViewData> _viewFuture = _loadViewData();
+  MealPlanFilter _selectedFilter = MealPlanFilter.all;
 
   String? get _currentUserId => Supabase.instance.client.auth.currentUser?.id;
 
@@ -740,6 +743,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
           final recipes = viewData.recipes;
           final members = viewData.members;
           final preferences = viewData.preferences;
+          final filteredEntries = _applyMealPlanFilter(entries);
           final upcomingEntries = entries.where((entry) {
             final today = DateTime.now();
             final current = DateTime(today.year, today.month, today.day);
@@ -789,150 +793,171 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      ..._groupEntries(entries).entries.map((group) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFFFCF7),
-                              borderRadius: BorderRadius.circular(24),
-                              border: Border.all(
-                                color: const Color(0xFFE6DDCF),
-                              ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  group.key,
-                                  style: Theme.of(context).textTheme.titleMedium
-                                      ?.copyWith(fontWeight: FontWeight.w700),
+                      _MealPlanFilterBar(
+                        selectedFilter: _selectedFilter,
+                        onFilterChanged: (filter) {
+                          setState(() {
+                            _selectedFilter = filter;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      if (filteredEntries.isEmpty)
+                        AppEmptyState(
+                          message: context.tr(
+                            en: 'No meals match this filter.',
+                            sk: 'Tomuto filtru nezodpovedajú žiadne jedlá.',
+                          ),
+                          onRefresh: _reload,
+                        )
+                      else
+                        ..._groupEntries(filteredEntries).entries.map((group) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFFCF7),
+                                borderRadius: BorderRadius.circular(24),
+                                border: Border.all(
+                                  color: const Color(0xFFE6DDCF),
                                 ),
-                                const SizedBox(height: 12),
-                                ...group.value.map((entry) {
-                                  final recipe = _findRecipeById(
-                                    recipes,
-                                    entry.recipeId,
-                                  );
-                                  final warning = _buildRecipeSafetyWarning(
-                                    recipe,
-                                    preferences,
-                                  );
-                                  final nutrition = recipe == null
-                                      ? null
-                                      : estimateRecipeNutrition(
-                                          recipe,
-                                          servings: entry.servings,
-                                        );
-                                  final displayedRecipeName = recipe == null
-                                      ? entry.recipeName
-                                      : localizedRecipeName(context, recipe);
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    group.key,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium
+                                        ?.copyWith(fontWeight: FontWeight.w700),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  ...group.value.map((entry) {
+                                    final recipe = _findRecipeById(
+                                      recipes,
+                                      entry.recipeId,
+                                    );
+                                    final warning = _buildRecipeSafetyWarning(
+                                      recipe,
+                                      preferences,
+                                    );
+                                    final nutrition = recipe == null
+                                        ? null
+                                        : estimateRecipeNutrition(
+                                            recipe,
+                                            servings: entry.servings,
+                                          );
+                                    final displayedRecipeName = recipe == null
+                                        ? entry.recipeName
+                                        : localizedRecipeName(context, recipe);
 
-                                  return ListTile(
-                                    contentPadding: EdgeInsets.zero,
-                                    title: Text(displayedRecipeName),
-                                    subtitle: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          '${_mealTypeLabel(context, entry.mealType)} • ${entry.servings} ${context.tr(en: entry.servings == 1 ? 'serving' : 'servings', sk: entry.servings == 1 ? 'porcia' : 'porcie')}${entry.note == null || entry.note!.isEmpty ? '' : ' • ${entry.note}'}',
-                                        ),
-                                        if (entry.assignedCookUserId !=
-                                            null) ...[
-                                          const SizedBox(height: 4),
+                                    return ListTile(
+                                      contentPadding: EdgeInsets.zero,
+                                      title: Text(displayedRecipeName),
+                                      subtitle: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
                                           Text(
-                                            _cookAssignmentLabel(
-                                              entry,
-                                              members,
-                                            ),
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .bodySmall
-                                                ?.copyWith(
-                                                  fontWeight: FontWeight.w700,
-                                                ),
+                                            '${_mealTypeLabel(context, entry.mealType)} • ${entry.servings} ${context.tr(en: entry.servings == 1 ? 'serving' : 'servings', sk: entry.servings == 1 ? 'porcia' : 'porcie')}${entry.note == null || entry.note!.isEmpty ? '' : ' • ${entry.note}'}',
                                           ),
-                                        ],
-                                        if (nutrition != null) ...[
-                                          const SizedBox(height: 6),
-                                          _MealNutritionRow(
-                                            nutrition: nutrition,
-                                          ),
-                                        ],
-                                        if (warning != null) ...[
-                                          const SizedBox(height: 6),
-                                          _MealSafetyBadge(warning: warning),
-                                        ],
-                                      ],
-                                    ),
-                                    onTap: () => _openEditForm(entry),
-                                    trailing: Wrap(
-                                      spacing: 4,
-                                      children: [
-                                        if (entry.recipeId == null)
-                                          TextButton(
-                                            onPressed: () =>
-                                                _openEditForm(entry),
-                                            child: Text(
-                                              context.tr(
-                                                en: 'Link recipe',
-                                                sk: 'Prepojiť recept',
-                                              ),
-                                            ),
-                                          ),
-                                        PopupMenuButton<String>(
-                                          onSelected: (value) {
-                                            if (value == 'assign_cook') {
-                                              _pickCookAssignment(
+                                          if (entry.assignedCookUserId !=
+                                              null) ...[
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              _cookAssignmentLabel(
                                                 entry,
                                                 members,
-                                              );
-                                            } else if (value ==
-                                                'clear_assignment') {
-                                              _setCookAssignment(entry, null);
-                                            }
-                                          },
-                                          itemBuilder: (context) => [
-                                            PopupMenuItem(
-                                              value: 'assign_cook',
+                                              ),
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .bodySmall
+                                                  ?.copyWith(
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
+                                            ),
+                                          ],
+                                          if (nutrition != null) ...[
+                                            const SizedBox(height: 6),
+                                            _MealNutritionRow(
+                                              nutrition: nutrition,
+                                            ),
+                                          ],
+                                          if (warning != null) ...[
+                                            const SizedBox(height: 6),
+                                            _MealSafetyBadge(warning: warning),
+                                          ],
+                                        ],
+                                      ),
+                                      onTap: () => _openEditForm(entry),
+                                      trailing: Wrap(
+                                        spacing: 4,
+                                        children: [
+                                          if (entry.recipeId == null)
+                                            TextButton(
+                                              onPressed: () =>
+                                                  _openEditForm(entry),
                                               child: Text(
                                                 context.tr(
-                                                  en: 'Assign cook',
-                                                  sk: 'Priradiť varenie',
+                                                  en: 'Link recipe',
+                                                  sk: 'Prepojiť recept',
                                                 ),
                                               ),
                                             ),
-                                            if (entry.assignedCookUserId !=
-                                                null)
+                                          PopupMenuButton<String>(
+                                            onSelected: (value) {
+                                              if (value == 'assign_cook') {
+                                                _pickCookAssignment(
+                                                  entry,
+                                                  members,
+                                                );
+                                              } else if (value ==
+                                                  'clear_assignment') {
+                                                _setCookAssignment(entry, null);
+                                              }
+                                            },
+                                            itemBuilder: (context) => [
                                               PopupMenuItem(
-                                                value: 'clear_assignment',
+                                                value: 'assign_cook',
                                                 child: Text(
                                                   context.tr(
-                                                    en: 'Clear assignment',
-                                                    sk: 'Zrušiť priradenie',
+                                                    en: 'Assign cook',
+                                                    sk: 'Priradiť varenie',
                                                   ),
                                                 ),
                                               ),
-                                          ],
-                                        ),
-                                        IconButton(
-                                          onPressed: () => _deleteEntry(entry),
-                                          icon: const Icon(
-                                            Icons.delete_outline,
+                                              if (entry.assignedCookUserId !=
+                                                  null)
+                                                PopupMenuItem(
+                                                  value: 'clear_assignment',
+                                                  child: Text(
+                                                    context.tr(
+                                                      en: 'Clear assignment',
+                                                      sk: 'Zrušiť priradenie',
+                                                    ),
+                                                  ),
+                                                ),
+                                            ],
                                           ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                }),
-                              ],
+                                          IconButton(
+                                            onPressed: () =>
+                                                _deleteEntry(entry),
+                                            icon: const Icon(
+                                              Icons.delete_outline,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }),
+                                ],
+                              ),
                             ),
-                          ),
-                        );
-                      }),
+                          );
+                        }),
                     ],
                   ),
           );
@@ -953,6 +978,28 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
       grouped.putIfAbsent(key, () => []).add(entry);
     }
     return grouped;
+  }
+
+  List<MealPlanEntry> _applyMealPlanFilter(List<MealPlanEntry> entries) {
+    return entries.where((entry) {
+      return switch (_selectedFilter) {
+        MealPlanFilter.all => true,
+        MealPlanFilter.upcoming => !_isPastMeal(entry),
+        MealPlanFilter.assignedToMe =>
+          !_isPastMeal(entry) && entry.assignedCookUserId == _currentUserId,
+      };
+    }).toList();
+  }
+
+  bool _isPastMeal(MealPlanEntry entry) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final scheduled = DateTime(
+      entry.scheduledFor.year,
+      entry.scheduledFor.month,
+      entry.scheduledFor.day,
+    );
+    return scheduled.isBefore(today);
   }
 
   String _itemKey(String name, String unit) {
@@ -1311,6 +1358,44 @@ class _MealSafetyBadge extends StatelessWidget {
           color: foregroundColor,
           fontWeight: FontWeight.w600,
         ),
+      ),
+    );
+  }
+}
+
+class _MealPlanFilterBar extends StatelessWidget {
+  const _MealPlanFilterBar({
+    required this.selectedFilter,
+    required this.onFilterChanged,
+  });
+
+  final MealPlanFilter selectedFilter;
+  final ValueChanged<MealPlanFilter> onFilterChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          FilterChip(
+            label: Text(context.tr(en: 'All', sk: 'Všetko')),
+            selected: selectedFilter == MealPlanFilter.all,
+            onSelected: (_) => onFilterChanged(MealPlanFilter.all),
+          ),
+          FilterChip(
+            label: Text(context.tr(en: 'Upcoming', sk: 'Nadchádzajúce')),
+            selected: selectedFilter == MealPlanFilter.upcoming,
+            onSelected: (_) => onFilterChanged(MealPlanFilter.upcoming),
+          ),
+          FilterChip(
+            label: Text(context.tr(en: 'My cooking', sk: 'Moje varenie')),
+            selected: selectedFilter == MealPlanFilter.assignedToMe,
+            onSelected: (_) => onFilterChanged(MealPlanFilter.assignedToMe),
+          ),
+        ],
       ),
     );
   }
