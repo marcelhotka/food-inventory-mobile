@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/localization/app_locale.dart';
+import '../../../app/supabase.dart';
 import '../../../core/food/food_signal_catalog.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/app_feedback.dart';
@@ -43,6 +44,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   late Future<List<_AppNotificationItem>> _notificationsFuture =
       _loadNotifications();
+
+  String? get _currentUserId => tryGetSupabaseClient()?.auth.currentUser?.id;
 
   Future<void> _reload() async {
     setState(() {
@@ -108,16 +111,31 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       }
     }
 
-    for (final item in shoppingItems.where((item) => !item.isBought).take(6)) {
+    final activeShoppingItems = shoppingItems.where((item) => !item.isBought);
+    final assignedToMe = activeShoppingItems
+        .where((item) => item.assignedToUserId == _currentUserId)
+        .toList();
+    final generalShopping = activeShoppingItems
+        .where((item) => item.assignedToUserId != _currentUserId)
+        .take(6)
+        .toList();
+
+    for (final item in [...assignedToMe, ...generalShopping].take(8)) {
+      final isAssignedToMe = item.assignedToUserId == _currentUserId;
       notifications.add(
         _AppNotificationItem(
           title: item.name,
-          subtitle: context.tr(
-            en: 'Buy ${_formatQuantity(item.quantity)} ${item.unit}',
-            sk: 'Kúp ${_formatQuantity(item.quantity)} ${item.unit}',
-          ),
+          subtitle: isAssignedToMe
+              ? context.tr(
+                  en: 'Your shopping task • ${_formatQuantity(item.quantity)} ${item.unit}',
+                  sk: 'Tvoja nákupná úloha • ${_formatQuantity(item.quantity)} ${item.unit}',
+                )
+              : context.tr(
+                  en: 'Buy ${_formatQuantity(item.quantity)} ${item.unit}',
+                  sk: 'Kúp ${_formatQuantity(item.quantity)} ${item.unit}',
+                ),
           kind: _NotificationKind.shopping,
-          priority: 6,
+          priority: isAssignedToMe ? 4 : 6,
           shoppingItem: item,
         ),
       );

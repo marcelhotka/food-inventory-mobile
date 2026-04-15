@@ -21,7 +21,7 @@ import '../data/shopping_list_repository.dart';
 import '../domain/shopping_list_item.dart';
 import 'shopping_list_form_screen.dart';
 
-enum ShoppingListFilter { all, toBuy, bought }
+enum ShoppingListFilter { all, toBuy, assignedToMe, bought }
 
 class ShoppingListScreen extends StatefulWidget {
   final AuthRepository authRepository;
@@ -1312,6 +1312,8 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       return switch (_selectedFilter) {
         ShoppingListFilter.all => true,
         ShoppingListFilter.toBuy => !item.isBought,
+        ShoppingListFilter.assignedToMe =>
+          !item.isBought && item.assignedToUserId == _currentUserId,
         ShoppingListFilter.bought => item.isBought,
       };
     }).toList();
@@ -1810,6 +1812,14 @@ class _ShoppingSearchAndFilterBar extends StatelessWidget {
                 label: Text(context.tr(en: 'To buy', sk: 'Kúpiť')),
                 selected: selectedFilter == ShoppingListFilter.toBuy,
                 onSelected: (_) => onFilterChanged(ShoppingListFilter.toBuy),
+              ),
+              FilterChip(
+                label: Text(
+                  context.tr(en: 'Assigned to me', sk: 'Priradené mne'),
+                ),
+                selected: selectedFilter == ShoppingListFilter.assignedToMe,
+                onSelected: (_) =>
+                    onFilterChanged(ShoppingListFilter.assignedToMe),
               ),
               FilterChip(
                 label: Text(context.tr(en: 'Bought', sk: 'Kúpené')),
