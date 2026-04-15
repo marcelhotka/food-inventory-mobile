@@ -37,6 +37,7 @@ class DashboardScreen extends StatefulWidget {
   final VoidCallback onOpenShoppingList;
   final VoidCallback onOpenRecipes;
   final VoidCallback onOpenSafeRecipes;
+  final VoidCallback onOpenQuickRecipes;
   final ValueChanged<String> onOpenRecipe;
   final VoidCallback onPantryChanged;
   final VoidCallback onShoppingListChanged;
@@ -53,6 +54,7 @@ class DashboardScreen extends StatefulWidget {
     required this.onOpenShoppingList,
     required this.onOpenRecipes,
     required this.onOpenSafeRecipes,
+    required this.onOpenQuickRecipes,
     required this.onOpenRecipe,
     required this.onPantryChanged,
     required this.onShoppingListChanged,
@@ -355,6 +357,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
             data.pantryItems,
             data.preferences,
           ).take(4).toList();
+          final quickRecipeIdeas = _recommendedQuickRecipes(
+            data.recipes,
+            data.pantryItems,
+            data.preferences,
+            maxMinutes: 30,
+          ).take(3).toList();
           final avoidedRecipes = _avoidedRecipes(
             data.recipes,
             data.preferences,
@@ -627,6 +635,49 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                   ),
                 ],
+                const SizedBox(height: 14),
+                _SectionCard(
+                  title: context.tr(
+                    en: 'Quick ideas for today',
+                    sk: 'Dnes rýchlo navaríš',
+                  ),
+                  trailing: TextButton(
+                    onPressed: widget.onOpenQuickRecipes,
+                    child: Text(
+                      context.tr(en: 'Open 30 min', sk: 'Otvoriť 30 min'),
+                    ),
+                  ),
+                  child: quickRecipeIdeas.isEmpty
+                      ? Text(
+                          context.tr(
+                            en: 'No quick recipe ideas yet. Add more recipes or pantry items to improve suggestions.',
+                            sk: 'Zatiaľ nemáme rýchle tipy. Pridaj viac receptov alebo potravín a odporúčania sa zlepšia.',
+                          ),
+                        )
+                      : Column(
+                          children: quickRecipeIdeas.map((recipe) {
+                            final recipeMatch = _matchRecipeSummary(
+                              recipe,
+                              data.pantryItems,
+                            );
+                            return _DashboardRow(
+                              title: localizedRecipeName(context, recipe),
+                              subtitle: _quickRecipeSubtitle(
+                                context,
+                                recipe,
+                                data.pantryItems,
+                                recipeMatch,
+                              ),
+                              onTap: () => widget.onOpenRecipe(recipe.id),
+                              actionLabel: context.tr(
+                                en: 'Cook now',
+                                sk: 'Variť teraz',
+                              ),
+                              onActionTap: () => widget.onOpenRecipe(recipe.id),
+                            );
+                          }).toList(),
+                        ),
+                ),
                 const SizedBox(height: 14),
                 _SectionCard(
                   title: context.tr(
@@ -1370,6 +1421,77 @@ _RecipeMatchSummary _matchRecipeSummary(Recipe recipe, List<FoodItem> pantry) {
   );
 }
 
+String _quickRecipeSubtitle(
+  BuildContext context,
+  Recipe recipe,
+  List<FoodItem> pantry,
+  _RecipeMatchSummary match,
+) {
+  if (match.partial == 0 && match.missing == 0) {
+    return context.tr(
+      en: '${recipe.totalMinutes} min • Everything is at home',
+      sk: '${recipe.totalMinutes} min • Všetko máš doma',
+    );
+  }
+
+  final missingNames = _missingOrPartialIngredientNames(
+    context,
+    recipe,
+    pantry,
+  );
+  if (missingNames.isEmpty) {
+    return '${recipe.totalMinutes} min • ${match.available} ${context.tr(en: 'available', sk: 'dostupné')} • ${match.partial} ${context.tr(en: 'partial', sk: 'čiastočne')} • ${match.missing} ${context.tr(en: 'missing', sk: 'chýba')}';
+  }
+
+  final visibleMissingNames = missingNames.take(3).join(', ');
+  final extraCount = missingNames.length - 3;
+  final extraLabel = extraCount > 0 ? ' +$extraCount' : '';
+  return context.tr(
+    en: '${recipe.totalMinutes} min • Missing: $visibleMissingNames$extraLabel',
+    sk: '${recipe.totalMinutes} min • Chýba: $visibleMissingNames$extraLabel',
+  );
+}
+
+List<String> _missingOrPartialIngredientNames(
+  BuildContext context,
+  Recipe recipe,
+  List<FoodItem> pantry,
+) {
+  final names = <String>[];
+
+  for (final ingredient in recipe.ingredients) {
+    final matchedItems = pantry
+        .where(
+          (item) =>
+              _normalizeName(item.name) == _normalizeName(ingredient.name),
+        )
+        .toList();
+
+    if (matchedItems.isEmpty) {
+      names.add(localizedIngredientDisplayName(context, ingredient.name));
+      continue;
+    }
+
+    double availableQuantity = 0;
+    for (final item in matchedItems) {
+      final converted = _convertQuantity(
+        quantity: item.quantity,
+        fromUnit: item.unit,
+        toUnit: ingredient.unit,
+      );
+      if (converted != null) {
+        availableQuantity += converted;
+      }
+    }
+
+    if (availableQuantity < ingredient.quantity) {
+      names.add(localizedIngredientDisplayName(context, ingredient.name));
+    }
+  }
+
+  return names;
+}
+
 List<Recipe> _recommendedSafeRecipes(
   List<Recipe> recipes,
   List<FoodItem> pantry,
@@ -1398,6 +1520,51 @@ List<Recipe> _recommendedSafeRecipes(
           if (scoreComparison != 0) {
             return scoreComparison;
           }
+          return a.recipe.name.toLowerCase().compareTo(
+            b.recipe.name.toLowerCase(),
+          );
+        });
+
+  return recommendations.map((item) => item.recipe).toList();
+}
+
+List<Recipe> _recommendedQuickRecipes(
+  List<Recipe> recipes,
+  List<FoodItem> pantry,
+  UserPreferences? preferences, {
+  required int maxMinutes,
+}) {
+  final recommendations =
+      recipes
+          .where((recipe) => recipe.totalMinutes <= maxMinutes)
+          .where(
+            (recipe) => _buildRecipeSafetyWarning(recipe, preferences) == null,
+          )
+          .map(
+            (recipe) => _RecipeRecommendation(
+              recipe: recipe,
+              match: _matchRecipeSummary(recipe, pantry),
+            ),
+          )
+          .toList()
+        ..sort((a, b) {
+          final missingScoreA = a.match.missing + a.match.partial;
+          final missingScoreB = b.match.missing + b.match.partial;
+          if (missingScoreA != missingScoreB) {
+            return missingScoreA.compareTo(missingScoreB);
+          }
+
+          if (a.match.available != b.match.available) {
+            return b.match.available.compareTo(a.match.available);
+          }
+
+          final timeComparison = a.recipe.totalMinutes.compareTo(
+            b.recipe.totalMinutes,
+          );
+          if (timeComparison != 0) {
+            return timeComparison;
+          }
+
           return a.recipe.name.toLowerCase().compareTo(
             b.recipe.name.toLowerCase(),
           );

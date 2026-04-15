@@ -58,6 +58,14 @@ class _HomeShellState extends State<HomeShell> {
     });
   }
 
+  void _openQuickRecipes() {
+    setState(() {
+      _selectedIndex = 3;
+      _focusedRecipeId = null;
+      _recipesInitialFilter = RecipeFilter.under30Minutes;
+    });
+  }
+
   void _openPantryExpiringSoon() {
     setState(() {
       _selectedIndex = 1;
@@ -98,6 +106,7 @@ class _HomeShellState extends State<HomeShell> {
         onOpenShoppingList: () => _openTab(2),
         onOpenRecipes: () => _openTab(3),
         onOpenSafeRecipes: _openSafeRecipes,
+        onOpenQuickRecipes: _openQuickRecipes,
         onOpenRecipe: _openRecipe,
         onPantryChanged: _notifyPantryChanged,
         onShoppingListChanged: _notifyShoppingListChanged,

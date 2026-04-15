@@ -300,6 +300,7 @@ class _RecipesScreenState extends State<RecipesScreen> {
 
                 final filteredRecipes = _applyRecipeFilters(
                   recipes,
+                  pantryItems,
                   preferences,
                 );
                 if (filteredRecipes.isEmpty) {
@@ -353,14 +354,54 @@ class _RecipesScreenState extends State<RecipesScreen> {
                   });
                 }
 
+                final quickCookingMinutes = _quickCookingMinutesForFilter(
+                  _selectedFilter,
+                );
+                final showQuickCookingMode = quickCookingMinutes != null;
+                final quickCookingSafeCount = showQuickCookingMode
+                    ? filteredRecipes
+                          .where(
+                            (recipe) =>
+                                _buildRecipeSafetyWarning(
+                                  recipe,
+                                  preferences,
+                                ) ==
+                                null,
+                          )
+                          .length
+                    : 0;
+                final quickCookingReadyCount = showQuickCookingMode
+                    ? filteredRecipes.where((recipe) {
+                        final result = _matchRecipe(
+                          recipe,
+                          pantryItems,
+                          servings: _selectedServingsFor(recipe),
+                        );
+                        return result.missing.isEmpty &&
+                            result.partial.isEmpty &&
+                            _buildRecipeSafetyWarning(recipe, preferences) ==
+                                null;
+                      }).length
+                    : 0;
+                final leadingItemCount = showQuickCookingMode ? 1 : 0;
+
                 return RefreshIndicator(
                   onRefresh: _reload,
                   child: ListView.separated(
                     padding: const EdgeInsets.all(16),
-                    itemCount: filteredRecipes.length,
+                    itemCount: filteredRecipes.length + leadingItemCount,
                     separatorBuilder: (_, _) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
-                      final recipe = filteredRecipes[index];
+                      if (showQuickCookingMode && index == 0) {
+                        return _QuickCookingModeCard(
+                          minutes: quickCookingMinutes,
+                          recipeCount: filteredRecipes.length,
+                          safeCount: quickCookingSafeCount,
+                          readyCount: quickCookingReadyCount,
+                        );
+                      }
+
+                      final recipe = filteredRecipes[index - leadingItemCount];
                       final selectedServings = _selectedServingsFor(recipe);
                       final result = _matchRecipe(
                         recipe,
@@ -796,6 +837,7 @@ class _RecipesScreenState extends State<RecipesScreen> {
 
   List<Recipe> _applyRecipeFilters(
     List<Recipe> recipes,
+    List<FoodItem> pantryItems,
     UserPreferences? preferences,
   ) {
     final filtered = recipes.where((recipe) {
@@ -825,8 +867,48 @@ class _RecipesScreenState extends State<RecipesScreen> {
           recipeDescription.contains(_searchQuery);
     }).toList();
 
-    final focusedRecipeId = widget.focusedRecipeId;
-    if (focusedRecipeId == null) {
+    if (_quickCookingMinutesForFilter(_selectedFilter) != null) {
+      final focusedRecipeId = widget.focusedRecipeId;
+      filtered.sort((a, b) {
+        if (a.id == focusedRecipeId) {
+          return -1;
+        }
+        if (b.id == focusedRecipeId) {
+          return 1;
+        }
+
+        final aWarning = _buildRecipeSafetyWarning(a, preferences);
+        final bWarning = _buildRecipeSafetyWarning(b, preferences);
+        if (aWarning == null && bWarning != null) {
+          return -1;
+        }
+        if (aWarning != null && bWarning == null) {
+          return 1;
+        }
+
+        final aResult = _matchRecipe(
+          a,
+          pantryItems,
+          servings: _selectedServingsFor(a),
+        );
+        final bResult = _matchRecipe(
+          b,
+          pantryItems,
+          servings: _selectedServingsFor(b),
+        );
+        final aMissingScore = aResult.missing.length + aResult.partial.length;
+        final bMissingScore = bResult.missing.length + bResult.partial.length;
+        if (aMissingScore != bMissingScore) {
+          return aMissingScore.compareTo(bMissingScore);
+        }
+
+        if (aResult.available.length != bResult.available.length) {
+          return bResult.available.length.compareTo(aResult.available.length);
+        }
+
+        return a.totalMinutes.compareTo(b.totalMinutes);
+      });
+
       return filtered;
     }
 
@@ -840,6 +922,11 @@ class _RecipesScreenState extends State<RecipesScreen> {
         return 1;
       }
 
+      final focusedRecipeId = widget.focusedRecipeId;
+      if (focusedRecipeId == null) {
+        return 0;
+      }
+
       if (a.id == focusedRecipeId) {
         return -1;
       }
@@ -850,6 +937,15 @@ class _RecipesScreenState extends State<RecipesScreen> {
     });
 
     return filtered;
+  }
+
+  int? _quickCookingMinutesForFilter(RecipeFilter filter) {
+    return switch (filter) {
+      RecipeFilter.under15Minutes => 15,
+      RecipeFilter.under30Minutes => 30,
+      RecipeFilter.under45Minutes => 45,
+      _ => null,
+    };
   }
 
   Future<void> _openCreateRecipe() async {
@@ -2294,6 +2390,92 @@ class _SummaryChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
+    );
+  }
+}
+
+class _QuickCookingModeCard extends StatelessWidget {
+  const _QuickCookingModeCard({
+    required this.minutes,
+    required this.recipeCount,
+    required this.safeCount,
+    required this.readyCount,
+  });
+
+  final int minutes;
+  final int recipeCount;
+  final int safeCount;
+  final int readyCount;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: const Color(0xFFFFF7E8),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.timer_outlined, color: Color(0xFF8A5A00)),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        context.tr(
+                          en: 'What can I cook in $minutes minutes?',
+                          sk: 'Čo uvarím za $minutes minút?',
+                        ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w800),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        context.tr(
+                          en: 'Recipes are sorted by safety and by what you already have at home.',
+                          sk: 'Recepty sú zoradené podľa bezpečnosti a podľa toho, čo už máš doma.',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _SummaryChip(
+                  label: context.tr(
+                    en: '$recipeCount recipes',
+                    sk: '$recipeCount receptov',
+                  ),
+                  color: const Color(0xFFFFE9BA),
+                ),
+                _SummaryChip(
+                  label: context.tr(
+                    en: '$safeCount safe for me',
+                    sk: '$safeCount bezpečných pre mňa',
+                  ),
+                  color: const Color(0xFFE5F0DF),
+                ),
+                _SummaryChip(
+                  label: context.tr(
+                    en: '$readyCount ready from pantry',
+                    sk: '$readyCount pripravených zo špajze',
+                  ),
+                  color: const Color(0xFFE8EEF8),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
