@@ -146,21 +146,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       if (days > 1) {
         continue;
       }
+      final isAssignedToMe = entry.assignedCookUserId == _currentUserId;
 
       notifications.add(
         _AppNotificationItem(
           title: entry.recipeName,
-          subtitle: days == 0
-              ? context.tr(
-                  en: 'Planned for today • ${entry.servings} servings',
-                  sk: 'Naplánované na dnes • ${entry.servings} porcie',
-                )
-              : context.tr(
-                  en: 'Planned for tomorrow • ${entry.servings} servings',
-                  sk: 'Naplánované na zajtra • ${entry.servings} porcie',
-                ),
+          subtitle: _mealPlanNotificationSubtitle(
+            entry,
+            days: days,
+            isAssignedToMe: isAssignedToMe,
+          ),
           kind: _NotificationKind.mealPlan,
-          priority: days,
+          priority: isAssignedToMe ? days : days + 1,
           mealPlanEntry: entry,
         ),
       );
@@ -175,6 +172,34 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     });
 
     return notifications;
+  }
+
+  String _mealPlanNotificationSubtitle(
+    MealPlanEntry entry, {
+    required int days,
+    required bool isAssignedToMe,
+  }) {
+    if (isAssignedToMe && days == 0) {
+      return context.tr(
+        en: 'Your cooking task today • ${entry.servings} servings',
+        sk: 'Tvoje varenie dnes • ${entry.servings} porcie',
+      );
+    }
+    if (isAssignedToMe) {
+      return context.tr(
+        en: 'Your cooking task tomorrow • ${entry.servings} servings',
+        sk: 'Tvoje varenie zajtra • ${entry.servings} porcie',
+      );
+    }
+    return days == 0
+        ? context.tr(
+            en: 'Planned for today • ${entry.servings} servings',
+            sk: 'Naplánované na dnes • ${entry.servings} porcie',
+          )
+        : context.tr(
+            en: 'Planned for tomorrow • ${entry.servings} servings',
+            sk: 'Naplánované na zajtra • ${entry.servings} porcie',
+          );
   }
 
   void _openNotificationTarget(_NotificationKind kind) {
