@@ -168,6 +168,8 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
             pantryItems,
             shoppingItems,
           );
+          final todayEvents = _todayHouseholdEvents(events);
+          final todayContributors = _todayContributors(todayEvents);
           return RefreshIndicator(
             onRefresh: _reload,
             child: ListView(
@@ -270,6 +272,147 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
                           ),
                           subtitle: Text(member.userId),
                         ),
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 16),
+                Text(
+                  context.tr(en: 'Today in household', sk: 'Dnes v domácnosti'),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 12),
+                if (todayEvents.isEmpty)
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(18),
+                      child: Column(
+                        children: [
+                          const Icon(Icons.groups_2_outlined, size: 36),
+                          const SizedBox(height: 12),
+                          Text(
+                            context.tr(
+                              en: 'Nothing happened in the household yet today.',
+                              sk: 'Dnes sa v domácnosti ešte nič neudialo.',
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(18),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: todayContributors
+                                .map(
+                                  (entry) => Chip(
+                                    label: Text(
+                                      '${_actorLabel(entry.userId)}: ${entry.count}',
+                                    ),
+                                    backgroundColor:
+                                        entry.userId == _currentUserId
+                                        ? const Color(0xFFE8EEF8)
+                                        : null,
+                                    visualDensity: VisualDensity.compact,
+                                  ),
+                                )
+                                .toList(),
+                          ),
+                          const SizedBox(height: 14),
+                          ...todayEvents
+                              .take(6)
+                              .map(
+                                (event) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 12),
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Container(
+                                        width: 36,
+                                        height: 36,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF3EEE4),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                        child: Icon(
+                                          _todayEventIcon(event.eventType),
+                                          size: 20,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              _actorLabel(event.userId),
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .titleSmall
+                                                  ?.copyWith(
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Wrap(
+                                              spacing: 6,
+                                              runSpacing: 6,
+                                              children: [
+                                                if (event.userId ==
+                                                    _currentUserId)
+                                                  _contextBadge(
+                                                    context,
+                                                    context.tr(
+                                                      en: 'You',
+                                                      sk: 'Ty',
+                                                    ),
+                                                  ),
+                                                if (_isForCurrentUser(event))
+                                                  _contextBadge(
+                                                    context,
+                                                    context.tr(
+                                                      en: 'For you',
+                                                      sk: 'Pre teba',
+                                                    ),
+                                                  ),
+                                              ],
+                                            ),
+                                            if (event.userId ==
+                                                    _currentUserId ||
+                                                _isForCurrentUser(event))
+                                              const SizedBox(height: 4),
+                                            const SizedBox(height: 2),
+                                            Text(_todayEventText(event)),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              _relativeTimeLabel(
+                                                event.createdAt,
+                                              ),
+                                              style: Theme.of(
+                                                context,
+                                              ).textTheme.bodySmall,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                        ],
                       ),
                     ),
                   ),
@@ -462,6 +605,153 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
         event.details!.trim(),
     ];
     return parts.join(' • ');
+  }
+
+  List<HouseholdActivityEvent> _todayHouseholdEvents(
+    List<HouseholdActivityEvent> events,
+  ) {
+    final now = DateTime.now();
+    final todayStart = DateTime(now.year, now.month, now.day);
+    return events
+        .where((event) => event.createdAt.toLocal().isAfter(todayStart))
+        .toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  }
+
+  List<_ContributorCount> _todayContributors(
+    List<HouseholdActivityEvent> events,
+  ) {
+    final counts = <String, int>{};
+    for (final event in events) {
+      counts.update(event.userId, (value) => value + 1, ifAbsent: () => 1);
+    }
+    final items =
+        counts.entries
+            .map(
+              (entry) =>
+                  _ContributorCount(userId: entry.key, count: entry.value),
+            )
+            .toList()
+          ..sort((a, b) => b.count.compareTo(a.count));
+    return items.take(3).toList();
+  }
+
+  IconData _todayEventIcon(String eventType) {
+    switch (eventType) {
+      case 'pantry_added':
+      case 'pantry_increased':
+      case 'pantry_updated':
+        return Icons.inventory_2_outlined;
+      case 'pantry_used':
+        return Icons.restaurant_outlined;
+      case 'pantry_opened':
+        return Icons.lock_open_rounded;
+      case 'shopping_added':
+      case 'shopping_increased':
+      case 'shopping_updated':
+      case 'shopping_deleted':
+        return Icons.shopping_cart_outlined;
+      case 'shopping_bought':
+        return Icons.shopping_bag_outlined;
+      case 'shopping_assigned':
+      case 'shopping_unassigned':
+        return Icons.assignment_ind_outlined;
+      default:
+        return Icons.bolt_outlined;
+    }
+  }
+
+  String _todayEventText(HouseholdActivityEvent event) {
+    final quantityLabel = event.quantity != null && event.unit != null
+        ? ' ${_formatCompactNumber(event.quantity!)} ${event.unit}'
+        : '';
+    switch (event.eventType) {
+      case 'pantry_added':
+      case 'pantry_increased':
+        return context.tr(
+          en: 'added to pantry: ${event.itemName}$quantityLabel',
+          sk: 'pridal do špajze: ${event.itemName}$quantityLabel',
+        );
+      case 'pantry_used':
+        return context.tr(
+          en: 'used from pantry: ${event.itemName}$quantityLabel',
+          sk: 'minul zo špajze: ${event.itemName}$quantityLabel',
+        );
+      case 'pantry_opened':
+        return context.tr(
+          en: 'opened: ${event.itemName}$quantityLabel',
+          sk: 'otvoril: ${event.itemName}$quantityLabel',
+        );
+      case 'shopping_added':
+      case 'shopping_increased':
+        return context.tr(
+          en: 'added to shopping: ${event.itemName}$quantityLabel',
+          sk: 'pridal do nákupu: ${event.itemName}$quantityLabel',
+        );
+      case 'shopping_bought':
+        return context.tr(
+          en: 'marked as bought: ${event.itemName}',
+          sk: 'označil ako kúpené: ${event.itemName}',
+        );
+      case 'shopping_assigned':
+        return context.tr(
+          en: 'assigned task: ${event.itemName}',
+          sk: 'priradil úlohu: ${event.itemName}',
+        );
+      case 'shopping_unassigned':
+        return context.tr(
+          en: 'cleared assignment: ${event.itemName}',
+          sk: 'zrušil priradenie: ${event.itemName}',
+        );
+      default:
+        return _eventTitle(event);
+    }
+  }
+
+  String _relativeTimeLabel(DateTime value) {
+    final local = value.toLocal();
+    final difference = DateTime.now().difference(local);
+    if (difference.inMinutes < 1) {
+      return context.tr(en: 'just now', sk: 'práve teraz');
+    }
+    if (difference.inMinutes < 60) {
+      final minutes = difference.inMinutes;
+      return context.tr(en: '$minutes min ago', sk: 'pred $minutes min');
+    }
+    if (difference.inHours < 12) {
+      final hours = difference.inHours;
+      return context.tr(en: '$hours h ago', sk: 'pred $hours h');
+    }
+    return context.tr(
+      en: 'today at ${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}',
+      sk: 'dnes o ${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}',
+    );
+  }
+
+  bool _isForCurrentUser(HouseholdActivityEvent event) {
+    if (_currentUserId == null) {
+      return false;
+    }
+    final details = event.details?.toLowerCase().trim() ?? '';
+    return details.contains('assigned to me') ||
+        details.contains('priradené mne') ||
+        details.contains('priradene mne');
+  }
+
+  Widget _contextBadge(BuildContext context, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8EEF8),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(
+          context,
+        ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700),
+      ),
+    );
   }
 
   String _actorLabel(String userId) {
@@ -771,6 +1061,13 @@ class _HouseholdViewData {
     required this.pantryItems,
     required this.shoppingItems,
   });
+}
+
+class _ContributorCount {
+  final String userId;
+  final int count;
+
+  const _ContributorCount({required this.userId, required this.count});
 }
 
 class _HabitItem {
