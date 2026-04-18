@@ -7,6 +7,7 @@ import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/app_feedback.dart';
 import '../../food_items/data/food_items_repository.dart';
 import '../../food_items/domain/food_item.dart';
+import '../../food_items/domain/opened_food_guidance.dart';
 import '../../households/domain/household.dart';
 import '../../meal_plan/data/meal_plan_repository.dart';
 import '../../meal_plan/domain/meal_plan_entry.dart';
@@ -82,14 +83,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       }
 
       if (item.openedAt != null) {
-        final openedDaysLeft = _openedDaysLeft(item);
+        final itemOpenedDaysLeft = openedDaysLeft(item);
         notifications.add(
           _AppNotificationItem(
             title: item.name,
             subtitle:
                 '${context.tr(en: 'Opened', sk: 'Otvorené')} ${_formatDate(item.openedAt!)} • ${_openedUseSoonLabel(context, item)}',
             kind: _NotificationKind.opened,
-            priority: openedDaysLeft,
+            priority: itemOpenedDaysLeft,
             pantryItem: item,
           ),
         );
@@ -1006,46 +1007,8 @@ String _formatDate(DateTime value) {
   return '$day.$month.${local.year}';
 }
 
-int _openedUseWithinDays(FoodItem item) {
-  switch (item.category) {
-    case 'dairy':
-      return 3;
-    case 'meat':
-      return 2;
-    case 'produce':
-      return 3;
-    case 'canned':
-      return 4;
-    case 'frozen':
-      return 2;
-    case 'beverages':
-      return 5;
-    case 'grains':
-      return 7;
-    default:
-      return 3;
-  }
-}
-
-int _daysSinceOpened(DateTime? value) {
-  if (value == null) {
-    return 0;
-  }
-  final now = DateTime.now();
-  final today = DateTime(now.year, now.month, now.day);
-  final opened = DateTime(value.year, value.month, value.day);
-  return today.difference(opened).inDays;
-}
-
-int _openedDaysLeft(FoodItem item) {
-  if (item.openedAt == null) {
-    return 9999;
-  }
-  return _openedUseWithinDays(item) - _daysSinceOpened(item.openedAt);
-}
-
 String _openedUseSoonLabel(BuildContext context, FoodItem item) {
-  final daysLeft = _openedDaysLeft(item);
+  final daysLeft = openedDaysLeft(item);
   if (daysLeft < 0) {
     return context.tr(en: 'Use as soon as possible', sk: 'Použi čo najskôr');
   }

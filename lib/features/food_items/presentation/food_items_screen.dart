@@ -17,6 +17,7 @@ import '../data/food_item_remote_data_source.dart';
 import '../data/food_items_repository.dart';
 import '../domain/food_item.dart';
 import '../domain/food_item_prefill.dart';
+import '../domain/opened_food_guidance.dart';
 import 'barcode_lookup_screen.dart';
 import 'food_item_form_screen.dart';
 import 'fridge_scan_screen.dart';
@@ -943,6 +944,10 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
 
       if (openedQuantity >= item.quantity - 0.000001) {
         final updatedItem = item.copyWith(
+          expirationDate: adjustedExpirationAfterOpening(
+            item,
+            openedDate: openedDate,
+          ),
           openedAt: openedDate,
           updatedAt: DateTime.now().toUtc(),
         );
@@ -965,7 +970,10 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
           quantity: openedQuantity,
           lowStockThreshold: item.lowStockThreshold,
           unit: item.unit,
-          expirationDate: item.expirationDate,
+          expirationDate: adjustedExpirationAfterOpening(
+            item,
+            openedDate: openedDate,
+          ),
           openedAt: openedDate,
           createdAt: DateTime.now().toUtc(),
           updatedAt: DateTime.now().toUtc(),
@@ -2132,9 +2140,9 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
   }
 
   int _compareFoodItemsForDisplay(FoodItem a, FoodItem b) {
-    final openedPriorityComparison = _openedDaysLeft(
+    final openedPriorityComparison = openedDaysLeft(
       a,
-    ).compareTo(_openedDaysLeft(b));
+    ).compareTo(openedDaysLeft(b));
     if (openedPriorityComparison != 0) {
       return openedPriorityComparison;
     }
@@ -2188,46 +2196,8 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
         : value.toString();
   }
 
-  int _openedUseWithinDays(FoodItem item) {
-    switch (item.category) {
-      case 'dairy':
-        return 3;
-      case 'meat':
-        return 2;
-      case 'produce':
-        return 3;
-      case 'canned':
-        return 4;
-      case 'frozen':
-        return 2;
-      case 'beverages':
-        return 5;
-      case 'grains':
-        return 7;
-      default:
-        return 3;
-    }
-  }
-
-  int _daysSinceOpened(DateTime? value) {
-    if (value == null) {
-      return 0;
-    }
-    final today = DateTime.now();
-    final normalizedToday = DateTime(today.year, today.month, today.day);
-    final normalizedOpened = DateTime(value.year, value.month, value.day);
-    return normalizedToday.difference(normalizedOpened).inDays;
-  }
-
-  int _openedDaysLeft(FoodItem item) {
-    if (item.openedAt == null) {
-      return 9999;
-    }
-    return _openedUseWithinDays(item) - _daysSinceOpened(item.openedAt);
-  }
-
   String _openedUseSoonLabel(FoodItem item) {
-    final daysLeft = _openedDaysLeft(item);
+    final daysLeft = openedDaysLeft(item);
     if (daysLeft < 0) {
       return context.tr(en: 'Use as soon as possible', sk: 'Použi čo najskôr');
     }

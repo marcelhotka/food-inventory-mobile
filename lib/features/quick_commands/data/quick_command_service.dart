@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../app/supabase.dart';
 import '../../food_items/data/food_items_repository.dart';
 import '../../food_items/domain/food_item.dart';
+import '../../food_items/domain/opened_food_guidance.dart';
 import '../../shopping_list/data/shopping_list_repository.dart';
 import '../../shopping_list/domain/shopping_list_item.dart';
 import '../domain/quick_command_models.dart';
@@ -600,6 +601,10 @@ class QuickCommandService {
           match.copyWith(
             id: '',
             quantity: commandItem.quantity,
+            expirationDate: adjustedExpirationAfterOpening(
+              match,
+              openedDate: now,
+            ),
             openedAt: now,
             createdAt: now,
             updatedAt: now,
@@ -621,7 +626,14 @@ class QuickCommandService {
       }
 
       final updated = await _foodItemsRepository.editFoodItem(
-        match.copyWith(openedAt: now, updatedAt: now),
+        match.copyWith(
+          expirationDate: adjustedExpirationAfterOpening(
+            match,
+            openedDate: now,
+          ),
+          openedAt: now,
+          updatedAt: now,
+        ),
       );
       final index = pantryItems.indexWhere((item) => item.id == match.id);
       if (index >= 0) {
