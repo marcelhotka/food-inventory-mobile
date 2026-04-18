@@ -138,7 +138,22 @@ class _QuickCommandScreenState extends State<QuickCommandScreen> {
                     ...command.items.map(
                       (item) => Padding(
                         padding: const EdgeInsets.only(bottom: 6),
-                        child: Text('• ${_itemPreviewLabel(item)}'),
+                        child: Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            Text('• ${_itemPreviewLabel(item)}'),
+                            ..._dietaryModifierLabels(item.name).map(
+                              (label) => Chip(
+                                label: Text(label),
+                                visualDensity: VisualDensity.compact,
+                                materialTapTargetSize:
+                                    MaterialTapTargetSize.shrinkWrap,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -191,6 +206,55 @@ class _QuickCommandScreenState extends State<QuickCommandScreen> {
         ? ''
         : ' • ${context.tr(en: 'exp.', sk: 'exp.')} ${_formatDate(item.expirationDate!)}';
     return '${_formatQuantity(item.quantity)} ${item.unit} ${item.name}$storage$expiration';
+  }
+
+  List<String> _dietaryModifierLabels(String value) {
+    final normalized = _normalizeValue(value);
+    final labels = <String>[];
+    if (normalized.contains('bezlepk') ||
+        normalized.contains('glutenfree') ||
+        normalized.contains('glutenfrei')) {
+      labels.add(context.tr(en: 'gluten-free', sk: 'bez lepku'));
+    }
+    if (normalized.contains('bezlakt') || normalized.contains('lactosefree')) {
+      labels.add(context.tr(en: 'lactose-free', sk: 'bez laktózy'));
+    }
+    if (normalized.contains('bezvajec') ||
+        normalized.contains('nahradavajec')) {
+      labels.add(context.tr(en: 'egg-free', sk: 'bez vajec'));
+    }
+    return labels;
+  }
+
+  String _normalizeValue(String value) {
+    const replacements = {
+      'á': 'a',
+      'ä': 'a',
+      'č': 'c',
+      'ď': 'd',
+      'é': 'e',
+      'ě': 'e',
+      'í': 'i',
+      'ĺ': 'l',
+      'ľ': 'l',
+      'ň': 'n',
+      'ó': 'o',
+      'ô': 'o',
+      'ŕ': 'r',
+      'ř': 'r',
+      'š': 's',
+      'ť': 't',
+      'ú': 'u',
+      'ů': 'u',
+      'ý': 'y',
+      'ž': 'z',
+    };
+
+    var normalized = value.toLowerCase().trim();
+    replacements.forEach((from, to) {
+      normalized = normalized.replaceAll(from, to);
+    });
+    return normalized.replaceAll(RegExp(r'[^a-z0-9]'), '');
   }
 
   String _storageLabel(String storageLocation) {
@@ -268,6 +332,10 @@ class _QuickCommandScreenState extends State<QuickCommandScreen> {
                 onPressed: () => _fillExample('kup 2 litre mlieka'),
               ),
               ActionChip(
+                label: const Text('pridaj mlieko 1 liter'),
+                onPressed: () => _fillExample('pridaj mlieko 1 liter'),
+              ),
+              ActionChip(
                 label: const Text('pridaj 2 jogurty do chladničky'),
                 onPressed: () => _fillExample('pridaj 2 jogurty do chladničky'),
               ),
@@ -279,6 +347,11 @@ class _QuickCommandScreenState extends State<QuickCommandScreen> {
                 label: const Text('pridaj mlieko do chladničky; kup chlieb'),
                 onPressed: () =>
                     _fillExample('pridaj mlieko do chladničky; kup chlieb'),
+              ),
+              ActionChip(
+                label: const Text('pridaj mlieko do chladničky a kup chlieb'),
+                onPressed: () =>
+                    _fillExample('pridaj mlieko do chladničky a kup chlieb'),
               ),
             ],
           ),

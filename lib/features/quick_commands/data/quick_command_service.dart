@@ -85,7 +85,14 @@ class QuickCommandService {
   }
 
   List<QuickCommandParseResult> _parseMany(String rawCommand) {
-    final clauses = rawCommand
+    final commandWithBoundaries = rawCommand.replaceAllMapped(
+      RegExp(
+        r'\s+(?:a|and)\s+(?=pridaj|kup|dokup|minuli sa|minulo sa|minul sa|dosli|došli|otvoril som|otvorila som|otvorene je)',
+        caseSensitive: false,
+      ),
+      (_) => '; ',
+    );
+    final clauses = commandWithBoundaries
         .split(RegExp(r'\s*(?:;|\.|\n|\s+potom\s+)\s*', caseSensitive: false))
         .map((part) => part.trim())
         .where((part) => part.isNotEmpty)
@@ -140,12 +147,20 @@ class QuickCommandService {
     }
 
     final parts = body
-        .split(RegExp(r'\s*(?:,|\sa\s|\sand\s)\s*', caseSensitive: false))
+        .split(
+          RegExp(r'\s*(?:,|\sa\s|\saj\s|\sand\s)\s*', caseSensitive: false),
+        )
         .map((part) => part.trim())
         .where((part) => part.isNotEmpty);
 
     final items = <QuickCommandItem>[];
     for (final part in parts) {
+      final trailingQuantityItem = _parseTrailingQuantityItem(part);
+      if (trailingQuantityItem != null) {
+        items.add(trailingQuantityItem);
+        continue;
+      }
+
       final wordMatch = RegExp(
         r'^(pol|jeden|jedna|jedno|dva|dve|tri|styri|štyri|pat|päť|sest|šesť|sedem|osem|devat|deväť|desat|desať)\s+([^\d\s]+)?\s*(.*)$',
         caseSensitive: false,
@@ -243,6 +258,63 @@ class QuickCommandService {
     }
 
     return items;
+  }
+
+  QuickCommandItem? _parseTrailingQuantityItem(String part) {
+    final numericMatch = RegExp(
+      r'^(.+?)\s+(\d+(?:[.,]\d+)?)\s*([^\d\s]+)?$',
+      caseSensitive: false,
+    ).firstMatch(part);
+    if (numericMatch != null) {
+      final rawName = numericMatch.group(1)!.trim();
+      final quantity = double.parse(
+        numericMatch.group(2)!.replaceAll(',', '.'),
+      );
+      final unit = _normalizeUnit((numericMatch.group(3) ?? '').trim());
+      if (_looksLikeKnownUnit(unit)) {
+        return _buildCommandItem(
+          rawName: rawName,
+          quantity: quantity,
+          unit: unit,
+        );
+      }
+    }
+
+    final wordMatch = RegExp(
+      r'^(.+?)\s+(pol|jeden|jedna|jedno|dva|dve|tri|styri|štyri|pat|päť|sest|šesť|sedem|osem|devat|deväť|desat|desať)\s+([^\d\s]+)?$',
+      caseSensitive: false,
+    ).firstMatch(part);
+    if (wordMatch != null) {
+      final rawName = wordMatch.group(1)!.trim();
+      final quantity = _wordQuantity(wordMatch.group(2)!);
+      final unit = _normalizeUnit((wordMatch.group(3) ?? '').trim());
+      if (_looksLikeKnownUnit(unit)) {
+        return _buildCommandItem(
+          rawName: rawName,
+          quantity: quantity,
+          unit: unit,
+        );
+      }
+    }
+
+    return null;
+  }
+
+  QuickCommandItem _buildCommandItem({
+    required String rawName,
+    required double quantity,
+    required String unit,
+  }) {
+    final expiration = _extractExpiration(rawName);
+    final cleanedName = _removeExpirationPhrase(rawName);
+    final extracted = _extractStorage(_cleanItemName(cleanedName));
+    return QuickCommandItem(
+      name: extracted.itemName,
+      quantity: quantity,
+      unit: unit,
+      storageLocation: extracted.storage,
+      expirationDate: expiration,
+    );
   }
 
   Future<QuickCommandExecutionResult> _addToPantry(
@@ -656,7 +728,12 @@ class QuickCommandService {
   }
 
   bool _matchesCommandItem(String existingName, String commandName) {
-    return _canonicalFoodKey(existingName) == _canonicalFoodKey(commandName);
+    if (_canonicalFoodKey(existingName) != _canonicalFoodKey(commandName)) {
+      return false;
+    }
+
+    return _dietaryModifierKey(existingName) ==
+        _dietaryModifierKey(commandName);
   }
 
   String _canonicalFoodKey(String value) {
@@ -694,8 +771,49 @@ class QuickCommandService {
       'dzus': 'juice',
       'dzusu': 'juice',
       'juice': 'juice',
+      'chlieb': 'bread',
+      'chleba': 'bread',
+      'bread': 'bread',
+      'pecivo': 'bread',
     };
-    return aliases[normalized] ?? normalized;
+    final exactMatch = aliases[normalized];
+    if (exactMatch != null) {
+      return exactMatch;
+    }
+
+    if (normalized.contains('chlieb') ||
+        normalized.contains('chleba') ||
+        normalized.contains('pecivo') ||
+        normalized.contains('baget') ||
+        normalized.contains('bread')) {
+      return 'bread';
+    }
+    if (normalized.contains('mlieko') || normalized.contains('mlieka')) {
+      return 'milk';
+    }
+    if (normalized.contains('syr') || normalized.contains('syra')) {
+      return 'cheese';
+    }
+
+    return normalized;
+  }
+
+  String _dietaryModifierKey(String value) {
+    final normalized = _normalizeName(value);
+    final modifiers = <String>[];
+    if (normalized.contains('bezlepk') ||
+        normalized.contains('glutenfree') ||
+        normalized.contains('glutenfrei')) {
+      modifiers.add('gluten_free');
+    }
+    if (normalized.contains('bezlakt') || normalized.contains('lactosefree')) {
+      modifiers.add('lactose_free');
+    }
+    if (normalized.contains('bezvajec') ||
+        normalized.contains('nahradavajec')) {
+      modifiers.add('egg_free');
+    }
+    return modifiers.join('|');
   }
 
   String _normalizeName(String value) {
@@ -937,10 +1055,17 @@ class QuickCommandService {
 
   String _cleanItemName(String value) {
     final trimmed = value.trim();
-    return trimmed.replaceFirst(
-      RegExp(r'^(sa|si|som|je|su|sú)\s+', caseSensitive: false),
-      '',
-    );
+    return trimmed
+        .replaceFirst(
+          RegExp(r'^(sa|si|som|je|su|sú)\s+', caseSensitive: false),
+          '',
+        )
+        .replaceAll(
+          RegExp(r'\bklasick(?:y|ý|a|á|e|é)\b', caseSensitive: false),
+          '',
+        )
+        .replaceAll(RegExp(r'\s{2,}'), ' ')
+        .trim();
   }
 
   ({String itemName, String? storage}) _extractStorage(String value) {
