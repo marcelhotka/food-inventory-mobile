@@ -23,6 +23,16 @@ class RecipeNutritionEstimate {
   });
 }
 
+enum RecipeNutritionInsight {
+  balanced,
+  moreProtein,
+  lowerFiber,
+  higherCalories,
+  lighterMeal,
+  proteinForward,
+  everydayBalance,
+}
+
 class _NutritionProfile {
   final double caloriesPerBase;
   final double proteinPerBase;
@@ -107,6 +117,36 @@ RecipeNutritionEstimate estimateRecipeNutrition(
     fiberPerServing: fiberPerServing < 0 ? 0 : fiberPerServing,
     balanceScore: balanceScore.clamp(0, 100),
   );
+}
+
+RecipeNutritionInsight deriveRecipeNutritionInsight(
+  RecipeNutritionEstimate nutrition,
+) {
+  if (nutrition.proteinPerServing >= 20 &&
+      nutrition.fiberPerServing >= 6 &&
+      nutrition.caloriesPerServing >= 350 &&
+      nutrition.caloriesPerServing <= 750) {
+    return RecipeNutritionInsight.balanced;
+  }
+  if (nutrition.proteinPerServing < 12 && nutrition.fiberPerServing >= 6) {
+    return RecipeNutritionInsight.moreProtein;
+  }
+  if (nutrition.proteinPerServing >= 20 && nutrition.fiberPerServing < 3) {
+    return RecipeNutritionInsight.lowerFiber;
+  }
+  if (nutrition.fiberPerServing < 2) {
+    return RecipeNutritionInsight.lowerFiber;
+  }
+  if (nutrition.caloriesPerServing > 900) {
+    return RecipeNutritionInsight.higherCalories;
+  }
+  if (nutrition.caloriesPerServing < 250) {
+    return RecipeNutritionInsight.lighterMeal;
+  }
+  if (nutrition.proteinPerServing >= 18) {
+    return RecipeNutritionInsight.proteinForward;
+  }
+  return RecipeNutritionInsight.everydayBalance;
 }
 
 _NutritionProfile? _profileForIngredient(RecipeIngredient ingredient) {

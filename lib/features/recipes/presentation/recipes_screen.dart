@@ -2599,8 +2599,58 @@ class _RecipeNutritionSummary extends StatelessWidget {
             ),
           ],
         ),
+        const SizedBox(height: 10),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFFCF7),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE6DDCF)),
+          ),
+          child: Text(
+            _nutritionInsight(context, nutrition),
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+        ),
       ],
     );
+  }
+
+  String _nutritionInsight(
+    BuildContext context,
+    RecipeNutritionEstimate nutrition,
+  ) {
+    return switch (deriveRecipeNutritionInsight(nutrition)) {
+      RecipeNutritionInsight.balanced => context.tr(
+        en: 'Balanced meal with solid protein and fiber.',
+        sk: 'Vyvážené jedlo s dobrým obsahom bielkovín aj vlákniny.',
+      ),
+      RecipeNutritionInsight.moreProtein => context.tr(
+        en: 'Good fiber, but it could use more protein.',
+        sk: 'Dobrá vláknina, ale zišlo by sa viac bielkovín.',
+      ),
+      RecipeNutritionInsight.lowerFiber => context.tr(
+        en: 'Lower fiber meal. Add vegetables, beans or whole grains if you want more balance.',
+        sk: 'Jedlo má menej vlákniny. Ak chceš lepšiu vyváženosť, pridaj zeleninu, strukoviny alebo celozrnné prílohy.',
+      ),
+      RecipeNutritionInsight.higherCalories => context.tr(
+        en: 'More filling and higher-calorie meal.',
+        sk: 'Sýtejšie a kalorickejšie jedlo.',
+      ),
+      RecipeNutritionInsight.lighterMeal => context.tr(
+        en: 'Lighter meal. Good if you want something smaller.',
+        sk: 'Ľahšie jedlo. Dobrá voľba, ak chceš niečo menšie.',
+      ),
+      RecipeNutritionInsight.proteinForward => context.tr(
+        en: 'Protein-forward meal with decent overall balance.',
+        sk: 'Jedlo orientované na bielkoviny s celkom dobrou vyváženosťou.',
+      ),
+      RecipeNutritionInsight.everydayBalance => context.tr(
+        en: 'Reasonable everyday meal with a solid energy balance.',
+        sk: 'Rozumné každodenné jedlo s celkom dobrým energetickým pomerom.',
+      ),
+    };
   }
 
   String _balanceLabel(BuildContext context, int score) {

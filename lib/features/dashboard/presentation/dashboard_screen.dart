@@ -13,6 +13,7 @@ import '../../households/domain/household.dart';
 import '../../recipes/data/recipes_repository.dart';
 import '../../recipes/domain/recipe.dart';
 import '../../recipes/domain/recipe_ingredient.dart';
+import '../../recipes/domain/recipe_nutrition_estimate.dart';
 import '../../recipes/presentation/recipe_display_text.dart';
 import 'tester_info_screen.dart';
 import 'notifications_screen.dart';
@@ -661,6 +662,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               recipe,
                               data.pantryItems,
                             );
+                            final nutrition = estimateRecipeNutrition(
+                              recipe,
+                              servings: recipe.defaultServings,
+                            );
                             return _DashboardRow(
                               title: localizedRecipeName(context, recipe),
                               subtitle: _quickRecipeSubtitle(
@@ -668,6 +673,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 recipe,
                                 data.pantryItems,
                                 recipeMatch,
+                                nutrition,
                               ),
                               onTap: () => widget.onOpenRecipe(recipe.id),
                               actionLabel: context.tr(
@@ -1427,12 +1433,15 @@ String _quickRecipeSubtitle(
   Recipe recipe,
   List<FoodItem> pantry,
   _RecipeMatchSummary match,
+  RecipeNutritionEstimate nutrition,
 ) {
+  final nutritionLabel = _quickNutritionLabel(context, nutrition);
   if (match.partial == 0 && match.missing == 0) {
-    return context.tr(
+    final base = context.tr(
       en: '${recipe.totalMinutes} min • Everything is at home',
       sk: '${recipe.totalMinutes} min • Všetko máš doma',
     );
+    return '$base • $nutritionLabel';
   }
 
   final missingNames = _missingOrPartialIngredientNames(
@@ -1441,16 +1450,53 @@ String _quickRecipeSubtitle(
     pantry,
   );
   if (missingNames.isEmpty) {
-    return '${recipe.totalMinutes} min • ${match.available} ${context.tr(en: 'available', sk: 'dostupné')} • ${match.partial} ${context.tr(en: 'partial', sk: 'čiastočne')} • ${match.missing} ${context.tr(en: 'missing', sk: 'chýba')}';
+    return '${recipe.totalMinutes} min • ${match.available} ${context.tr(en: 'available', sk: 'dostupné')} • ${match.partial} ${context.tr(en: 'partial', sk: 'čiastočne')} • ${match.missing} ${context.tr(en: 'missing', sk: 'chýba')} • $nutritionLabel';
   }
 
   final visibleMissingNames = missingNames.take(3).join(', ');
   final extraCount = missingNames.length - 3;
   final extraLabel = extraCount > 0 ? ' +$extraCount' : '';
-  return context.tr(
+  final base = context.tr(
     en: '${recipe.totalMinutes} min • Missing: $visibleMissingNames$extraLabel',
     sk: '${recipe.totalMinutes} min • Chýba: $visibleMissingNames$extraLabel',
   );
+  return '$base • $nutritionLabel';
+}
+
+String _quickNutritionLabel(
+  BuildContext context,
+  RecipeNutritionEstimate nutrition,
+) {
+  return switch (deriveRecipeNutritionInsight(nutrition)) {
+    RecipeNutritionInsight.balanced => context.tr(
+      en: 'Balanced',
+      sk: 'Vyvážené',
+    ),
+    RecipeNutritionInsight.moreProtein => context.tr(
+      en: 'More protein',
+      sk: 'Viac bielkovín',
+    ),
+    RecipeNutritionInsight.lowerFiber => context.tr(
+      en: 'Lower fiber',
+      sk: 'Menej vlákniny',
+    ),
+    RecipeNutritionInsight.higherCalories => context.tr(
+      en: 'Higher calories',
+      sk: 'Viac kalórií',
+    ),
+    RecipeNutritionInsight.lighterMeal => context.tr(
+      en: 'Lighter',
+      sk: 'Ľahšie',
+    ),
+    RecipeNutritionInsight.proteinForward => context.tr(
+      en: 'Protein-forward',
+      sk: 'Viac bielkovín',
+    ),
+    RecipeNutritionInsight.everydayBalance => context.tr(
+      en: 'Everyday',
+      sk: 'Na každý deň',
+    ),
+  };
 }
 
 List<String> _missingOrPartialIngredientNames(
