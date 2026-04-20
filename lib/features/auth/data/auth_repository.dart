@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../app/supabase.dart';
@@ -16,6 +17,8 @@ class AuthRepository {
     return _client?.auth.currentSession;
   }
 
+  static const String _mobileRedirectTo = 'safo://login-callback/';
+
   Future<void> signInWithMagicLink(String email) async {
     final client = _requireClient();
     await client.auth.signInWithOtp(
@@ -27,6 +30,30 @@ class AuthRepository {
   Future<void> signInAnonymously() async {
     final client = _requireClient();
     await client.auth.signInAnonymously();
+  }
+
+  Future<bool> signInWithGoogle() async {
+    final client = _requireClient();
+    return client.auth.signInWithOAuth(
+      OAuthProvider.google,
+      redirectTo: kIsWeb ? null : _mobileRedirectTo,
+    );
+  }
+
+  Future<bool> signInWithApple() async {
+    final client = _requireClient();
+    return client.auth.signInWithOAuth(
+      OAuthProvider.apple,
+      redirectTo: kIsWeb ? null : _mobileRedirectTo,
+    );
+  }
+
+  Future<void> sendPasswordResetEmail(String email) async {
+    final client = _requireClient();
+    await client.auth.resetPasswordForEmail(
+      email,
+      redirectTo: kIsWeb ? null : _mobileRedirectTo,
+    );
   }
 
   Future<void> signOut() async {

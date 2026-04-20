@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' show AuthState;
 
 import 'localization/app_locale.dart';
 import '../core/widgets/app_async_state_widgets.dart';
@@ -84,32 +84,31 @@ class _RootScreenState extends State<_RootScreen> {
     return error is UserPreferencesConfigException;
   }
 
+  void _resetCachedSessionState() {
+    _householdFuture = null;
+    _preferencesFuture = null;
+    _activeUserId = null;
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (widget.authRepository.currentSession == null) {
-      try {
-        widget.authRepository.authStateChanges();
-      } on AuthConfigException catch (error) {
-        return _ConfigErrorScreen(message: error.message);
-      }
-    }
+    try {
+      return StreamBuilder<AuthState>(
+        stream: widget.authRepository.authStateChanges(),
+        builder: (context, snapshot) {
+          final session =
+              snapshot.data?.session ?? widget.authRepository.currentSession;
+          if (session == null) {
+            _resetCachedSessionState();
+            return AuthScreen(repository: widget.authRepository);
+          }
 
-    final currentSession = widget.authRepository.currentSession;
-    if (currentSession != null) {
-      return _buildForAuthenticatedSession(currentSession.user.id);
-    }
-
-    return StreamBuilder<AuthState>(
-      stream: widget.authRepository.authStateChanges(),
-      builder: (context, snapshot) {
-        final session = snapshot.data?.session;
-        if (session != null) {
           return _buildForAuthenticatedSession(session.user.id);
-        }
-
-        return AuthScreen(repository: widget.authRepository);
-      },
-    );
+        },
+      );
+    } on AuthConfigException catch (error) {
+      return _ConfigErrorScreen(message: error.message);
+    }
   }
 
   Widget _buildForAuthenticatedSession(String userId) {
@@ -139,15 +138,6 @@ class _RootScreenState extends State<_RootScreen> {
 
         final household = snapshot.data;
         if (household == null) {
-          final user = Supabase.instance.client.auth.currentUser;
-          if (user?.isAnonymous ?? false) {
-            return _AnonymousHouseholdBootstrap(
-              repository: _householdRepository,
-              authRepository: widget.authRepository,
-              onCreated: _loadHousehold,
-            );
-          }
-
           return HouseholdSetupScreen(
             repository: _householdRepository,
             authRepository: widget.authRepository,
@@ -200,61 +190,6 @@ class _RootScreenState extends State<_RootScreen> {
             );
           },
         );
-      },
-    );
-  }
-}
-
-class _AnonymousHouseholdBootstrap extends StatefulWidget {
-  final HouseholdRepository repository;
-  final AuthRepository authRepository;
-  final Future<void> Function() onCreated;
-
-  const _AnonymousHouseholdBootstrap({
-    required this.repository,
-    required this.authRepository,
-    required this.onCreated,
-  });
-
-  @override
-  State<_AnonymousHouseholdBootstrap> createState() =>
-      _AnonymousHouseholdBootstrapState();
-}
-
-class _AnonymousHouseholdBootstrapState
-    extends State<_AnonymousHouseholdBootstrap> {
-  late final Future<void> _bootstrapFuture = _bootstrap();
-
-  Future<void> _bootstrap() async {
-    await widget.repository.createHousehold('My household');
-    await widget.onCreated();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<void>(
-      future: _bootstrapFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
-          return Scaffold(
-            appBar: AppBar(
-              title: Text(
-                context.tr(en: 'Preparing Safo', sk: 'Pripravujeme Safo'),
-              ),
-            ),
-            body: const Center(child: AppLoadingState()),
-          );
-        }
-
-        if (snapshot.hasError) {
-          return HouseholdSetupScreen(
-            repository: widget.repository,
-            authRepository: widget.authRepository,
-            onCreated: widget.onCreated,
-          );
-        }
-
-        return const SizedBox.shrink();
       },
     );
   }

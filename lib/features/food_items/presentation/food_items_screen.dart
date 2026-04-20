@@ -6,6 +6,7 @@ import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/app_feedback.dart';
 import '../../../core/widgets/safo_logo.dart';
 import '../../auth/data/auth_repository.dart';
+import '../../auth/presentation/sign_out_action.dart';
 import '../../household_activity/data/household_activity_repository.dart';
 import '../../household_activity/domain/household_activity_event.dart';
 import '../../households/domain/household.dart';
@@ -94,6 +95,10 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
     });
 
     await _pantryFuture;
+  }
+
+  Future<void> _handleSignOut() async {
+    await confirmAndSignOut(context, widget.authRepository);
   }
 
   void _maybeOpenExpiringSoonFromShell() {
@@ -1448,7 +1453,7 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
                   ),
                 );
               },
-              onSignOut: widget.authRepository.signOut,
+              onSignOut: () => _handleSignOut(),
             ),
             const SizedBox(height: 18),
             _PantrySummary(

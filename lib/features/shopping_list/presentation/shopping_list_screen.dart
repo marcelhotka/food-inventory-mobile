@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/localization/app_locale.dart';
+import '../../../app/theme/safo_tokens.dart';
 import '../../../core/food/food_signal_catalog.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/app_feedback.dart';
+import '../../../core/widgets/safo_logo.dart';
 import '../../auth/data/auth_repository.dart';
+import '../../auth/presentation/sign_out_action.dart';
 import '../../food_items/data/food_items_repository.dart';
 import '../../food_items/domain/food_item.dart';
 import '../../household_activity/data/household_activity_repository.dart';
@@ -86,6 +89,10 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     });
 
     await _shoppingListFuture;
+  }
+
+  Future<void> _handleSignOut() async {
+    await confirmAndSignOut(context, widget.authRepository);
   }
 
   Future<_ShoppingListViewData> _loadShoppingListItems() async {
@@ -1044,27 +1051,6 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(context.tr(en: 'Shopping List', sk: 'Nákupný zoznam')),
-        actions: [
-          IconButton(
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => HouseholdScreen(household: widget.household),
-                ),
-              );
-            },
-            icon: const Icon(Icons.groups_2_outlined),
-            tooltip: context.tr(en: 'Household', sk: 'Domácnosť'),
-          ),
-          IconButton(
-            onPressed: widget.authRepository.signOut,
-            icon: const Icon(Icons.logout),
-            tooltip: context.tr(en: 'Sign out', sk: 'Odhlásiť sa'),
-          ),
-        ],
-      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openCreateForm,
         icon: const Icon(Icons.add),
@@ -1134,43 +1120,102 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
 
           final filteredItems = _applyFilters(items);
           if (filteredItems.isEmpty) {
-            return RefreshIndicator(
-              onRefresh: _reload,
-              child: ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(16),
-                children: [
-                  _ShoppingSearchAndFilterBar(
-                    controller: _searchController,
-                    selectedFilter: _selectedFilter,
-                    onSearchChanged: (_) => setState(() {}),
-                    onFilterChanged: (value) {
-                      setState(() {
-                        _selectedFilter = value;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  AppEmptyState(
-                    message: context.tr(
-                      en: 'No shopping items match your search.',
-                      sk: 'Tvojmu hľadaniu nezodpovedajú žiadne nákupné položky.',
+            return SafeArea(
+              bottom: false,
+              child: RefreshIndicator(
+                onRefresh: _reload,
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 120),
+                  children: [
+                    _ShoppingListHeader(
+                      householdName: widget.household.name,
+                      onOpenHousehold: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                HouseholdScreen(household: widget.household),
+                          ),
+                        );
+                      },
+                      onSignOut: () => _handleSignOut(),
                     ),
-                    onRefresh: _reload,
-                  ),
-                ],
+                    const SizedBox(height: 18),
+                    _ShoppingSummary(
+                      totalItems: items.length,
+                      toBuyCount: items.where((item) => !item.isBought).length,
+                      assignedToMeCount: items
+                          .where(
+                            (item) =>
+                                !item.isBought &&
+                                item.assignedToUserId == _currentUserId,
+                          )
+                          .length,
+                    ),
+                    const SizedBox(height: 12),
+                    _ShoppingSearchAndFilterBar(
+                      controller: _searchController,
+                      selectedFilter: _selectedFilter,
+                      onSearchChanged: (_) => setState(() {}),
+                      onFilterChanged: (value) {
+                        setState(() {
+                          _selectedFilter = value;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    AppEmptyState(
+                      message: context.tr(
+                        en: 'No shopping items match your search.',
+                        sk: 'Tvojmu hľadaniu nezodpovedajú žiadne nákupné položky.',
+                      ),
+                      onRefresh: _reload,
+                    ),
+                  ],
+                ),
               ),
             );
           }
 
-          return RefreshIndicator(
+          return SafeArea(
+            bottom: false,
+            child: RefreshIndicator(
             onRefresh: _reload,
             child: ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: filteredItems.length + 1,
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 120),
+              itemCount: filteredItems.length + 3,
               separatorBuilder: (_, _) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 if (index == 0) {
+                  return _ShoppingListHeader(
+                    householdName: widget.household.name,
+                    onOpenHousehold: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              HouseholdScreen(household: widget.household),
+                        ),
+                      );
+                    },
+                    onSignOut: () => _handleSignOut(),
+                  );
+                }
+
+                if (index == 1) {
+                  return _ShoppingSummary(
+                    totalItems: items.length,
+                    toBuyCount: items.where((item) => !item.isBought).length,
+                    assignedToMeCount: items
+                        .where(
+                          (item) =>
+                              !item.isBought &&
+                              item.assignedToUserId == _currentUserId,
+                        )
+                        .length,
+                  );
+                }
+
+                if (index == 2) {
                   return _ShoppingSearchAndFilterBar(
                     controller: _searchController,
                     selectedFilter: _selectedFilter,
@@ -1183,9 +1228,21 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                   );
                 }
 
-                final item = filteredItems[index - 1];
+                final item = filteredItems[index - 3];
                 return Card(
+                  color: item.isBought
+                      ? SafoColors.surfaceSoft
+                      : SafoColors.surface,
+                  margin: EdgeInsets.zero,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(SafoRadii.xl),
+                    side: const BorderSide(color: SafoColors.border),
+                  ),
                   child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
                     onTap: () => _showItemActions(item),
                     leading: Checkbox(
                       value: item.isBought,
@@ -1197,6 +1254,8 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                     title: Text(
                       localizedIngredientDisplayName(context, item.name),
                       style: TextStyle(
+                        color: SafoColors.textPrimary,
+                        fontWeight: FontWeight.w700,
                         decoration: item.isBought
                             ? TextDecoration.lineThrough
                             : null,
@@ -1217,6 +1276,10 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                       ],
                     ),
                     trailing: PopupMenuButton<String>(
+                      icon: const Icon(
+                        Icons.more_horiz_rounded,
+                        color: SafoColors.textMuted,
+                      ),
                       onSelected: (value) {
                         if (value == 'add_more') {
                           _openAddMoreForm(item);
@@ -1247,6 +1310,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                 );
               },
             ),
+          ),
           );
         },
       ),
@@ -1800,6 +1864,193 @@ class _ShoppingSaveResult {
   const _ShoppingSaveResult({required this.item, required this.wasMerged});
 }
 
+class _ShoppingListHeader extends StatelessWidget {
+  final String householdName;
+  final VoidCallback onOpenHousehold;
+  final VoidCallback onSignOut;
+
+  const _ShoppingListHeader({
+    required this.householdName,
+    required this.onOpenHousehold,
+    required this.onSignOut,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const SafoLogo(
+              variant: SafoLogoVariant.iconTransparent,
+              width: 28,
+              height: 28,
+            ),
+            const SizedBox(width: 10),
+            const SafoLogo(
+              variant: SafoLogoVariant.pill,
+              height: 28,
+            ),
+            const Spacer(),
+            _ShoppingHeaderIconButton(
+              icon: Icons.groups_2_outlined,
+              onTap: onOpenHousehold,
+            ),
+            const SizedBox(width: 8),
+            _ShoppingHeaderIconButton(
+              icon: Icons.logout_rounded,
+              onTap: onSignOut,
+            ),
+          ],
+        ),
+        const SizedBox(height: 18),
+        Text(
+          context.tr(en: 'What should we buy next?', sk: 'Čo treba kúpiť?'),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: SafoColors.textSecondary,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          context.tr(en: 'Shopping', sk: 'Nákup'),
+          style: Theme.of(context).textTheme.headlineLarge,
+        ),
+        const SizedBox(height: 2),
+        Text(
+          householdName,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: SafoColors.textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ShoppingHeaderIconButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _ShoppingHeaderIconButton({
+    required this.icon,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: SafoColors.surface,
+      borderRadius: BorderRadius.circular(SafoRadii.pill),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(SafoRadii.pill),
+        child: Ink(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: SafoColors.surface,
+            borderRadius: BorderRadius.circular(SafoRadii.pill),
+            border: Border.all(color: SafoColors.border),
+          ),
+          child: Icon(icon, color: SafoColors.textPrimary),
+        ),
+      ),
+    );
+  }
+}
+
+class _ShoppingSummary extends StatelessWidget {
+  final int totalItems;
+  final int toBuyCount;
+  final int assignedToMeCount;
+
+  const _ShoppingSummary({
+    required this.totalItems,
+    required this.toBuyCount,
+    required this.assignedToMeCount,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.count(
+      crossAxisCount: 3,
+      crossAxisSpacing: 12,
+      mainAxisSpacing: 12,
+      childAspectRatio: 0.92,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      children: [
+        _ShoppingSummaryCard(
+          label: context.tr(en: 'Total', sk: 'Spolu'),
+          value: totalItems.toString(),
+          background: SafoColors.surface,
+          valueColor: SafoColors.textPrimary,
+        ),
+        _ShoppingSummaryCard(
+          label: context.tr(en: 'To buy', sk: 'Kúpiť'),
+          value: toBuyCount.toString(),
+          background: SafoColors.primarySoft,
+          valueColor: SafoColors.primary,
+        ),
+        _ShoppingSummaryCard(
+          label: context.tr(en: 'For me', sk: 'Pre mňa'),
+          value: assignedToMeCount.toString(),
+          background: SafoColors.accentSoft,
+          valueColor: SafoColors.accent,
+        ),
+      ],
+    );
+  }
+}
+
+class _ShoppingSummaryCard extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color background;
+  final Color valueColor;
+
+  const _ShoppingSummaryCard({
+    required this.label,
+    required this.value,
+    required this.background,
+    required this.valueColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(SafoRadii.xl),
+        border: Border.all(color: SafoColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: SafoColors.textSecondary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const Spacer(),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+              color: valueColor,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ShoppingSearchAndFilterBar extends StatelessWidget {
   final TextEditingController controller;
   final ShoppingListFilter selectedFilter;
@@ -1815,7 +2066,11 @@ class _ShoppingSearchAndFilterBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
       children: [
         TextField(
           controller: controller,
@@ -1825,7 +2080,19 @@ class _ShoppingSearchAndFilterBar extends StatelessWidget {
               en: 'Search shopping items',
               sk: 'Hľadať nákupné položky',
             ),
-            prefixIcon: const Icon(Icons.search_rounded),
+            prefixIcon: const Icon(
+              Icons.search_rounded,
+              color: SafoColors.textMuted,
+            ),
+            suffixIcon: controller.text.isEmpty
+                ? null
+                : IconButton(
+                    onPressed: () {
+                      controller.clear();
+                      onSearchChanged('');
+                    },
+                    icon: const Icon(Icons.close_rounded),
+                  ),
           ),
         ),
         const SizedBox(height: 12),
@@ -1839,11 +2106,15 @@ class _ShoppingSearchAndFilterBar extends StatelessWidget {
                 label: Text(context.tr(en: 'All', sk: 'Všetko')),
                 selected: selectedFilter == ShoppingListFilter.all,
                 onSelected: (_) => onFilterChanged(ShoppingListFilter.all),
+                selectedColor: SafoColors.primary,
+                checkmarkColor: Colors.white,
               ),
               FilterChip(
                 label: Text(context.tr(en: 'To buy', sk: 'Kúpiť')),
                 selected: selectedFilter == ShoppingListFilter.toBuy,
                 onSelected: (_) => onFilterChanged(ShoppingListFilter.toBuy),
+                selectedColor: SafoColors.primary,
+                checkmarkColor: Colors.white,
               ),
               FilterChip(
                 label: Text(
@@ -1852,16 +2123,22 @@ class _ShoppingSearchAndFilterBar extends StatelessWidget {
                 selected: selectedFilter == ShoppingListFilter.assignedToMe,
                 onSelected: (_) =>
                     onFilterChanged(ShoppingListFilter.assignedToMe),
+                selectedColor: SafoColors.primary,
+                checkmarkColor: Colors.white,
               ),
               FilterChip(
                 label: Text(context.tr(en: 'Bought', sk: 'Kúpené')),
                 selected: selectedFilter == ShoppingListFilter.bought,
                 onSelected: (_) => onFilterChanged(ShoppingListFilter.bought),
+                selectedColor: SafoColors.primary,
+                checkmarkColor: Colors.white,
               ),
             ],
           ),
         ),
       ],
+        ),
+      ),
     );
   }
 }
