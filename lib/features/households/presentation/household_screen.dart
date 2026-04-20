@@ -8,8 +8,11 @@ import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/app_feedback.dart';
 import '../../food_items/data/food_items_repository.dart';
 import '../../food_items/domain/food_item.dart';
+import '../../food_items/domain/opened_food_guidance.dart';
 import '../../household_activity/data/household_activity_repository.dart';
 import '../../household_activity/domain/household_activity_event.dart';
+import '../../meal_plan/data/meal_plan_repository.dart';
+import '../../meal_plan/domain/meal_plan_entry.dart';
 import '../../recipes/presentation/recipe_display_text.dart';
 import '../../shopping_list/data/shopping_list_repository.dart';
 import '../../shopping_list/domain/shopping_list_item.dart';
@@ -33,6 +36,9 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
   );
   late final ShoppingListRepository _shoppingListRepository =
       ShoppingListRepository(householdId: widget.household.id);
+  late final MealPlanRepository _mealPlanRepository = MealPlanRepository(
+    householdId: widget.household.id,
+  );
   late final HouseholdActivityRepository _activityRepository =
       HouseholdActivityRepository(householdId: widget.household.id);
   late Future<_HouseholdViewData> _viewFuture = _loadViewData();
@@ -50,6 +56,7 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
     final members = await _repository.getMembers(widget.household.id);
     final pantryItems = await _foodItemsRepository.getFoodItems();
     final shoppingItems = await _shoppingListRepository.getShoppingListItems();
+    final mealPlanEntries = await _mealPlanRepository.getEntries();
     List<HouseholdActivityEvent> events;
     try {
       events = await _activityRepository.getRecentEvents();
@@ -61,6 +68,7 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
       events: events,
       pantryItems: pantryItems,
       shoppingItems: shoppingItems,
+      mealPlanEntries: mealPlanEntries,
     );
   }
 
@@ -145,11 +153,13 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
                 events: <HouseholdActivityEvent>[],
                 pantryItems: <FoodItem>[],
                 shoppingItems: <ShoppingListItem>[],
+                mealPlanEntries: <MealPlanEntry>[],
               );
           final members = viewData.members;
           final events = viewData.events;
           final pantryItems = viewData.pantryItems;
           final shoppingItems = viewData.shoppingItems;
+          final mealPlanEntries = viewData.mealPlanEntries;
           final topBought = _topHabitItems(
             events,
             matchingTypes: const {
@@ -170,6 +180,11 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
           );
           final todayEvents = _todayHouseholdEvents(events);
           final todayContributors = _todayContributors(todayEvents);
+          final personalTasks = _personalTasks(
+            shoppingItems: shoppingItems,
+            mealPlanEntries: mealPlanEntries,
+            pantryItems: pantryItems,
+          );
           return RefreshIndicator(
             onRefresh: _reload,
             child: ListView(
@@ -413,6 +428,107 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
                                 ),
                               ),
                         ],
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 16),
+                Text(
+                  context.tr(en: 'Waiting for you', sk: 'Na teba čaká'),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 12),
+                if (personalTasks.isEmpty)
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(18),
+                      child: Column(
+                        children: [
+                          const Icon(Icons.check_circle_outline, size: 36),
+                          const SizedBox(height: 12),
+                          Text(
+                            context.tr(
+                              en: 'Nothing is waiting for you right now.',
+                              sk: 'Momentálne na teba nič nečaká.',
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            context.tr(
+                              en: 'Assigned shopping, cooking, or opened items to use soon will show up here.',
+                              sk: 'Tu sa zobrazí priradený nákup, varenie alebo otvorené veci na skoré použitie.',
+                            ),
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(18),
+                      child: Column(
+                        children: personalTasks
+                            .map(
+                              (task) => Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Container(
+                                      width: 36,
+                                      height: 36,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFF3EEE4),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Icon(task.icon, size: 20),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Expanded(
+                                                child: Text(
+                                                  task.title,
+                                                  style: Theme.of(context)
+                                                      .textTheme
+                                                      .titleSmall
+                                                      ?.copyWith(
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                      ),
+                                                ),
+                                              ),
+                                              _contextBadge(
+                                                context,
+                                                context.tr(
+                                                  en: 'For you',
+                                                  sk: 'Pre teba',
+                                                ),
+                                              ),
+                                              const SizedBox(width: 6),
+                                              _urgencyBadge(context, task),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 6),
+                                          Text(task.subtitle),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )
+                            .toList(),
                       ),
                     ),
                   ),
@@ -1047,6 +1163,232 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
       sk: 'O $daysToExpiry dní',
     );
   }
+
+  List<_PersonalTaskItem> _personalTasks({
+    required List<ShoppingListItem> shoppingItems,
+    required List<MealPlanEntry> mealPlanEntries,
+    required List<FoodItem> pantryItems,
+  }) {
+    final tasks =
+        <_PersonalTaskItem>[
+          ..._shoppingTasks(shoppingItems),
+          ..._mealPlanTasks(mealPlanEntries),
+          ..._openedFoodTasks(pantryItems),
+        ]..sort((a, b) {
+          final byPriority = a.priority.compareTo(b.priority);
+          if (byPriority != 0) {
+            return byPriority;
+          }
+          return a.sortDate.compareTo(b.sortDate);
+        });
+    return tasks.take(4).toList();
+  }
+
+  List<_PersonalTaskItem> _shoppingTasks(List<ShoppingListItem> shoppingItems) {
+    if (_currentUserId == null) {
+      return const <_PersonalTaskItem>[];
+    }
+    return shoppingItems
+        .where(
+          (item) => !item.isBought && item.assignedToUserId == _currentUserId,
+        )
+        .map(
+          (item) => _PersonalTaskItem(
+            priority: 0,
+            sortDate: item.updatedAt,
+            icon: Icons.shopping_cart_outlined,
+            title: context.tr(
+              en: 'Buy: ${localizedIngredientDisplayName(context, item.name)}',
+              sk: 'Kúpiť: ${localizedIngredientDisplayName(context, item.name)}',
+            ),
+            subtitle: context.tr(
+              en: '${_formatCompactNumber(item.quantity)} ${item.unit} waiting in shopping list',
+              sk: '${_formatCompactNumber(item.quantity)} ${item.unit} čaká v nákupnom zozname',
+            ),
+            urgency: _shoppingTaskUrgency(item),
+          ),
+        )
+        .toList();
+  }
+
+  List<_PersonalTaskItem> _mealPlanTasks(List<MealPlanEntry> mealPlanEntries) {
+    if (_currentUserId == null) {
+      return const <_PersonalTaskItem>[];
+    }
+    return mealPlanEntries
+        .where(
+          (entry) =>
+              !_isPastMeal(entry) && entry.assignedCookUserId == _currentUserId,
+        )
+        .map(
+          (entry) => _PersonalTaskItem(
+            priority: 1,
+            sortDate: entry.scheduledFor,
+            icon: Icons.restaurant_menu_outlined,
+            title: context.tr(
+              en: 'Cook: ${entry.recipeName}',
+              sk: 'Variť: ${entry.recipeName}',
+            ),
+            subtitle: context.tr(
+              en: '${_mealTypeLabel(entry.mealType)} • ${_formatScheduledDay(entry.scheduledFor)} • ${entry.servings} servings',
+              sk: '${_mealTypeLabel(entry.mealType)} • ${_formatScheduledDay(entry.scheduledFor)} • ${entry.servings} porcie',
+            ),
+            urgency: _dateUrgency(entry.scheduledFor),
+          ),
+        )
+        .toList();
+  }
+
+  List<_PersonalTaskItem> _openedFoodTasks(List<FoodItem> pantryItems) {
+    return pantryItems
+        .where((item) => item.openedAt != null && openedDaysLeft(item) <= 1)
+        .map(
+          (item) => _PersonalTaskItem(
+            priority: openedDaysLeft(item) <= 0 ? 0 : 2,
+            sortDate: adjustedExpirationAfterOpening(item) ?? item.updatedAt,
+            icon: Icons.timelapse_outlined,
+            title: context.tr(
+              en: 'Use soon: ${localizedIngredientDisplayName(context, item.name)}',
+              sk: 'Minúť čoskoro: ${localizedIngredientDisplayName(context, item.name)}',
+            ),
+            subtitle: _openedTaskSubtitle(item),
+            urgency: _openedFoodUrgency(item),
+          ),
+        )
+        .toList();
+  }
+
+  _TaskUrgency _shoppingTaskUrgency(ShoppingListItem item) {
+    final anchor = DateTime(
+      item.updatedAt.year,
+      item.updatedAt.month,
+      item.updatedAt.day,
+    );
+    return _dateUrgency(anchor);
+  }
+
+  _TaskUrgency _openedFoodUrgency(FoodItem item) {
+    final daysLeft = openedDaysLeft(item);
+    if (daysLeft <= 0) {
+      return _TaskUrgency.today;
+    }
+    if (daysLeft == 1) {
+      return _TaskUrgency.tomorrow;
+    }
+    return _TaskUrgency.upcoming;
+  }
+
+  _TaskUrgency _dateUrgency(DateTime value) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final target = DateTime(value.year, value.month, value.day);
+    final difference = target.difference(today).inDays;
+    if (difference < 0) {
+      return _TaskUrgency.overdue;
+    }
+    if (difference == 0) {
+      return _TaskUrgency.today;
+    }
+    if (difference == 1) {
+      return _TaskUrgency.tomorrow;
+    }
+    return _TaskUrgency.upcoming;
+  }
+
+  bool _isPastMeal(MealPlanEntry entry) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final scheduled = DateTime(
+      entry.scheduledFor.year,
+      entry.scheduledFor.month,
+      entry.scheduledFor.day,
+    );
+    return scheduled.isBefore(today);
+  }
+
+  String _mealTypeLabel(String mealType) {
+    switch (mealType) {
+      case 'breakfast':
+        return context.tr(en: 'Breakfast', sk: 'Raňajky');
+      case 'lunch':
+        return context.tr(en: 'Lunch', sk: 'Obed');
+      case 'dinner':
+        return context.tr(en: 'Dinner', sk: 'Večera');
+      case 'snack':
+        return context.tr(en: 'Snack', sk: 'Desiata');
+      default:
+        return mealType;
+    }
+  }
+
+  String _formatScheduledDay(DateTime value) {
+    final local = value.toLocal();
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final target = DateTime(local.year, local.month, local.day);
+    final dayDifference = target.difference(today).inDays;
+    if (dayDifference == 0) {
+      return context.tr(en: 'today', sk: 'dnes');
+    }
+    if (dayDifference == 1) {
+      return context.tr(en: 'tomorrow', sk: 'zajtra');
+    }
+    final day = local.day.toString().padLeft(2, '0');
+    final month = local.month.toString().padLeft(2, '0');
+    return '$day.$month.';
+  }
+
+  String _openedTaskSubtitle(FoodItem item) {
+    final daysLeft = openedDaysLeft(item);
+    final useBy = adjustedExpirationAfterOpening(item);
+    final dateLabel = useBy == null
+        ? null
+        : '${useBy.day.toString().padLeft(2, '0')}.${useBy.month.toString().padLeft(2, '0')}.';
+    if (daysLeft <= 0) {
+      return context.tr(
+        en: 'Opened item should be used today${dateLabel == null ? '' : ' • by $dateLabel'}',
+        sk: 'Otvorenú položku treba minúť dnes${dateLabel == null ? '' : ' • do $dateLabel'}',
+      );
+    }
+    return context.tr(
+      en: 'Opened item should be used tomorrow${dateLabel == null ? '' : ' • by $dateLabel'}',
+      sk: 'Otvorenú položku treba minúť zajtra${dateLabel == null ? '' : ' • do $dateLabel'}',
+    );
+  }
+
+  Widget _urgencyBadge(BuildContext context, _PersonalTaskItem task) {
+    final (label, color) = switch (task.urgency) {
+      _TaskUrgency.overdue => (
+        context.tr(en: 'Overdue', sk: 'Mešká'),
+        const Color(0xFFF7D9D6),
+      ),
+      _TaskUrgency.today => (
+        context.tr(en: 'Today', sk: 'Dnes'),
+        const Color(0xFFF6E7C8),
+      ),
+      _TaskUrgency.tomorrow => (
+        context.tr(en: 'Tomorrow', sk: 'Zajtra'),
+        const Color(0xFFE8EEF8),
+      ),
+      _TaskUrgency.upcoming => (
+        context.tr(en: 'Soon', sk: 'Čoskoro'),
+        const Color(0xFFE7F2E8),
+      ),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(
+          context,
+        ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700),
+      ),
+    );
+  }
 }
 
 class _HouseholdViewData {
@@ -1054,12 +1396,14 @@ class _HouseholdViewData {
   final List<HouseholdActivityEvent> events;
   final List<FoodItem> pantryItems;
   final List<ShoppingListItem> shoppingItems;
+  final List<MealPlanEntry> mealPlanEntries;
 
   const _HouseholdViewData({
     required this.members,
     required this.events,
     required this.pantryItems,
     required this.shoppingItems,
+    required this.mealPlanEntries,
   });
 }
 
@@ -1094,6 +1438,26 @@ class _SuggestedPurchase {
 
   const _SuggestedPurchase({required this.quantity, required this.unit});
 }
+
+class _PersonalTaskItem {
+  final int priority;
+  final DateTime sortDate;
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final _TaskUrgency urgency;
+
+  const _PersonalTaskItem({
+    required this.priority,
+    required this.sortDate,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.urgency,
+  });
+}
+
+enum _TaskUrgency { overdue, today, tomorrow, upcoming }
 
 class _HabitSummaryCard extends StatelessWidget {
   final String title;
