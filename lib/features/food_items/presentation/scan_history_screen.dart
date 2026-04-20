@@ -45,9 +45,18 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
 
           if (snapshot.hasError) {
             return AppErrorState(
+              kind: AppErrorKind.sync,
+              title: context.tr(
+                en: 'Scan history is unavailable',
+                sk: 'História scanov nie je k dispozícii',
+              ),
               message: context.tr(
                 en: 'Failed to load scan history.',
                 sk: 'Históriu scanov sa nepodarilo načítať.',
+              ),
+              hint: context.tr(
+                en: 'Safo could not load previous fridge scans right now.',
+                sk: 'Safo teraz nedokázalo načítať predchádzajúce scany chladničky.',
               ),
               onRetry: _reload,
             );

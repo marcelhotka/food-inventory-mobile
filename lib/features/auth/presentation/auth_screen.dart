@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/localization/app_locale.dart';
 import '../../../core/forms/app_input_decoration.dart';
+import '../../../core/widgets/safo_logo.dart';
 import '../data/auth_repository.dart';
 
 class AuthScreen extends StatefulWidget {
@@ -100,27 +101,15 @@ class _AuthScreenState extends State<AuthScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
+                  const SafoLogo(
+                    variant: SafoLogoVariant.iconTransparent,
                     width: 56,
                     height: 56,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFFCF7),
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: const Icon(
-                      Icons.kitchen_rounded,
-                      color: Color(0xFF4E7A51),
-                      size: 30,
-                    ),
                   ),
                   const SizedBox(height: 18),
-                  Text(
-                    'Safo',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFF2E5131),
-                      letterSpacing: 0.3,
-                    ),
+                  const SafoLogo(
+                    variant: SafoLogoVariant.horizontalLight,
+                    height: 52,
                   ),
                   const SizedBox(height: 8),
                   Text(

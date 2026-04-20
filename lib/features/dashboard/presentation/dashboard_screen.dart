@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../app/localization/app_locale.dart';
+import '../../../app/theme/safo_tokens.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
+import '../../../core/widgets/app_feedback.dart';
+import '../../../core/widgets/safo_logo.dart';
 import '../../food_items/data/food_items_repository.dart';
 import '../../food_items/data/scan_sessions_repository.dart';
 import '../../food_items/domain/food_item.dart';
@@ -15,6 +18,7 @@ import '../../recipes/domain/recipe.dart';
 import '../../recipes/domain/recipe_ingredient.dart';
 import '../../recipes/domain/recipe_nutrition_estimate.dart';
 import '../../recipes/presentation/recipe_display_text.dart';
+import '../data/tester_sample_data_service.dart';
 import 'tester_info_screen.dart';
 import 'notifications_screen.dart';
 import '../../shopping_list/data/shopping_list_repository.dart';
@@ -89,6 +93,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       UserPreferencesRepository();
 
   late Future<_DashboardData> _dashboardFuture = _loadDashboard();
+  bool _isLoadingSampleData = false;
 
   String? get _currentUserId => Supabase.instance.client.auth.currentUser?.id;
 
@@ -182,6 +187,67 @@ class _DashboardScreenState extends State<DashboardScreen> {
     await _reload();
   }
 
+  Future<void> _loadSampleDataFromDashboard() async {
+    setState(() {
+      _isLoadingSampleData = true;
+    });
+
+    try {
+      final result = await TesterSampleDataService(
+        household: widget.household,
+      ).loadSampleData();
+      if (!mounted) {
+        return;
+      }
+      showSuccessFeedback(
+        context,
+        context.tr(
+          en: 'Sample data loaded: ${result.addedPantry} pantry, ${result.addedShopping} shopping, ${result.addedMeals} meal plan.',
+          sk: 'Ukážkové dáta nahraté: ${result.addedPantry} špajza, ${result.addedShopping} nákup, ${result.addedMeals} jedálniček.',
+        ),
+      );
+      await _reload();
+    } on TesterSampleDataAuthException {
+      if (!mounted) {
+        return;
+      }
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'You need to be signed in.',
+          sk: 'Musíš byť prihlásený.',
+        ),
+        title: context.tr(
+          en: 'Sign in required',
+          sk: 'Treba sa prihlásiť',
+        ),
+      );
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Failed to load sample data.',
+          sk: 'Ukážkové dáta sa nepodarilo nahrať.',
+        ),
+        title: context.tr(
+          en: 'Sample data not loaded',
+          sk: 'Ukážkové dáta sa nenahrali',
+        ),
+        actionLabel: context.tr(en: 'Retry', sk: 'Skúsiť znova'),
+        onAction: _loadSampleDataFromDashboard,
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingSampleData = false;
+        });
+      }
+    }
+  }
+
   Future<void> _openNotifications() async {
     await Navigator.of(context).push(
       MaterialPageRoute(
@@ -241,76 +307,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(context.tr(en: 'Dashboard', sk: 'Prehľad')),
-        actions: [
-          FutureBuilder<_DashboardData>(
-            future: _dashboardFuture,
-            builder: (context, snapshot) {
-              final data = snapshot.data;
-              final count = data == null
-                  ? 0
-                  : data.pantryItems
-                            .where(
-                              (item) => _daysUntil(item.expirationDate) <= 3,
-                            )
-                            .length +
-                        data.shoppingItems
-                            .where((item) => !item.isBought)
-                            .take(6)
-                            .length +
-                        data.mealPlanEntries
-                            .where(
-                              (entry) => _daysUntil(entry.scheduledFor) <= 1,
-                            )
-                            .length +
-                        data.pantryItems
-                            .where((item) => item.openedAt != null)
-                            .length +
-                        data.pantryItems.where(_isLowStock).length;
-
-              return IconButton(
-                onPressed: _openNotifications,
-                tooltip: context.tr(en: 'Notifications', sk: 'Upozornenia'),
-                icon: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    const Icon(Icons.notifications_none_rounded),
-                    if (count > 0)
-                      Positioned(
-                        right: -4,
-                        top: -4,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 5,
-                            vertical: 1,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE07A5F),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: Text(
-                            count > 9 ? '9+' : '$count',
-                            style: Theme.of(context).textTheme.labelSmall
-                                ?.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              );
-            },
-          ),
-          IconButton(
-            onPressed: _openPreferences,
-            icon: const Icon(Icons.tune_rounded),
-            tooltip: context.tr(en: 'Preferences', sk: 'Preferencie'),
-          ),
-        ],
-      ),
       body: FutureBuilder<_DashboardData>(
         future: _dashboardFuture,
         builder: (context, snapshot) {
@@ -320,9 +316,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
           if (snapshot.hasError) {
             return AppErrorState(
+              kind: AppErrorKind.sync,
+              title: context.tr(
+                en: 'Dashboard is unavailable',
+                sk: 'Prehľad nie je k dispozícii',
+              ),
               message: context.tr(
                 en: 'Failed to load dashboard.',
                 sk: 'Prehľad sa nepodarilo načítať.',
+              ),
+              hint: context.tr(
+                en: 'Safo could not prepare today\'s overview right now.',
+                sk: 'Safo teraz nedokázalo pripraviť dnešný prehľad.',
               ),
               onRetry: _reload,
             );
@@ -433,6 +438,66 @@ class _DashboardScreenState extends State<DashboardScreen> {
               .toList();
           final myTaskCount =
               visibleShoppingTasks.length + myCookingTasks.length;
+          final gettingStartedSteps = <_GettingStartedStep>[
+            _GettingStartedStep(
+              title: context.tr(
+                en: 'Set your preferences',
+                sk: 'Nastav si preferencie',
+              ),
+              subtitle: context.tr(
+                en: 'Add allergies, intolerances, language, and household habits first.',
+                sk: 'Najprv pridaj alergie, intolerancie, jazyk a návyky domácnosti.',
+              ),
+              isDone: data.preferences?.onboardingCompleted ?? false,
+              actionLabel: context.tr(en: 'Open', sk: 'Otvoriť'),
+              onTap: _openPreferences,
+            ),
+            _GettingStartedStep(
+              title: context.tr(
+                en: 'Add your first pantry items',
+                sk: 'Pridaj prvé položky do špajze',
+              ),
+              subtitle: context.tr(
+                en: 'Even a few basics like milk, eggs, cheese, or bread are enough to start suggestions.',
+                sk: 'Na začiatok stačí aj pár základov ako mlieko, vajcia, syr alebo chlieb.',
+              ),
+              isDone: data.pantryItems.isNotEmpty,
+              actionLabel: context.tr(en: 'Pantry', sk: 'Špajza'),
+              onTap: widget.onOpenPantry,
+            ),
+            _GettingStartedStep(
+              title: context.tr(
+                en: 'Try a realistic flow',
+                sk: 'Skús reálny flow',
+              ),
+              subtitle: context.tr(
+                en: 'Open Quick command, Shopping list, or Tester info with sample data and walk through one full scenario.',
+                sk: 'Otvor Rýchly príkaz, Nákupný zoznam alebo Tester info s ukážkovými dátami a prejdi si jeden celý scenár.',
+              ),
+              isDone:
+                  data.shoppingItems.any((item) => !item.isBought) ||
+                  data.mealPlanEntries.isNotEmpty ||
+                  data.scans.isNotEmpty,
+              actionLabel: context.tr(en: 'Tester info', sk: 'Tester info'),
+              onTap: _openTesterInfo,
+            ),
+          ];
+          final completedGettingStartedCount = gettingStartedSteps
+              .where((step) => step.isDone)
+              .length;
+          final showGettingStarted =
+              completedGettingStartedCount < gettingStartedSteps.length;
+          final todayActions = _buildTodayActions(
+            context,
+            useSoonItems: useSoonItems,
+            shoppingTasks: visibleShoppingTasks,
+            cookingTasks: myCookingTasks,
+            quickRecipeIdeas: quickRecipeIdeas,
+            onOpenPantry: widget.onOpenPantry,
+            onOpenShoppingList: widget.onOpenShoppingList,
+            onOpenMealPlan: _openMealPlan,
+            onOpenRecipe: widget.onOpenRecipe,
+          );
           final hiddenOverviewCount =
               avoidedRecipes.length +
               openedItems.length +
@@ -452,29 +517,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   sk: '$hiddenOverviewCount ďalších detailov: vyhnúť sa, otvorené, nízke zásoby, nákup a jedálniček.',
                 );
 
-          return RefreshIndicator(
-            onRefresh: _reload,
-            child: ListView(
-              padding: const EdgeInsets.all(16),
+          final alertCount = _dashboardAlertCount(data);
+          final now = DateTime.now();
+
+          return SafeArea(
+            bottom: false,
+            child: RefreshIndicator(
+              onRefresh: _reload,
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
               children: [
-                Text(
-                  context.tr(
-                    en: 'Household overview',
-                    sk: 'Prehľad domácnosti',
-                  ),
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+                _DashboardHeader(
+                  householdName: widget.household.name,
+                  greeting: _greetingLabel(context, now),
+                  dateLabel: _longDateLabel(context, now),
+                  notificationCount: alertCount,
+                  onOpenNotifications: _openNotifications,
+                  onOpenPreferences: _openPreferences,
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  widget.household.name,
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-                const SizedBox(height: 16),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
+                const SizedBox(height: 18),
+                GridView.count(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  childAspectRatio: 1.12,
                   children: [
                     _MetricCard(
                       title: context.tr(
@@ -487,6 +555,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         sk: 'Najbližšie 3 dni',
                       ),
                       icon: Icons.schedule_rounded,
+                      iconColor: SafoColors.danger,
+                      iconBackground: SafoColors.dangerSoft,
+                      background: SafoColors.dangerSoft,
                       onTap: widget.onOpenExpiringSoon,
                     ),
                     _MetricCard(
@@ -497,16 +568,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         sk: 'Treba doplniť',
                       ),
                       icon: Icons.warning_amber_rounded,
-                      onTap: widget.onOpenPantry,
-                    ),
-                    _MetricCard(
-                      title: context.tr(en: 'Opened', sk: 'Otvorené'),
-                      value: openedItems.length.toString(),
-                      subtitle: context.tr(
-                        en: 'Already opened',
-                        sk: 'Už otvorené',
-                      ),
-                      icon: Icons.inventory_2_outlined,
+                      iconColor: SafoColors.warning,
+                      iconBackground: SafoColors.warningSoft,
+                      background: SafoColors.warningSoft,
                       onTap: widget.onOpenPantry,
                     ),
                     _MetricCard(
@@ -517,17 +581,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         sk: 'Aktívne položky na nákup',
                       ),
                       icon: Icons.shopping_cart_outlined,
+                      iconColor: SafoColors.primary,
+                      iconBackground: SafoColors.primarySoft,
+                      background: SafoColors.primarySoft,
                       onTap: widget.onOpenShoppingList,
                     ),
                     _MetricCard(
-                      title: context.tr(en: 'Recipes', sk: 'Recepty'),
-                      value: data.recipes.length.toString(),
+                      title: context.tr(en: 'Recipes ready', sk: 'Recepty pripravené'),
+                      value: quickRecipeIdeas.length.toString(),
                       subtitle: context.tr(
-                        en: 'Available to compare',
-                        sk: 'Dostupné na porovnanie',
+                        en: 'Quick ideas today',
+                        sk: 'Rýchle tipy na dnes',
                       ),
-                      icon: Icons.menu_book_outlined,
-                      onTap: widget.onOpenRecipes,
+                      icon: Icons.restaurant_menu_rounded,
+                      iconColor: SafoColors.accent,
+                      iconBackground: SafoColors.accentSoft,
+                      background: SafoColors.accentSoft,
+                      onTap: widget.onOpenQuickRecipes,
                     ),
                   ],
                 ),
@@ -538,26 +608,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     spacing: 10,
                     runSpacing: 10,
                     children: [
-                      FilledButton.tonalIcon(
+                      _QuickActionChip(
                         onPressed: widget.onOpenPantry,
                         icon: const Icon(Icons.kitchen_outlined),
                         label: Text(
                           context.tr(en: 'Open pantry', sk: 'Otvoriť špajzu'),
                         ),
+                        tint: SafoColors.primarySoft,
+                        iconColor: SafoColors.primary,
                       ),
-                      FilledButton.tonalIcon(
+                      _QuickActionChip(
                         onPressed: widget.onOpenShoppingList,
                         icon: const Icon(Icons.shopping_cart_outlined),
                         label: Text(
                           context.tr(en: 'Shopping list', sk: 'Nákupný zoznam'),
                         ),
+                        tint: SafoColors.dangerSoft,
+                        iconColor: SafoColors.danger,
                       ),
-                      FilledButton.tonalIcon(
+                      _QuickActionChip(
                         onPressed: widget.onOpenRecipes,
                         icon: const Icon(Icons.menu_book_outlined),
                         label: Text(context.tr(en: 'Recipes', sk: 'Recepty')),
+                        tint: SafoColors.accentSoft,
+                        iconColor: SafoColors.accent,
                       ),
-                      FilledButton.tonalIcon(
+                      _QuickActionChip(
                         onPressed: _openStaples,
                         icon: const Icon(Icons.favorite_border_rounded),
                         label: Text(
@@ -566,38 +642,115 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             sk: 'Základné potraviny',
                           ),
                         ),
+                        tint: SafoColors.warningSoft,
+                        iconColor: SafoColors.warning,
                       ),
-                      FilledButton.tonalIcon(
+                      _QuickActionChip(
                         onPressed: _openMealPlan,
                         icon: const Icon(Icons.event_note_outlined),
                         label: Text(
                           context.tr(en: 'Meal plan', sk: 'Jedálniček'),
                         ),
+                        tint: SafoColors.warningSoft,
+                        iconColor: SafoColors.textPrimary,
                       ),
-                      FilledButton.tonalIcon(
+                      _QuickActionChip(
                         onPressed: _openQuickCommand,
                         icon: const Icon(Icons.mic_none_rounded),
                         label: Text(
                           context.tr(en: 'Quick command', sk: 'Rýchly príkaz'),
                         ),
+                        tint: SafoColors.surfaceSoft,
+                        iconColor: SafoColors.textPrimary,
                       ),
-                      FilledButton.tonalIcon(
+                      _QuickActionChip(
                         onPressed: _openPreferences,
                         icon: const Icon(Icons.tune_rounded),
                         label: Text(
                           context.tr(en: 'Preferences', sk: 'Preferencie'),
                         ),
+                        tint: SafoColors.surfaceSoft,
+                        iconColor: SafoColors.textPrimary,
                       ),
-                      FilledButton.tonalIcon(
+                      _QuickActionChip(
                         onPressed: _openTesterInfo,
                         icon: const Icon(Icons.fact_check_outlined),
                         label: Text(
                           context.tr(en: 'Tester info', sk: 'Tester info'),
                         ),
+                        tint: SafoColors.surfaceSoft,
+                        iconColor: SafoColors.textPrimary,
                       ),
                     ],
                   ),
                 ),
+                if (showGettingStarted) ...[
+                  const SizedBox(height: 14),
+                  _SectionCard(
+                    title: context.tr(
+                      en: 'Start with Safo',
+                      sk: 'Začni so Safo',
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          context.tr(
+                            en: '$completedGettingStartedCount of ${gettingStartedSteps.length} basics completed. Finish these first steps to unlock better recommendations, alerts, and planning.',
+                            sk: '$completedGettingStartedCount z ${gettingStartedSteps.length} základov hotových. Dokonči tieto prvé kroky a získaš lepšie odporúčania, upozornenia a plánovanie.',
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        FilledButton.tonalIcon(
+                          onPressed: _isLoadingSampleData
+                              ? null
+                              : _loadSampleDataFromDashboard,
+                          icon: _isLoadingSampleData
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.auto_awesome_outlined),
+                          label: Text(
+                            _isLoadingSampleData
+                                ? context.tr(
+                                    en: 'Loading sample data...',
+                                    sk: 'Nahrávam ukážkové dáta...',
+                                  )
+                                : context.tr(
+                                    en: 'Load sample data',
+                                    sk: 'Nahrať ukážkové dáta',
+                                  ),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        ...gettingStartedSteps.asMap().entries.map((entry) {
+                          final index = entry.key;
+                          final step = entry.value;
+                          return _DashboardRow(
+                            title:
+                                '${index + 1}. ${step.title}${step.isDone ? ' • ${context.tr(en: 'Done', sk: 'Hotovo')}' : ''}',
+                            subtitle: step.subtitle,
+                            onTap: step.onTap,
+                            actionLabel: step.actionLabel,
+                            onActionTap: step.onTap,
+                            leading: Icon(
+                              step.isDone
+                                  ? Icons.check_circle_rounded
+                                  : Icons.radio_button_unchecked_rounded,
+                              color: step.isDone
+                                  ? const Color(0xFF4E7A51)
+                                  : const Color(0xFF9AA79D),
+                            ),
+                          );
+                        }),
+                      ],
+                    ),
+                  ),
+                ],
                 if (myTaskCount > 0) ...[
                   const SizedBox(height: 14),
                   _SectionCard(
@@ -634,6 +787,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           );
                         }),
                       ],
+                    ),
+                  ),
+                ],
+                if (todayActions.isNotEmpty) ...[
+                  const SizedBox(height: 14),
+                  _SectionCard(
+                    title: context.tr(
+                      en: 'What to do today',
+                      sk: 'Čo dnes spraviť',
+                    ),
+                    child: Column(
+                      children: todayActions.map((action) {
+                        return _DashboardRow(
+                          title: action.title,
+                          subtitle: action.subtitle,
+                          leading: Icon(action.icon, color: action.color),
+                          onTap: action.onTap,
+                          actionLabel: action.actionLabel,
+                          onActionTap: action.onTap,
+                        );
+                      }).toList(),
                     ),
                   ),
                 ],
@@ -791,7 +965,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                 ),
                 const SizedBox(height: 14),
-                ExpansionTile(
+                Theme(
+                  data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                  child: ExpansionTile(
                   tilePadding: const EdgeInsets.symmetric(horizontal: 4),
                   title: Text(
                     context.tr(en: 'More overview', sk: 'Ďalšie prehľady'),
@@ -1148,12 +1324,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                   ],
                 ),
+                ),
               ],
+            ),
             ),
           );
         },
       ),
     );
+  }
+
+  int _dashboardAlertCount(_DashboardData data) {
+    return data.pantryItems.where((item) => _daysUntil(item.expirationDate) <= 3).length +
+        data.shoppingItems.where((item) => !item.isBought).take(6).length +
+        data.mealPlanEntries.where((entry) => _daysUntil(entry.scheduledFor) <= 1).length +
+        data.pantryItems.where((item) => item.openedAt != null).length +
+        data.pantryItems.where(_isLowStock).length;
   }
 }
 
@@ -1208,6 +1394,9 @@ class _MetricCard extends StatelessWidget {
   final String value;
   final String subtitle;
   final IconData icon;
+  final Color background;
+  final Color iconBackground;
+  final Color iconColor;
   final VoidCallback? onTap;
 
   const _MetricCard({
@@ -1215,34 +1404,44 @@ class _MetricCard extends StatelessWidget {
     required this.value,
     required this.subtitle,
     required this.icon,
+    required this.background,
+    required this.iconBackground,
+    required this.iconColor,
     this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 170,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(SafoRadii.xl),
           child: Ink(
-            padding: const EdgeInsets.all(18),
+            padding: const EdgeInsets.all(SafoSpacing.md),
             decoration: BoxDecoration(
-              color: const Color(0xFFFFFCF7),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: const Color(0xFFE6DDCF)),
+              color: background,
+              borderRadius: BorderRadius.circular(SafoRadii.xl),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(icon),
-                const SizedBox(height: 14),
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: iconBackground,
+                    borderRadius: BorderRadius.circular(SafoRadii.md),
+                  ),
+                  child: Icon(icon, color: iconColor),
+                ),
+                const Spacer(),
                 Text(
                   value,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                     fontWeight: FontWeight.w800,
+                    color: iconColor,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -1250,10 +1449,18 @@ class _MetricCard extends StatelessWidget {
                   title,
                   style: Theme.of(
                     context,
-                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                  ).textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: SafoColors.textSecondary,
+                  ),
                 ),
                 const SizedBox(height: 4),
-                Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
+                Text(
+                  subtitle,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: SafoColors.textSecondary,
+                  ),
+                ),
               ],
             ),
           ),
@@ -1288,11 +1495,11 @@ class _SectionCard extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(SafoSpacing.md),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFCF7),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFE6DDCF)),
+        color: SafoColors.surface,
+        borderRadius: BorderRadius.circular(SafoRadii.xl),
+        border: Border.all(color: SafoColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1309,6 +1516,7 @@ class _SectionCard extends StatelessWidget {
 class _DashboardRow extends StatelessWidget {
   final String title;
   final String subtitle;
+  final Widget? leading;
   final VoidCallback? onTap;
   final String? actionLabel;
   final VoidCallback? onActionTap;
@@ -1316,6 +1524,7 @@ class _DashboardRow extends StatelessWidget {
   const _DashboardRow({
     required this.title,
     required this.subtitle,
+    this.leading,
     this.onTap,
     this.actionLabel,
     this.onActionTap,
@@ -1324,30 +1533,38 @@ class _DashboardRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 10),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(14),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+          borderRadius: BorderRadius.circular(SafoRadii.lg),
+          child: Ink(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+            decoration: BoxDecoration(
+              color: SafoColors.surface,
+              borderRadius: BorderRadius.circular(SafoRadii.lg),
+              border: Border.all(color: SafoColors.border),
+            ),
             child: Row(
               children: [
+                if (leading != null) ...[leading!, const SizedBox(width: 10)],
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         title,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         subtitle,
-                        style: Theme.of(context).textTheme.bodyMedium,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: SafoColors.textSecondary,
+                        ),
                       ),
                     ],
                   ),
@@ -1355,16 +1572,24 @@ class _DashboardRow extends StatelessWidget {
                 if (actionLabel != null && onActionTap != null)
                   Padding(
                     padding: const EdgeInsets.only(right: 4),
-                    child: FilledButton.tonal(
+                    child: OutlinedButton(
                       onPressed: onActionTap,
-                      style: FilledButton.styleFrom(
+                      style: OutlinedButton.styleFrom(
                         visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                       ),
                       child: Text(actionLabel!),
                     ),
                   ),
                 if (onTap != null)
-                  const Icon(Icons.chevron_right_rounded, size: 20),
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    size: 20,
+                    color: SafoColors.textMuted,
+                  ),
               ],
             ),
           ),
@@ -1372,6 +1597,213 @@ class _DashboardRow extends StatelessWidget {
       ),
     );
   }
+}
+
+class _DashboardHeader extends StatelessWidget {
+  final String householdName;
+  final String greeting;
+  final String dateLabel;
+  final int notificationCount;
+  final VoidCallback onOpenNotifications;
+  final VoidCallback onOpenPreferences;
+
+  const _DashboardHeader({
+    required this.householdName,
+    required this.greeting,
+    required this.dateLabel,
+    required this.notificationCount,
+    required this.onOpenNotifications,
+    required this.onOpenPreferences,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const SafoLogo(
+              variant: SafoLogoVariant.iconTransparent,
+              width: 28,
+              height: 28,
+            ),
+            const SizedBox(width: 10),
+            const SafoLogo(
+              variant: SafoLogoVariant.pill,
+              height: 28,
+            ),
+            const Spacer(),
+            _HeaderIconButton(
+              icon: Icons.notifications_none_rounded,
+              badgeCount: notificationCount,
+              onTap: onOpenNotifications,
+            ),
+            const SizedBox(width: 8),
+            _HeaderIconButton(
+              icon: Icons.tune_rounded,
+              onTap: onOpenPreferences,
+            ),
+          ],
+        ),
+        const SizedBox(height: 18),
+        Text(
+          greeting,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: SafoColors.textSecondary,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(householdName, style: Theme.of(context).textTheme.headlineLarge),
+        const SizedBox(height: 2),
+        Text(
+          dateLabel,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: SafoColors.textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _HeaderIconButton extends StatelessWidget {
+  final IconData icon;
+  final int badgeCount;
+  final VoidCallback onTap;
+
+  const _HeaderIconButton({
+    required this.icon,
+    required this.onTap,
+    this.badgeCount = 0,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: SafoColors.surface,
+      borderRadius: BorderRadius.circular(SafoRadii.pill),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(SafoRadii.pill),
+        child: Ink(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: SafoColors.surface,
+            borderRadius: BorderRadius.circular(SafoRadii.pill),
+            border: Border.all(color: SafoColors.border),
+          ),
+          child: Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.center,
+            children: [
+              Icon(icon, color: SafoColors.textPrimary),
+              if (badgeCount > 0)
+                Positioned(
+                  right: 3,
+                  top: 3,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: SafoColors.danger,
+                      borderRadius: BorderRadius.circular(SafoRadii.pill),
+                    ),
+                    child: Text(
+                      badgeCount > 9 ? '9+' : '$badgeCount',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _QuickActionChip extends StatelessWidget {
+  final VoidCallback onPressed;
+  final Widget icon;
+  final Widget label;
+  final Color tint;
+  final Color iconColor;
+
+  const _QuickActionChip({
+    required this.onPressed,
+    required this.icon,
+    required this.label,
+    required this.tint,
+    required this.iconColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: onPressed,
+      icon: IconTheme(
+        data: IconThemeData(color: iconColor, size: 18),
+        child: icon,
+      ),
+      label: DefaultTextStyle.merge(
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: SafoColors.textPrimary,
+              fontWeight: FontWeight.w700,
+            ),
+        child: label,
+      ),
+      style: OutlinedButton.styleFrom(
+        backgroundColor: tint,
+        side: BorderSide(color: tint),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(SafoRadii.lg),
+        ),
+      ),
+    );
+  }
+}
+
+class _GettingStartedStep {
+  final String title;
+  final String subtitle;
+  final bool isDone;
+  final String actionLabel;
+  final VoidCallback onTap;
+
+  const _GettingStartedStep({
+    required this.title,
+    required this.subtitle,
+    required this.isDone,
+    required this.actionLabel,
+    required this.onTap,
+  });
+}
+
+class _TodayActionItem {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final String actionLabel;
+  final VoidCallback onTap;
+  final int priority;
+
+  const _TodayActionItem({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+    required this.actionLabel,
+    required this.onTap,
+    required this.priority,
+  });
 }
 
 bool _isLowStock(FoodItem item) {
@@ -1497,6 +1929,105 @@ String _quickNutritionLabel(
       sk: 'Na každý deň',
     ),
   };
+}
+
+List<_TodayActionItem> _buildTodayActions(
+  BuildContext context, {
+  required List<FoodItem> useSoonItems,
+  required List<ShoppingListItem> shoppingTasks,
+  required List<MealPlanEntry> cookingTasks,
+  required List<Recipe> quickRecipeIdeas,
+  required VoidCallback onOpenPantry,
+  required VoidCallback onOpenShoppingList,
+  required VoidCallback onOpenMealPlan,
+  required ValueChanged<String> onOpenRecipe,
+}) {
+  final actions = <_TodayActionItem>[];
+
+  if (useSoonItems.isNotEmpty) {
+    final item = useSoonItems.first;
+    final urgencyLabel = item.openedAt != null
+        ? _openedUseSoonLabel(context, item) ??
+              _expiryLabel(context, item.expirationDate)
+        : _expiryLabel(context, item.expirationDate);
+    actions.add(
+      _TodayActionItem(
+        title: context.tr(
+          en: 'Use: ${localizedIngredientDisplayName(context, item.name)}',
+          sk: 'Minúť: ${localizedIngredientDisplayName(context, item.name)}',
+        ),
+        subtitle:
+            '$urgencyLabel • ${_formatQuantity(item.quantity)} ${item.unit}',
+        icon: Icons.schedule_rounded,
+        color: const Color(0xFFE07A5F),
+        actionLabel: context.tr(en: 'Pantry', sk: 'Špajza'),
+        onTap: onOpenPantry,
+        priority: 0,
+      ),
+    );
+  }
+
+  if (shoppingTasks.isNotEmpty) {
+    final item = shoppingTasks.first;
+    actions.add(
+      _TodayActionItem(
+        title: context.tr(
+          en: 'Buy: ${localizedIngredientDisplayName(context, item.name)}',
+          sk: 'Kúpiť: ${localizedIngredientDisplayName(context, item.name)}',
+        ),
+        subtitle:
+            '${_formatQuantity(item.quantity)} ${item.unit} • ${_shoppingSourceLabel(context, item.source)}',
+        icon: Icons.shopping_cart_outlined,
+        color: const Color(0xFF1B2A41),
+        actionLabel: context.tr(en: 'Shopping', sk: 'Nákup'),
+        onTap: onOpenShoppingList,
+        priority: 1,
+      ),
+    );
+  }
+
+  if (cookingTasks.isNotEmpty) {
+    final entry = cookingTasks.first;
+    actions.add(
+      _TodayActionItem(
+        title: context.tr(
+          en: 'Cook: ${entry.recipeName}',
+          sk: 'Variť: ${entry.recipeName}',
+        ),
+        subtitle:
+            '${_mealTypeLabel(context, entry.mealType)} • ${_formatDate(entry.scheduledFor)} • ${entry.servings} ${context.tr(en: entry.servings == 1 ? 'serving' : 'servings', sk: entry.servings == 1 ? 'porcia' : 'porcie')}',
+        icon: Icons.restaurant_menu_outlined,
+        color: const Color(0xFF4C6FFF),
+        actionLabel: context.tr(en: 'Meal plan', sk: 'Jedálniček'),
+        onTap: onOpenMealPlan,
+        priority: 2,
+      ),
+    );
+  }
+
+  if (quickRecipeIdeas.isNotEmpty && actions.length < 3) {
+    final recipe = quickRecipeIdeas.first;
+    actions.add(
+      _TodayActionItem(
+        title: context.tr(
+          en: 'Cook quickly: ${localizedRecipeName(context, recipe)}',
+          sk: 'Rýchlo navariť: ${localizedRecipeName(context, recipe)}',
+        ),
+        subtitle: context.tr(
+          en: '${recipe.totalMinutes} min recipe for a quick win today',
+          sk: '${recipe.totalMinutes} min recept na rýchly dnešný výsledok',
+        ),
+        icon: Icons.flash_on_rounded,
+        color: const Color(0xFFDD8B52),
+        actionLabel: context.tr(en: 'Recipe', sk: 'Recept'),
+        onTap: () => onOpenRecipe(recipe.id),
+        priority: 3,
+      ),
+    );
+  }
+
+  actions.sort((a, b) => a.priority.compareTo(b.priority));
+  return actions.take(3).toList();
 }
 
 List<String> _missingOrPartialIngredientNames(
@@ -1901,6 +2432,79 @@ String _warningTypeLabel(BuildContext context, _FoodSafetyWarningType type) {
         sk: 'Upozornenie na intoleranciu',
       );
   }
+}
+
+String _greetingLabel(BuildContext context, DateTime now) {
+  final hour = now.hour;
+  if (hour < 12) {
+    return context.tr(en: 'Good morning', sk: 'Dobré ráno');
+  }
+  if (hour < 18) {
+    return context.tr(en: 'Good afternoon', sk: 'Dobrý deň');
+  }
+  return context.tr(en: 'Good evening', sk: 'Dobrý večer');
+}
+
+String _longDateLabel(BuildContext context, DateTime date) {
+  final weekdaysEn = [
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+    'Sunday',
+  ];
+  final weekdaysSk = [
+    'Pondelok',
+    'Utorok',
+    'Streda',
+    'Štvrtok',
+    'Piatok',
+    'Sobota',
+    'Nedeľa',
+  ];
+  final monthsEn = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ];
+  final monthsSk = [
+    'januára',
+    'februára',
+    'marca',
+    'apríla',
+    'mája',
+    'júna',
+    'júla',
+    'augusta',
+    'septembra',
+    'októbra',
+    'novembra',
+    'decembra',
+  ];
+
+  final weekday = context.tr(
+    en: weekdaysEn[date.weekday - 1],
+    sk: weekdaysSk[date.weekday - 1],
+  );
+  final month = context.tr(
+    en: monthsEn[date.month - 1],
+    sk: monthsSk[date.month - 1],
+  );
+  return context.tr(
+    en: '$weekday, $month ${date.day}',
+    sk: '$weekday, ${date.day}. $month',
+  );
 }
 
 enum _FoodSafetyWarningType { allergy, intolerance }

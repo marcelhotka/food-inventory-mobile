@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../app/localization/app_locale.dart';
+import '../../../app/theme/safo_tokens.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/app_feedback.dart';
+import '../../../core/widgets/safo_logo.dart';
 import '../../food_items/data/food_items_repository.dart';
 import '../../food_items/domain/food_item.dart';
 import '../../households/domain/household.dart';
@@ -234,44 +236,14 @@ class _RecipesScreenState extends State<RecipesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(context.tr(en: 'Recipes', sk: 'Recepty')),
-        actions: [
-          IconButton(
-            onPressed: _openCreateRecipe,
-            icon: const Icon(Icons.add),
-            tooltip: context.tr(en: 'Add recipe', sk: 'Pridať recept'),
-          ),
-        ],
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _openCreateRecipe,
+        icon: const Icon(Icons.add),
+        label: Text(context.tr(en: 'Add recipe', sk: 'Pridať recept')),
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-            child: _RecipesSearchAndFilterBar(
-              controller: _searchController,
-              focusNode: _searchFocusNode,
-              selectedFilter: _selectedFilter,
-              onSearchChanged: (value) {
-                _searchDebounce?.cancel();
-                _searchDebounce = Timer(const Duration(milliseconds: 250), () {
-                  if (!mounted) {
-                    return;
-                  }
-                  setState(() {
-                    _searchQuery = value.trim().toLowerCase();
-                  });
-                });
-              },
-              onFilterChanged: (value) {
-                setState(() {
-                  _selectedFilter = value;
-                });
-              },
-            ),
-          ),
-          Expanded(
-            child: FutureBuilder<_RecipesViewData>(
+      body: SafeArea(
+        bottom: false,
+        child: FutureBuilder<_RecipesViewData>(
               future: _recipesViewFuture,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -280,9 +252,18 @@ class _RecipesScreenState extends State<RecipesScreen> {
 
                 if (snapshot.hasError) {
                   return AppErrorState(
+                    kind: AppErrorKind.sync,
+                    title: context.tr(
+                      en: 'Recipes are unavailable',
+                      sk: 'Recepty nie sú k dispozícii',
+                    ),
                     message: context.tr(
                       en: 'Failed to load recipes or pantry items.',
                       sk: 'Recepty alebo pantry položky sa nepodarilo načítať.',
+                    ),
+                    hint: context.tr(
+                      en: 'Safo could not compare recipes with your pantry right now.',
+                      sk: 'Safo teraz nedokázalo porovnať recepty s tvojou špajzou.',
                     ),
                     onRetry: _reload,
                   );
@@ -394,16 +375,44 @@ class _RecipesScreenState extends State<RecipesScreen> {
                                 null;
                       }).length
                     : 0;
-                final leadingItemCount = showQuickCookingMode ? 1 : 0;
 
                 return RefreshIndicator(
                   onRefresh: _reload,
                   child: ListView.separated(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: filteredRecipes.length + leadingItemCount,
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 120),
+                    itemCount: filteredRecipes.length + 2 + (showQuickCookingMode ? 1 : 0),
                     separatorBuilder: (_, _) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
-                      if (showQuickCookingMode && index == 0) {
+                      if (index == 0) {
+                        return _RecipesHeader(onOpenCreateRecipe: _openCreateRecipe);
+                      }
+                      if (index == 1) {
+                        return _RecipesSearchAndFilterBar(
+                          controller: _searchController,
+                          focusNode: _searchFocusNode,
+                          selectedFilter: _selectedFilter,
+                          onSearchChanged: (value) {
+                            _searchDebounce?.cancel();
+                            _searchDebounce = Timer(
+                              const Duration(milliseconds: 250),
+                              () {
+                                if (!mounted) {
+                                  return;
+                                }
+                                setState(() {
+                                  _searchQuery = value.trim().toLowerCase();
+                                });
+                              },
+                            );
+                          },
+                          onFilterChanged: (value) {
+                            setState(() {
+                              _selectedFilter = value;
+                            });
+                          },
+                        );
+                      }
+                      if (showQuickCookingMode && index == 2) {
                         return _QuickCookingModeCard(
                           minutes: quickCookingMinutes,
                           recipeCount: filteredRecipes.length,
@@ -412,7 +421,8 @@ class _RecipesScreenState extends State<RecipesScreen> {
                         );
                       }
 
-                      final recipe = filteredRecipes[index - leadingItemCount];
+                      final recipeOffset = 2 + (showQuickCookingMode ? 1 : 0);
+                      final recipe = filteredRecipes[index - recipeOffset];
                       final selectedServings = _selectedServingsFor(recipe);
                       final result = _matchRecipe(
                         recipe,
@@ -430,17 +440,18 @@ class _RecipesScreenState extends State<RecipesScreen> {
                       final isFocused = recipe.id == widget.focusedRecipeId;
 
                       return Card(
-                        color: isFocused ? const Color(0xFFFFF8E8) : null,
+                        color: isFocused ? SafoColors.warningSoft : SafoColors.surface,
+                        margin: EdgeInsets.zero,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(SafoRadii.xl),
                           side: BorderSide(
                             color: isFocused
-                                ? const Color(0xFFE0C36B)
-                                : Colors.transparent,
+                                ? SafoColors.warning
+                                : SafoColors.border,
                           ),
                         ),
                         child: Padding(
-                          padding: const EdgeInsets.all(18),
+                          padding: const EdgeInsets.all(16),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -455,6 +466,7 @@ class _RecipesScreenState extends State<RecipesScreen> {
                                           .titleLarge
                                           ?.copyWith(
                                             fontWeight: FontWeight.w700,
+                                            color: SafoColors.textPrimary,
                                           ),
                                     ),
                                   ),
@@ -508,6 +520,22 @@ class _RecipesScreenState extends State<RecipesScreen> {
                                 ],
                               ),
                               const SizedBox(height: 8),
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(14),
+                                decoration: BoxDecoration(
+                                  color: SafoColors.background,
+                                  borderRadius: BorderRadius.circular(SafoRadii.lg),
+                                  border: Border.all(color: SafoColors.border),
+                                ),
+                                child: Text(
+                                  localizedRecipeDescription(context, recipe),
+                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: SafoColors.textSecondary,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
                               Wrap(
                                 spacing: 8,
                                 runSpacing: 8,
@@ -529,8 +557,6 @@ class _RecipesScreenState extends State<RecipesScreen> {
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 12),
-                              Text(localizedRecipeDescription(context, recipe)),
                               const SizedBox(height: 12),
                               _RecipeNutritionSummary(nutrition: nutrition),
                               const SizedBox(height: 16),
@@ -638,8 +664,6 @@ class _RecipesScreenState extends State<RecipesScreen> {
                 );
               },
             ),
-          ),
-        ],
       ),
     );
   }
@@ -2326,6 +2350,95 @@ class _PantryConsumptionEntry {
   });
 }
 
+class _RecipesHeader extends StatelessWidget {
+  final VoidCallback onOpenCreateRecipe;
+
+  const _RecipesHeader({required this.onOpenCreateRecipe});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const SafoLogo(
+              variant: SafoLogoVariant.iconTransparent,
+              width: 28,
+              height: 28,
+            ),
+            const SizedBox(width: 10),
+            const SafoLogo(
+              variant: SafoLogoVariant.pill,
+              height: 28,
+            ),
+            const Spacer(),
+            _RecipesHeaderIconButton(
+              icon: Icons.add_rounded,
+              onTap: onOpenCreateRecipe,
+            ),
+          ],
+        ),
+        const SizedBox(height: 18),
+        Text(
+          context.tr(en: 'What can you cook today?', sk: 'Čo dnes navaríš?'),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: SafoColors.textSecondary,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          context.tr(en: 'Recipes', sk: 'Recepty'),
+          style: Theme.of(context).textTheme.headlineLarge,
+        ),
+        const SizedBox(height: 2),
+        Text(
+          context.tr(
+            en: 'Compare recipes with your pantry, safety preferences and cooking time.',
+            sk: 'Porovnaj recepty so špajzou, bezpečnostnými preferenciami a časom varenia.',
+          ),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: SafoColors.textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RecipesHeaderIconButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _RecipesHeaderIconButton({
+    required this.icon,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: SafoColors.surface,
+      borderRadius: BorderRadius.circular(SafoRadii.pill),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(SafoRadii.pill),
+        child: Ink(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: SafoColors.surface,
+            borderRadius: BorderRadius.circular(SafoRadii.pill),
+            border: Border.all(color: SafoColors.border),
+          ),
+          child: Icon(icon, color: SafoColors.textPrimary),
+        ),
+      ),
+    );
+  }
+}
+
 class _SummaryChip extends StatelessWidget {
   final String label;
   final Color color;
@@ -2340,7 +2453,13 @@ class _SummaryChip extends StatelessWidget {
         color: color,
         borderRadius: BorderRadius.circular(999),
       ),
-      child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: SafoColors.textPrimary,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
     );
   }
 }
@@ -2361,7 +2480,12 @@ class _QuickCookingModeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      color: const Color(0xFFFFF7E8),
+      color: SafoColors.warningSoft,
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(SafoRadii.xl),
+        side: const BorderSide(color: SafoColors.border),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -2370,7 +2494,7 @@ class _QuickCookingModeCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.timer_outlined, color: Color(0xFF8A5A00)),
+                const Icon(Icons.timer_outlined, color: SafoColors.warning),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
@@ -2382,7 +2506,10 @@ class _QuickCookingModeCard extends StatelessWidget {
                           sk: 'Čo uvarím za $minutes minút?',
                         ),
                         style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w800),
+                            ?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: SafoColors.textPrimary,
+                            ),
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -2406,21 +2533,21 @@ class _QuickCookingModeCard extends StatelessWidget {
                     en: '$recipeCount recipes',
                     sk: '$recipeCount receptov',
                   ),
-                  color: const Color(0xFFFFE9BA),
+                  color: SafoColors.dangerSoft,
                 ),
                 _SummaryChip(
                   label: context.tr(
                     en: '$safeCount safe for me',
                     sk: '$safeCount bezpečných pre mňa',
                   ),
-                  color: const Color(0xFFE5F0DF),
+                  color: SafoColors.primarySoft,
                 ),
                 _SummaryChip(
                   label: context.tr(
                     en: '$readyCount ready from pantry',
                     sk: '$readyCount pripravených zo špajze',
                   ),
-                  color: const Color(0xFFE8EEF8),
+                  color: SafoColors.accentSoft,
                 ),
               ],
             ),
@@ -2724,6 +2851,7 @@ class _RecipesSearchAndFilterBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      margin: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -2737,7 +2865,16 @@ class _RecipesSearchAndFilterBar extends StatelessWidget {
                   en: 'Search recipes',
                   sk: 'Hľadať recepty',
                 ),
-                prefixIcon: const Icon(Icons.search),
+                prefixIcon: const Icon(Icons.search, color: SafoColors.textMuted),
+                suffixIcon: controller.text.isEmpty
+                    ? null
+                    : IconButton(
+                        onPressed: () {
+                          controller.clear();
+                          onSearchChanged('');
+                        },
+                        icon: const Icon(Icons.close_rounded),
+                      ),
               ),
             ),
             const SizedBox(height: 12),
@@ -2749,24 +2886,32 @@ class _RecipesSearchAndFilterBar extends StatelessWidget {
                   label: Text(context.tr(en: 'All', sk: 'Všetko')),
                   selected: selectedFilter == RecipeFilter.all,
                   onSelected: (_) => onFilterChanged(RecipeFilter.all),
+                  selectedColor: SafoColors.primary,
+                  checkmarkColor: Colors.white,
                 ),
                 FilterChip(
                   label: const Text('15 min'),
                   selected: selectedFilter == RecipeFilter.under15Minutes,
                   onSelected: (_) =>
                       onFilterChanged(RecipeFilter.under15Minutes),
+                  selectedColor: SafoColors.primary,
+                  checkmarkColor: Colors.white,
                 ),
                 FilterChip(
                   label: const Text('30 min'),
                   selected: selectedFilter == RecipeFilter.under30Minutes,
                   onSelected: (_) =>
                       onFilterChanged(RecipeFilter.under30Minutes),
+                  selectedColor: SafoColors.primary,
+                  checkmarkColor: Colors.white,
                 ),
                 FilterChip(
                   label: const Text('45 min'),
                   selected: selectedFilter == RecipeFilter.under45Minutes,
                   onSelected: (_) =>
                       onFilterChanged(RecipeFilter.under45Minutes),
+                  selectedColor: SafoColors.primary,
+                  checkmarkColor: Colors.white,
                 ),
                 FilterChip(
                   label: Text(
@@ -2774,22 +2919,30 @@ class _RecipesSearchAndFilterBar extends StatelessWidget {
                   ),
                   selected: selectedFilter == RecipeFilter.safeForMe,
                   onSelected: (_) => onFilterChanged(RecipeFilter.safeForMe),
+                  selectedColor: SafoColors.primary,
+                  checkmarkColor: Colors.white,
                 ),
                 FilterChip(
                   label: Text(context.tr(en: 'Favorites', sk: 'Obľúbené')),
                   selected: selectedFilter == RecipeFilter.favorites,
                   onSelected: (_) => onFilterChanged(RecipeFilter.favorites),
+                  selectedColor: SafoColors.primary,
+                  checkmarkColor: Colors.white,
                 ),
                 FilterChip(
                   label: Text(context.tr(en: 'Public', sk: 'Verejné')),
                   selected: selectedFilter == RecipeFilter.publicOnly,
                   onSelected: (_) => onFilterChanged(RecipeFilter.publicOnly),
+                  selectedColor: SafoColors.primary,
+                  checkmarkColor: Colors.white,
                 ),
                 FilterChip(
                   label: Text(context.tr(en: 'Household', sk: 'Domácnosť')),
                   selected: selectedFilter == RecipeFilter.householdOnly,
                   onSelected: (_) =>
                       onFilterChanged(RecipeFilter.householdOnly),
+                  selectedColor: SafoColors.primary,
+                  checkmarkColor: Colors.white,
                 ),
               ],
             ),

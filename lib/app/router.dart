@@ -124,6 +124,11 @@ class _RootScreenState extends State<_RootScreen> {
 
         if (snapshot.hasError) {
           return AppErrorState(
+            kind: AppErrorKind.sync,
+            title: context.tr(
+              en: 'Unable to open your household',
+              sk: 'Nepodarilo sa otvoriť tvoju domácnosť',
+            ),
             message: context.tr(
               en: 'Failed to load household.',
               sk: 'Nepodarilo sa načítať domácnosť.',
@@ -168,6 +173,11 @@ class _RootScreenState extends State<_RootScreen> {
               }
 
               return AppErrorState(
+                kind: AppErrorKind.sync,
+                title: context.tr(
+                  en: 'Unable to open preferences',
+                  sk: 'Nepodarilo sa otvoriť preferencie',
+                ),
                 message: context.tr(
                   en: 'Failed to load preferences.',
                   sk: 'Nepodarilo sa načítať preferencie.',
@@ -229,10 +239,7 @@ class _AnonymousHouseholdBootstrapState
           return Scaffold(
             appBar: AppBar(
               title: Text(
-                context.tr(
-                  en: 'Preparing Safo',
-                  sk: 'Pripravujeme Safo',
-                ),
+                context.tr(en: 'Preparing Safo', sk: 'Pripravujeme Safo'),
               ),
             ),
             body: const Center(child: AppLoadingState()),
@@ -274,7 +281,38 @@ class _ConfigErrorScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(24),
               border: Border.all(color: const Color(0xFFE6DDCF)),
             ),
-            child: Text(message, textAlign: TextAlign.center),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.settings_suggest_rounded,
+                  size: 40,
+                  color: Color(0xFF4C6FFF),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  context.tr(
+                    en: 'Safo needs setup',
+                    sk: 'Safo potrebuje nastavenie',
+                  ),
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(message, textAlign: TextAlign.center),
+                const SizedBox(height: 8),
+                Text(
+                  context.tr(
+                    en: 'This usually means environment or integration settings are still missing.',
+                    sk: 'Zvyčajne to znamená, že ešte chýbajú nastavenia prostredia alebo integrácie.',
+                  ),
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
           ),
         ),
       ),

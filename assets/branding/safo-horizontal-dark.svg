@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="680" height="160" viewBox="0 0 680 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="680" height="160" fill="#1E2D4E" rx="20"/>
+
+  <!-- Icon circle -->
+  <circle cx="80" cy="80" r="58" fill="rgba(255,255,255,0.07)"/>
+
+  <!-- Leaf left -->
+  <ellipse cx="72" cy="68" rx="20" ry="30" fill="#4CAF72" opacity="0.95" transform="rotate(-18 72 68)"/>
+
+  <!-- Leaf right -->
+  <ellipse cx="88" cy="62" rx="15" ry="24" fill="#6DC36D" opacity="0.80" transform="rotate(18 88 62)"/>
+
+  <!-- Highlight -->
+  <ellipse cx="66" cy="60" rx="6" ry="13" fill="white" opacity="0.15" transform="rotate(-18 66 60)"/>
+
+  <!-- Stem -->
+  <line x1="80" y1="98" x2="80" y2="112" stroke="#A8E6C1" stroke-width="4" stroke-linecap="round"/>
+
+  <!-- Checkmark -->
+  <path d="M58 80 L72 94 L104 62" stroke="white" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+  <!-- Wordmark SAFO -->
+  <!-- S -->
+  <text x="168" y="104" font-family="'Arial Black', 'Helvetica Neue', sans-serif" font-size="72" font-weight="900" fill="white" letter-spacing="10">SAFO</text>
+
+  <!-- Tagline -->
+  <text x="170" y="130" font-family="'Arial', 'Helvetica', sans-serif" font-size="13" font-weight="500" fill="rgba(255,255,255,0.45)" letter-spacing="3">SMART &amp; FRESH ORGANIZER</text>
+</svg>

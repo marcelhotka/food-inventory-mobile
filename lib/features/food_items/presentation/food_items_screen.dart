@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/localization/app_locale.dart';
+import '../../../app/theme/safo_tokens.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/app_feedback.dart';
+import '../../../core/widgets/safo_logo.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../household_activity/data/household_activity_repository.dart';
 import '../../household_activity/domain/household_activity_event.dart';
@@ -1352,49 +1354,6 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(context.tr(en: 'Pantry', sk: 'Špajza')),
-        actions: [
-          IconButton(
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => HouseholdScreen(household: widget.household),
-                ),
-              );
-            },
-            icon: const Icon(Icons.groups_2_outlined),
-            tooltip: context.tr(en: 'Household', sk: 'Domácnosť'),
-          ),
-          IconButton(
-            onPressed: _openBarcodeLookup,
-            icon: const Icon(Icons.qr_code_scanner_rounded),
-            tooltip: context.tr(en: 'Scan code', sk: 'Skenovať kód'),
-          ),
-          IconButton(
-            onPressed: _openFridgeScan,
-            icon: const Icon(Icons.photo_camera_back_outlined),
-            tooltip: context.tr(en: 'Scan fridge', sk: 'Skenovať chladničku'),
-          ),
-          IconButton(
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) =>
-                      ScanHistoryScreen(householdId: widget.household.id),
-                ),
-              );
-            },
-            icon: const Icon(Icons.history_rounded),
-            tooltip: context.tr(en: 'Scan history', sk: 'História scanov'),
-          ),
-          IconButton(
-            onPressed: widget.authRepository.signOut,
-            icon: const Icon(Icons.logout),
-            tooltip: context.tr(en: 'Sign out', sk: 'Odhlásiť sa'),
-          ),
-        ],
-      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openCreateForm,
         icon: const Icon(Icons.add),
@@ -1408,8 +1367,36 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
           }
 
           if (snapshot.hasError) {
+            final error = snapshot.error;
             return AppErrorState(
-              message: _errorMessage(snapshot.error),
+              kind:
+                  error is FoodItemsConfigException ||
+                      error is FoodItemsAuthException
+                  ? AppErrorKind.setup
+                  : AppErrorKind.sync,
+              title:
+                  error is FoodItemsConfigException ||
+                      error is FoodItemsAuthException
+                  ? context.tr(
+                      en: 'Pantry needs setup',
+                      sk: 'Špajza potrebuje nastavenie',
+                    )
+                  : context.tr(
+                      en: 'Pantry is unavailable',
+                      sk: 'Špajza nie je k dispozícii',
+                    ),
+              message: _errorMessage(error),
+              hint:
+                  error is FoodItemsConfigException ||
+                      error is FoodItemsAuthException
+                  ? context.tr(
+                      en: 'Safo needs account or backend setup before pantry data can load.',
+                      sk: 'Safo potrebuje účet alebo backend nastavenie, aby sa načítali dáta špajze.',
+                    )
+                  : context.tr(
+                      en: 'Safo could not load pantry items right now.',
+                      sk: 'Safo teraz nedokázalo načítať položky v špajzi.',
+                    ),
               onRetry: _reload,
             );
           }
@@ -1442,6 +1429,28 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
           final groupedEntries = _buildGroupedEntries(filteredItems);
 
           final headerWidgets = <Widget>[
+            _PantryHeader(
+              householdName: widget.household.name,
+              onOpenHousehold: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => HouseholdScreen(household: widget.household),
+                  ),
+                );
+              },
+              onOpenBarcode: _openBarcodeLookup,
+              onOpenFridgeScan: _openFridgeScan,
+              onOpenScanHistory: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        ScanHistoryScreen(householdId: widget.household.id),
+                  ),
+                );
+              },
+              onSignOut: widget.authRepository.signOut,
+            ),
+            const SizedBox(height: 18),
             _PantrySummary(
               totalItems: items.length,
               expiringSoonCount: expiringSoonCount,
@@ -1459,11 +1468,40 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
               },
             ),
             const SizedBox(height: 16),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                _PantryActionChip(
+                  onTap: _openBarcodeLookup,
+                  icon: Icons.qr_code_scanner_rounded,
+                  label: context.tr(en: 'Scan code', sk: 'Skenovať kód'),
+                  tint: SafoColors.primarySoft,
+                  iconColor: SafoColors.primary,
+                ),
+                _PantryActionChip(
+                  onTap: _openFridgeScan,
+                  icon: Icons.photo_camera_back_outlined,
+                  label: context.tr(en: 'Scan fridge', sk: 'Skenovať chladničku'),
+                  tint: SafoColors.accentSoft,
+                  iconColor: SafoColors.accent,
+                ),
+                _PantryActionChip(
+                  onTap: () => _openExpiringSoonScreen(items, preferences),
+                  icon: Icons.schedule_rounded,
+                  label: context.tr(en: 'Use soon', sk: 'Použi čoskoro'),
+                  tint: SafoColors.dangerSoft,
+                  iconColor: SafoColors.danger,
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
-              child: FilledButton.tonal(
+              child: OutlinedButton.icon(
                 onPressed: () => _openExpiringSoonScreen(items, preferences),
-                child: Text(
+                icon: const Icon(Icons.alarm_rounded),
+                label: Text(
                   expiringSoonCount > 0
                       ? context.tr(
                           en: 'View $expiringSoonCount expiring soon item${expiringSoonCount == 1 ? '' : 's'}',
@@ -1526,11 +1564,13 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
             if (duplicateItemCount > 0) const SizedBox(height: 16),
           ];
 
-          return RefreshIndicator(
-            onRefresh: _reload,
-            child: ListView.builder(
+          return SafeArea(
+            bottom: false,
+            child: RefreshIndicator(
+              onRefresh: _reload,
+              child: ListView.builder(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
               itemCount:
                   headerWidgets.length +
                   (groupedEntries.isEmpty ? 1 : groupedEntries.length),
@@ -1552,6 +1592,7 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
                 final entry = groupedEntries[index - headerWidgets.length];
                 return _buildGroupedEntry(entry, preferences);
               },
+            ),
             ),
           );
         },
@@ -1875,13 +1916,14 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
     _FoodSafetyWarning? warning,
   }) {
     return Card(
-      color: Colors.white,
+      color: SafoColors.surface,
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24),
-        side: const BorderSide(color: Color(0xFFE7EAE3)),
+        borderRadius: BorderRadius.circular(SafoRadii.xl),
+        side: const BorderSide(color: SafoColors.border),
       ),
       child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         onTap: () => _showItemActions(item),
         title: Row(
           children: [
@@ -1889,7 +1931,7 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
               child: Text(
                 localizedIngredientDisplayName(context, item.name),
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: const Color(0xFF1B2A41),
+                  color: SafoColors.textPrimary,
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -1914,7 +1956,7 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
             Text(
               subtitle,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: const Color(0xFF6B7785),
+                color: SafoColors.textSecondary,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -1929,7 +1971,7 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
                   _openedUseSoonLabel(item),
                 ].join(' • '),
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: const Color(0xFF8A4B00),
+                  color: SafoColors.warning,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -1943,7 +1985,10 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
         trailing: IconButton(
           onPressed: () => _showItemActions(item),
           tooltip: context.tr(en: 'More actions', sk: 'Viac akcií'),
-          icon: const Icon(Icons.more_horiz_rounded),
+          icon: const Icon(
+            Icons.more_horiz_rounded,
+            color: SafoColors.textMuted,
+          ),
         ),
       ),
     );
@@ -2331,6 +2376,114 @@ class _PantrySaveResult {
   });
 }
 
+class _PantryHeader extends StatelessWidget {
+  final String householdName;
+  final VoidCallback onOpenHousehold;
+  final VoidCallback onOpenBarcode;
+  final VoidCallback onOpenFridgeScan;
+  final VoidCallback onOpenScanHistory;
+  final VoidCallback onSignOut;
+
+  const _PantryHeader({
+    required this.householdName,
+    required this.onOpenHousehold,
+    required this.onOpenBarcode,
+    required this.onOpenFridgeScan,
+    required this.onOpenScanHistory,
+    required this.onSignOut,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const SafoLogo(
+              variant: SafoLogoVariant.iconTransparent,
+              width: 28,
+              height: 28,
+            ),
+            const SizedBox(width: 10),
+            const SafoLogo(
+              variant: SafoLogoVariant.pill,
+              height: 28,
+            ),
+            const Spacer(),
+            _PantryHeaderIconButton(
+              icon: Icons.groups_2_outlined,
+              onTap: onOpenHousehold,
+            ),
+            const SizedBox(width: 8),
+            _PantryHeaderIconButton(
+              icon: Icons.history_rounded,
+              onTap: onOpenScanHistory,
+            ),
+            const SizedBox(width: 8),
+            _PantryHeaderIconButton(
+              icon: Icons.logout_rounded,
+              onTap: onSignOut,
+            ),
+          ],
+        ),
+        const SizedBox(height: 18),
+        Text(
+          context.tr(en: 'Pantry overview', sk: 'Prehľad špajze'),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: SafoColors.textSecondary,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          context.tr(en: 'Pantry', sk: 'Špajza'),
+          style: Theme.of(context).textTheme.headlineLarge,
+        ),
+        const SizedBox(height: 2),
+        Text(
+          householdName,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: SafoColors.textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PantryHeaderIconButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _PantryHeaderIconButton({
+    required this.icon,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: SafoColors.surface,
+      borderRadius: BorderRadius.circular(SafoRadii.pill),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(SafoRadii.pill),
+        child: Ink(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: SafoColors.surface,
+            borderRadius: BorderRadius.circular(SafoRadii.pill),
+            border: Border.all(color: SafoColors.border),
+          ),
+          child: Icon(icon, color: SafoColors.textPrimary),
+        ),
+      ),
+    );
+  }
+}
+
 class _PantryViewData {
   final List<FoodItem> items;
   final UserPreferences? preferences;
@@ -2369,27 +2522,31 @@ class _PantrySummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return GridView.count(
+      crossAxisCount: 3,
+      crossAxisSpacing: 12,
+      mainAxisSpacing: 12,
+      childAspectRatio: 0.92,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
       children: [
-        Expanded(
-          child: _SummaryCard(
-            label: context.tr(en: 'Total items', sk: 'Spolu položiek'),
-            value: totalItems.toString(),
-          ),
+        _SummaryCard(
+          label: context.tr(en: 'Total items', sk: 'Spolu položiek'),
+          value: totalItems.toString(),
+          background: SafoColors.surface,
+          valueColor: SafoColors.textPrimary,
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _SummaryCard(
-            label: context.tr(en: 'Expiring soon', sk: 'Čoskoro sa minie'),
-            value: expiringSoonCount.toString(),
-          ),
+        _SummaryCard(
+          label: context.tr(en: 'Expiring soon', sk: 'Čoskoro sa minie'),
+          value: expiringSoonCount.toString(),
+          background: SafoColors.dangerSoft,
+          valueColor: SafoColors.danger,
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _SummaryCard(
-            label: context.tr(en: 'Low stock', sk: 'Málo zásob'),
-            value: lowStockCount.toString(),
-          ),
+        _SummaryCard(
+          label: context.tr(en: 'Low stock', sk: 'Málo zásob'),
+          value: lowStockCount.toString(),
+          background: SafoColors.warningSoft,
+          valueColor: SafoColors.warning,
         ),
       ],
     );
@@ -2464,7 +2621,7 @@ class _StorageSectionHeader extends StatelessWidget {
         Text(
           title,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            color: const Color(0xFF1B2A41),
+            color: SafoColors.textPrimary,
             fontWeight: FontWeight.w800,
           ),
         ),
@@ -2472,13 +2629,13 @@ class _StorageSectionHeader extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: const Color(0xFFE8F7EE),
+            color: SafoColors.primarySoft,
             borderRadius: BorderRadius.circular(999),
           ),
           child: Text(
             '$count',
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: const Color(0xFF1F7A43),
+              color: SafoColors.primary,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -2515,33 +2672,40 @@ class _OpenedBadge extends StatelessWidget {
 class _SummaryCard extends StatelessWidget {
   final String label;
   final String value;
+  final Color background;
+  final Color valueColor;
 
-  const _SummaryCard({required this.label, required this.value});
+  const _SummaryCard({
+    required this.label,
+    required this.value,
+    required this.background,
+    required this.valueColor,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFE7EAE3)),
+        color: background,
+        borderRadius: BorderRadius.circular(SafoRadii.xl),
+        border: Border.all(color: SafoColors.border),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             label,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: const Color(0xFF1B2A41),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: SafoColors.textSecondary,
               fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(height: 8),
+          const Spacer(),
           Text(
             value,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: const Color(0xFF1B2A41),
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+              color: valueColor,
               fontWeight: FontWeight.w800,
             ),
           ),
@@ -2632,31 +2796,22 @@ class _SearchAndFilterBar extends StatelessWidget {
               sk: 'Hľadať položky v špajzi',
             ),
             hintStyle: const TextStyle(
-              color: Color(0xFF6B7785),
+              color: SafoColors.textMuted,
               fontWeight: FontWeight.w500,
             ),
             prefixIcon: const Icon(
               Icons.search_rounded,
-              color: Color(0xFF6B7785),
+              color: SafoColors.textMuted,
             ),
-            filled: true,
-            fillColor: Colors.white,
-            contentPadding: const EdgeInsets.symmetric(vertical: 18),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(20),
-              borderSide: const BorderSide(color: Color(0xFFE7EAE3)),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(20),
-              borderSide: const BorderSide(color: Color(0xFFE7EAE3)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(20),
-              borderSide: const BorderSide(
-                color: Color(0xFF2ECC71),
-                width: 1.5,
-              ),
-            ),
+            suffixIcon: controller.text.isEmpty
+                ? null
+                : IconButton(
+                    onPressed: () {
+                      controller.clear();
+                      onSearchChanged('');
+                    },
+                    icon: const Icon(Icons.close_rounded),
+                  ),
           ),
         ),
         const SizedBox(height: 12),
@@ -2700,18 +2855,57 @@ class _PantryFilterChip extends StatelessWidget {
       child: Ink(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFF2ECC71) : Colors.white,
+          color: selected ? SafoColors.primary : SafoColors.surface,
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
-            color: selected ? const Color(0xFF2ECC71) : const Color(0xFFE7EAE3),
+            color: selected ? SafoColors.primary : SafoColors.border,
           ),
         ),
         child: Text(
           label,
           style: Theme.of(context).textTheme.labelLarge?.copyWith(
-            color: selected ? Colors.white : const Color(0xFF1B2A41),
+            color: selected ? Colors.white : SafoColors.textPrimary,
             fontWeight: FontWeight.w700,
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PantryActionChip extends StatelessWidget {
+  final VoidCallback onTap;
+  final IconData icon;
+  final String label;
+  final Color tint;
+  final Color iconColor;
+
+  const _PantryActionChip({
+    required this.onTap,
+    required this.icon,
+    required this.label,
+    required this.tint,
+    required this.iconColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: onTap,
+      icon: Icon(icon, color: iconColor, size: 18),
+      label: Text(
+        label,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: SafoColors.textPrimary,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      style: OutlinedButton.styleFrom(
+        backgroundColor: tint,
+        side: BorderSide(color: tint),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(SafoRadii.lg),
         ),
       ),
     );

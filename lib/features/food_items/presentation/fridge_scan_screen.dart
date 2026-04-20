@@ -1,6 +1,5 @@
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -8,7 +7,9 @@ import '../../../app/localization/app_locale.dart';
 import '../../../core/food/food_signal_catalog.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/app_feedback.dart';
+import '../data/fridge_scan_ai_service.dart';
 import '../data/scan_sessions_repository.dart';
+import '../data/scan_sessions_remote_data_source.dart';
 import '../domain/food_item.dart';
 import '../domain/food_item_prefill.dart';
 import '../domain/scan_candidate.dart';
@@ -109,18 +110,25 @@ class _FridgeScanScreenState extends State<FridgeScanScreen> {
         );
         _isPickingImage = false;
       });
-    } catch (_) {
+    } catch (error) {
       if (!mounted) {
         return;
       }
       setState(() {
         _isPickingImage = false;
       });
+      final isPermissionIssue = error is PlatformException &&
+          (error.code.toLowerCase().contains('camera_access_denied') ||
+              error.code.toLowerCase().contains('photo_access_denied') ||
+              error.code.toLowerCase().contains('permission'));
       showErrorFeedback(
         context,
-        context.tr(
-          en: 'Failed to load photo.',
-          sk: 'Fotku sa nepodarilo načítať.',
+        _pickerErrorMessage(error),
+        title: context.tr(
+          en: isPermissionIssue ? 'Photo access blocked' : 'Photo not loaded',
+          sk: isPermissionIssue
+              ? 'Prístup k fotkám je blokovaný'
+              : 'Fotku sa nepodarilo načítať',
         ),
       );
     }
@@ -229,10 +237,10 @@ class _FridgeScanScreenState extends State<FridgeScanScreen> {
 
           if (snapshot.hasError) {
             return AppErrorState(
-              message: context.tr(
-                en: 'Failed to analyze fridge photo.',
-                sk: 'Fotku chladničky sa nepodarilo analyzovať.',
-              ),
+              kind: _scanErrorKind(snapshot.error),
+              title: _scanErrorTitle(context, snapshot.error),
+              message: _scanErrorMessage(context, snapshot.error),
+              hint: _scanErrorHint(context, snapshot.error),
               onRetry: _reload,
             );
           }
@@ -260,6 +268,73 @@ class _FridgeScanScreenState extends State<FridgeScanScreen> {
           );
         },
       ),
+    );
+  }
+
+  String _pickerErrorMessage(Object error) {
+    if (error is PlatformException) {
+      final code = error.code.toLowerCase();
+      if (code.contains('camera_access_denied') ||
+          code.contains('photo_access_denied') ||
+          code.contains('permission')) {
+        return context.tr(
+          en: 'Camera or photo access is blocked. Allow access in system settings and try again.',
+          sk: 'Prístup ku kamere alebo fotkám je zablokovaný. Povoľ ho v systémových nastaveniach a skús to znova.',
+        );
+      }
+    }
+    return context.tr(
+      en: 'Failed to load photo.',
+      sk: 'Fotku sa nepodarilo načítať.',
+    );
+  }
+
+  AppErrorKind _scanErrorKind(Object? error) {
+    if (error is ScanSessionsConfigException) {
+      return AppErrorKind.setup;
+    }
+    if (error is FridgeScanAiException ||
+        error.toString().toLowerCase().contains('configured')) {
+      return AppErrorKind.setup;
+    }
+    return AppErrorKind.camera;
+  }
+
+  String _scanErrorTitle(BuildContext context, Object? error) {
+    return switch (_scanErrorKind(error)) {
+      AppErrorKind.setup => context.tr(
+        en: 'Scan setup is incomplete',
+        sk: 'Sken ešte nie je kompletne nastavený',
+      ),
+      AppErrorKind.camera => context.tr(
+        en: 'Fridge scan failed',
+        sk: 'Sken chladničky zlyhal',
+      ),
+      _ => context.tr(en: 'Scan problem', sk: 'Problém so skenom'),
+    };
+  }
+
+  String _scanErrorMessage(BuildContext context, Object? error) {
+    if (error is ScanSessionsConfigException ||
+        error is FridgeScanAiException) {
+      return error.toString();
+    }
+    return context.tr(
+      en: 'Failed to analyze fridge photo.',
+      sk: 'Fotku chladničky sa nepodarilo analyzovať.',
+    );
+  }
+
+  String? _scanErrorHint(BuildContext context, Object? error) {
+    if (_scanErrorKind(error) == AppErrorKind.setup) {
+      return context.tr(
+        en: 'Safo scan needs backend configuration before this feature can work fully.',
+        sk: 'Sken v Safo potrebuje backend nastavenie, aby táto funkcia fungovala naplno.',
+      );
+    }
+    return context.tr(
+      en: 'Try another photo with better light and a clearer fridge view.',
+      sk: 'Skús inú fotku s lepším svetlom a jasnejším pohľadom do chladničky.',
     );
   }
 }
@@ -459,6 +534,10 @@ class _FridgeScanReviewState extends State<_FridgeScanReview> {
           en: 'Select at least one item to continue.',
           sk: 'Vyber aspoň jednu položku, aby si mohol pokračovať.',
         ),
+        title: context.tr(
+          en: 'Nothing selected',
+          sk: 'Nič nie je vybrané',
+        ),
       );
       return;
     }
@@ -490,6 +569,12 @@ class _FridgeScanReviewState extends State<_FridgeScanReview> {
           en: 'Failed to save scan session.',
           sk: 'Scan sa nepodarilo uložiť.',
         ),
+        title: context.tr(
+          en: 'Scan not saved',
+          sk: 'Scan sa neuložil',
+        ),
+        actionLabel: context.tr(en: 'Retry', sk: 'Skúsiť znova'),
+        onAction: _finish,
       );
       setState(() {
         _isSaving = false;

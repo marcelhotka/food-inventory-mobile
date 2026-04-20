@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="256" fill="#1E2D4E"/>
+
+  <!-- Leaf left -->
+  <ellipse cx="230" cy="210" rx="72" ry="108" fill="#4CAF72" opacity="0.95" transform="rotate(-18 230 210)"/>
+
+  <!-- Leaf right overlay -->
+  <ellipse cx="278" cy="196" rx="54" ry="88" fill="#6DC36D" opacity="0.80" transform="rotate(18 278 196)"/>
+
+  <!-- Highlight on left leaf -->
+  <ellipse cx="212" cy="188" rx="22" ry="44" fill="white" opacity="0.12" transform="rotate(-18 212 188)"/>
+
+  <!-- Stem -->
+  <line x1="256" y1="318" x2="256" y2="372" stroke="#A8E6C1" stroke-width="14" stroke-linecap="round"/>
+
+  <!-- Checkmark -->
+  <path d="M186 258 L232 306 L338 200" stroke="white" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>

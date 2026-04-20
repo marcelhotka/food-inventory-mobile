@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'localization/app_locale.dart';
+import 'theme/safo_tokens.dart';
 import '../features/auth/data/auth_repository.dart';
 import '../features/dashboard/presentation/dashboard_screen.dart';
 import '../features/food_items/presentation/food_items_screen.dart';
@@ -140,39 +141,57 @@ class _HomeShellState extends State<HomeShell> {
 
     return Scaffold(
       body: screens[_selectedIndex],
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: (value) {
-          setState(() {
-            _selectedIndex = value;
-            if (value != 3) {
-              _focusedRecipeId = null;
-              _recipesInitialFilter = RecipeFilter.all;
-            }
-          });
-        },
-        destinations: [
-          NavigationDestination(
-            icon: const Icon(Icons.dashboard_outlined),
-            selectedIcon: const Icon(Icons.dashboard),
-            label: context.tr(en: 'Dashboard', sk: 'Prehľad'),
+      bottomNavigationBar: DecoratedBox(
+        decoration: const BoxDecoration(
+          color: SafoColors.surface,
+          border: Border(
+            top: BorderSide(color: SafoColors.border, width: 1),
           ),
-          NavigationDestination(
-            icon: const Icon(Icons.kitchen_outlined),
-            selectedIcon: const Icon(Icons.kitchen),
-            label: context.tr(en: 'Pantry', sk: 'Špajza'),
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x12000000),
+              blurRadius: 18,
+              offset: Offset(0, -4),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          top: false,
+          child: NavigationBar(
+            selectedIndex: _selectedIndex,
+            onDestinationSelected: (value) {
+              setState(() {
+                _selectedIndex = value;
+                if (value != 3) {
+                  _focusedRecipeId = null;
+                  _recipesInitialFilter = RecipeFilter.all;
+                }
+              });
+            },
+            destinations: [
+              NavigationDestination(
+                icon: const Icon(Icons.dashboard_outlined),
+                selectedIcon: const Icon(Icons.dashboard),
+                label: context.tr(en: 'Dashboard', sk: 'Prehľad'),
+              ),
+              NavigationDestination(
+                icon: const Icon(Icons.kitchen_outlined),
+                selectedIcon: const Icon(Icons.kitchen),
+                label: context.tr(en: 'Pantry', sk: 'Špajza'),
+              ),
+              NavigationDestination(
+                icon: const Icon(Icons.shopping_cart_outlined),
+                selectedIcon: const Icon(Icons.shopping_cart),
+                label: context.tr(en: 'Shopping', sk: 'Nákup'),
+              ),
+              NavigationDestination(
+                icon: const Icon(Icons.menu_book_outlined),
+                selectedIcon: const Icon(Icons.menu_book),
+                label: context.tr(en: 'Recipes', sk: 'Recepty'),
+              ),
+            ],
           ),
-          NavigationDestination(
-            icon: const Icon(Icons.shopping_cart_outlined),
-            selectedIcon: const Icon(Icons.shopping_cart),
-            label: context.tr(en: 'Shopping List', sk: 'Nákupný zoznam'),
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.menu_book_outlined),
-            selectedIcon: const Icon(Icons.menu_book),
-            label: context.tr(en: 'Recipes', sk: 'Recepty'),
-          ),
-        ],
+        ),
       ),
     );
   }

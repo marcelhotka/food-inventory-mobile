@@ -42,6 +42,10 @@ class _QuickCommandScreenState extends State<QuickCommandScreen> {
       showErrorFeedback(
         context,
         context.tr(en: 'Enter a command first.', sk: 'Najprv zadaj príkaz.'),
+        title: context.tr(
+          en: 'Command missing',
+          sk: 'Chýba príkaz',
+        ),
       );
       return;
     }
@@ -82,7 +86,14 @@ class _QuickCommandScreenState extends State<QuickCommandScreen> {
       if (!mounted) {
         return;
       }
-      showErrorFeedback(context, error.message);
+      showErrorFeedback(
+        context,
+        error.message,
+        title: context.tr(
+          en: 'Command not understood',
+          sk: 'Príkaz sa nepodarilo pochopiť',
+        ),
+      );
     } catch (_) {
       if (!mounted) {
         return;
@@ -93,6 +104,12 @@ class _QuickCommandScreenState extends State<QuickCommandScreen> {
           en: 'Failed to process quick command.',
           sk: 'Príkaz sa nepodarilo spracovať.',
         ),
+        title: context.tr(
+          en: 'Quick command failed',
+          sk: 'Rýchly príkaz zlyhal',
+        ),
+        actionLabel: context.tr(en: 'Retry', sk: 'Skúsiť znova'),
+        onAction: _submit,
       );
     } finally {
       if (mounted) {

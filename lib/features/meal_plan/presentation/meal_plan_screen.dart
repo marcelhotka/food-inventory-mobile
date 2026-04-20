@@ -723,9 +723,18 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
 
           if (snapshot.hasError) {
             return AppErrorState(
+              kind: AppErrorKind.sync,
+              title: context.tr(
+                en: 'Meal plan is unavailable',
+                sk: 'Jedálniček nie je k dispozícii',
+              ),
               message: context.tr(
                 en: 'Failed to load meal plan.',
                 sk: 'Jedálniček sa nepodarilo načítať.',
+              ),
+              hint: context.tr(
+                en: 'Safo could not load planned meals right now.',
+                sk: 'Safo teraz nedokázalo načítať naplánované jedlá.',
               ),
               onRetry: _reload,
             );

@@ -646,9 +646,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
           if (snapshot.hasError) {
             return AppErrorState(
+              kind: AppErrorKind.sync,
+              title: context.tr(
+                en: 'Notifications are unavailable',
+                sk: 'Upozornenia nie sú k dispozícii',
+              ),
               message: context.tr(
                 en: 'Failed to load notifications.',
                 sk: 'Upozornenia sa nepodarilo načítať.',
+              ),
+              hint: context.tr(
+                en: 'Safo could not refresh your urgent alerts right now.',
+                sk: 'Safo teraz nedokázalo obnoviť tvoje urgentné upozornenia.',
               ),
               onRetry: _reload,
             );

@@ -1078,8 +1078,36 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
           }
 
           if (snapshot.hasError) {
+            final error = snapshot.error;
             return AppErrorState(
-              message: _errorMessage(snapshot.error),
+              kind:
+                  error is ShoppingListConfigException ||
+                      error is ShoppingListAuthException
+                  ? AppErrorKind.setup
+                  : AppErrorKind.sync,
+              title:
+                  error is ShoppingListConfigException ||
+                      error is ShoppingListAuthException
+                  ? context.tr(
+                      en: 'Shopping list needs setup',
+                      sk: 'Nákupný zoznam potrebuje nastavenie',
+                    )
+                  : context.tr(
+                      en: 'Shopping list is unavailable',
+                      sk: 'Nákupný zoznam nie je k dispozícii',
+                    ),
+              message: _errorMessage(error),
+              hint:
+                  error is ShoppingListConfigException ||
+                      error is ShoppingListAuthException
+                  ? context.tr(
+                      en: 'Safo needs account or backend setup before shopping data can load.',
+                      sk: 'Safo potrebuje účet alebo backend nastavenie, aby sa načítali nákupné dáta.',
+                    )
+                  : context.tr(
+                      en: 'Safo could not load the latest shopping items right now.',
+                      sk: 'Safo teraz nedokázalo načítať najnovšie nákupné položky.',
+                    ),
               onRetry: _reload,
             );
           }

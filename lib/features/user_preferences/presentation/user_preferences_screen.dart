@@ -319,12 +319,33 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
                 ? error
                 : null;
             return AppErrorState(
+              kind: configError != null
+                  ? AppErrorKind.setup
+                  : AppErrorKind.sync,
+              title: configError != null
+                  ? context.tr(
+                      en: 'Preferences need setup',
+                      sk: 'Preferencie potrebujú nastavenie',
+                    )
+                  : context.tr(
+                      en: 'Preferences are unavailable',
+                      sk: 'Preferencie nie sú k dispozícii',
+                    ),
               message:
                   configError?.message ??
                   context.tr(
                     en: 'Failed to load preferences.',
                     sk: 'Preferencie sa nepodarilo načítať.',
                   ),
+              hint: configError != null
+                  ? context.tr(
+                      en: 'Safo still needs backend configuration before preferences can be loaded.',
+                      sk: 'Safo ešte potrebuje backend nastavenie, aby sa dali načítať preferencie.',
+                    )
+                  : context.tr(
+                      en: 'Safo could not refresh saved preferences right now.',
+                      sk: 'Safo teraz nedokázalo obnoviť uložené preferencie.',
+                    ),
               onRetry: _reload,
             );
           }
