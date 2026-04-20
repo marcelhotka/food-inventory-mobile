@@ -1,11 +1,11 @@
 {
-    "name": "mobile",
-    "short_name": "mobile",
+    "name": "Safo",
+    "short_name": "Safo",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Safo helps you track food at home, cook smarter, and shop with less waste.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

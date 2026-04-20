@@ -45,6 +45,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   late Future<List<_AppNotificationItem>> _notificationsFuture =
       _loadNotifications();
+  _NotificationFilter _selectedFilter = _NotificationFilter.all;
 
   String? get _currentUserId => tryGetSupabaseClient()?.auth.currentUser?.id;
 
@@ -138,6 +139,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           kind: _NotificationKind.shopping,
           priority: isAssignedToMe ? 4 : 6,
           shoppingItem: item,
+          isForCurrentUser: isAssignedToMe,
         ),
       );
     }
@@ -160,6 +162,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           kind: _NotificationKind.mealPlan,
           priority: isAssignedToMe ? days : days + 1,
           mealPlanEntry: entry,
+          isForCurrentUser: isAssignedToMe,
         ),
       );
     }
@@ -652,6 +655,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           }
 
           final notifications = snapshot.data ?? const <_AppNotificationItem>[];
+          final filteredNotifications = _applyNotificationFilter(notifications);
           if (notifications.isEmpty) {
             return AppEmptyState(
               message: context.tr(
@@ -664,84 +668,181 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
           return RefreshIndicator(
             onRefresh: _reload,
-            child: ListView.separated(
+            child: ListView(
               padding: const EdgeInsets.all(16),
-              itemCount: notifications.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                final item = notifications[index];
-                return Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      children: [
-                        ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          onTap: () => _openNotificationTarget(item.kind),
-                          leading: CircleAvatar(
-                            backgroundColor: _notificationColor(item.kind),
-                            child: Icon(
-                              _notificationIcon(item.kind),
-                              color: Colors.white,
+              children: [
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _NotificationFilter.values.map((filter) {
+                    final count = _applyNotificationFilter(
+                      notifications,
+                      filterOverride: filter,
+                    ).length;
+                    return ChoiceChip(
+                      selected: _selectedFilter == filter,
+                      onSelected: (_) {
+                        setState(() {
+                          _selectedFilter = filter;
+                        });
+                      },
+                      label: Text(
+                        '${_notificationFilterLabel(context, filter)}${count > 0 ? ' ($count)' : ''}',
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 16),
+                if (filteredNotifications.isEmpty)
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(18),
+                      child: Column(
+                        children: [
+                          const Icon(
+                            Icons.notifications_none_rounded,
+                            size: 36,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            context.tr(
+                              en: 'No notifications match this filter right now.',
+                              sk: 'Tomuto filtru teraz nezodpovedajú žiadne upozornenia.',
                             ),
+                            textAlign: TextAlign.center,
                           ),
-                          title: Text(
-                            localizedIngredientDisplayName(context, item.title),
+                          const SizedBox(height: 8),
+                          Text(
+                            context.tr(
+                              en: 'Try a different view or pull to refresh.',
+                              sk: 'Skús iný pohľad alebo potiahni na obnovenie.',
+                            ),
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodySmall,
                           ),
-                          subtitle: Text(item.subtitle),
-                          trailing: const Icon(Icons.chevron_right_rounded),
-                        ),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  ...filteredNotifications.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final item = entry.value;
+                    return Padding(
+                      padding: EdgeInsets.only(
+                        bottom: index == filteredNotifications.length - 1
+                            ? 0
+                            : 12,
+                      ),
+                      child: Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
                             children: [
-                              if (item.kind == _NotificationKind.shopping)
-                                FilledButton.tonal(
-                                  onPressed: () => _markShoppingAsBought(item),
-                                  child: Text(
-                                    context.tr(en: 'Bought', sk: 'Kúpené'),
+                              ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                onTap: () => _openNotificationTarget(item.kind),
+                                leading: CircleAvatar(
+                                  backgroundColor: _notificationColor(
+                                    item.kind,
                                   ),
-                                )
-                              else if (item.kind == _NotificationKind.lowStock)
-                                FilledButton.tonal(
-                                  onPressed: () => _addLowStockToShopping(item),
-                                  child: Text(
-                                    context.tr(
-                                      en: 'Add to shopping',
-                                      sk: 'Do nákupu',
-                                    ),
+                                  child: Icon(
+                                    _notificationIcon(item.kind),
+                                    color: Colors.white,
                                   ),
-                                )
-                              else if (item.kind ==
-                                      _NotificationKind.expiringSoon ||
-                                  item.kind == _NotificationKind.opened)
-                                FilledButton.tonal(
-                                  onPressed: () => _markPantryItemAsUsed(item),
-                                  child: Text(
-                                    context.tr(en: 'Used', sk: 'Použité'),
-                                  ),
-                                )
-                              else
-                                OutlinedButton(
-                                  onPressed: () =>
-                                      _openNotificationTarget(item.kind),
-                                  child: Text(_actionLabel(context, item.kind)),
                                 ),
+                                title: Text(
+                                  localizedIngredientDisplayName(
+                                    context,
+                                    item.title,
+                                  ),
+                                ),
+                                subtitle: Text(item.subtitle),
+                                trailing: const Icon(
+                                  Icons.chevron_right_rounded,
+                                ),
+                              ),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: [
+                                    if (item.kind == _NotificationKind.shopping)
+                                      FilledButton.tonal(
+                                        onPressed: () =>
+                                            _markShoppingAsBought(item),
+                                        child: Text(
+                                          context.tr(
+                                            en: 'Bought',
+                                            sk: 'Kúpené',
+                                          ),
+                                        ),
+                                      )
+                                    else if (item.kind ==
+                                        _NotificationKind.lowStock)
+                                      FilledButton.tonal(
+                                        onPressed: () =>
+                                            _addLowStockToShopping(item),
+                                        child: Text(
+                                          context.tr(
+                                            en: 'Add to shopping',
+                                            sk: 'Do nákupu',
+                                          ),
+                                        ),
+                                      )
+                                    else if (item.kind ==
+                                            _NotificationKind.expiringSoon ||
+                                        item.kind == _NotificationKind.opened)
+                                      FilledButton.tonal(
+                                        onPressed: () =>
+                                            _markPantryItemAsUsed(item),
+                                        child: Text(
+                                          context.tr(en: 'Used', sk: 'Použité'),
+                                        ),
+                                      )
+                                    else
+                                      OutlinedButton(
+                                        onPressed: () =>
+                                            _openNotificationTarget(item.kind),
+                                        child: Text(
+                                          _actionLabel(context, item.kind),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
                             ],
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                );
-              },
+                      ),
+                    );
+                  }),
+              ],
             ),
           );
         },
       ),
     );
+  }
+
+  List<_AppNotificationItem> _applyNotificationFilter(
+    List<_AppNotificationItem> notifications, {
+    _NotificationFilter? filterOverride,
+  }) {
+    final filter = filterOverride ?? _selectedFilter;
+    return notifications.where((item) {
+      return switch (filter) {
+        _NotificationFilter.all => true,
+        _NotificationFilter.forYou => item.isForCurrentUser,
+        _NotificationFilter.pantry =>
+          item.kind == _NotificationKind.expiringSoon ||
+              item.kind == _NotificationKind.opened ||
+              item.kind == _NotificationKind.lowStock,
+        _NotificationFilter.shopping => item.kind == _NotificationKind.shopping,
+        _NotificationFilter.cooking => item.kind == _NotificationKind.mealPlan,
+      };
+    }).toList();
   }
 }
 
@@ -761,6 +862,19 @@ String _actionLabel(BuildContext context, _NotificationKind kind) {
       sk: 'Otvoriť jedálniček',
     ),
     _ => context.tr(en: 'Open pantry', sk: 'Otvoriť špajzu'),
+  };
+}
+
+String _notificationFilterLabel(
+  BuildContext context,
+  _NotificationFilter filter,
+) {
+  return switch (filter) {
+    _NotificationFilter.all => context.tr(en: 'All', sk: 'Všetko'),
+    _NotificationFilter.forYou => context.tr(en: 'For you', sk: 'Pre teba'),
+    _NotificationFilter.pantry => context.tr(en: 'Pantry', sk: 'Špajza'),
+    _NotificationFilter.shopping => context.tr(en: 'Shopping', sk: 'Nákup'),
+    _NotificationFilter.cooking => context.tr(en: 'Cooking', sk: 'Varenie'),
   };
 }
 
@@ -911,11 +1025,14 @@ String _defaultPantryCategory(String itemKey) {
 
 enum _NotificationKind { expiringSoon, opened, lowStock, shopping, mealPlan }
 
+enum _NotificationFilter { all, forYou, pantry, shopping, cooking }
+
 class _AppNotificationItem {
   final String title;
   final String subtitle;
   final _NotificationKind kind;
   final int priority;
+  final bool isForCurrentUser;
   final FoodItem? pantryItem;
   final ShoppingListItem? shoppingItem;
   final MealPlanEntry? mealPlanEntry;
@@ -925,6 +1042,7 @@ class _AppNotificationItem {
     required this.subtitle,
     required this.kind,
     required this.priority,
+    this.isForCurrentUser = false,
     this.pantryItem,
     this.shoppingItem,
     this.mealPlanEntry,

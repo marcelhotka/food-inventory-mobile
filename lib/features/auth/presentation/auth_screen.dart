@@ -115,9 +115,18 @@ class _AuthScreenState extends State<AuthScreen> {
                   ),
                   const SizedBox(height: 18),
                   Text(
+                    'Safo',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF2E5131),
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
                     context.tr(
-                      en: 'Smart pantry,\nwithout the chaos.',
-                      sk: 'Šikovná špajza,\nbez chaosu.',
+                      en: 'Your kitchen assistant,\nwithout the chaos.',
+                      sk: 'Tvoj kuchynský asistent,\nbez chaosu.',
                     ),
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.w800,
@@ -127,8 +136,8 @@ class _AuthScreenState extends State<AuthScreen> {
                   const SizedBox(height: 12),
                   Text(
                     context.tr(
-                      en: 'Track food, plan shopping, and keep your first MVP simple and fast.',
-                      sk: 'Sleduj potraviny, plánuj nákupy a udrž prvé MVP jednoduché a rýchle.',
+                      en: 'Safo helps you know what you have at home, what to use soon, what to cook today, and what to buy next.',
+                      sk: 'Safo ti pomáha vedieť, čo máš doma, čo treba čoskoro minúť, čo sa oplatí dnes navariť a čo treba kúpiť.',
                     ),
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                       color: const Color(0xFF4B5A4D),
@@ -159,8 +168,8 @@ class _AuthScreenState extends State<AuthScreen> {
                     const SizedBox(height: 8),
                     Text(
                       context.tr(
-                        en: 'Use email sign-in for your permanent household. Guest mode is only for quick testing.',
-                        sk: 'Použi prihlásenie e-mailom pre svoju trvalú domácnosť. Režim hosťa je len na rýchle testovanie.',
+                        en: 'Sign in to keep your Safo household, pantry, shopping list, and preferences safely linked to one account.',
+                        sk: 'Prihlás sa, aby si mal svoju domácnosť v Safo, špajzu, nákupný zoznam a preferencie bezpečne prepojené s jedným účtom.',
                       ),
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),

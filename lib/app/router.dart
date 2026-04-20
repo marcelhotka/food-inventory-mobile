@@ -230,8 +230,8 @@ class _AnonymousHouseholdBootstrapState
             appBar: AppBar(
               title: Text(
                 context.tr(
-                  en: 'Preparing your pantry',
-                  sk: 'Pripravujeme tvoju špajzu',
+                  en: 'Preparing Safo',
+                  sk: 'Pripravujeme Safo',
                 ),
               ),
             ),

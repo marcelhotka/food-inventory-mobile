@@ -145,14 +145,23 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
+                    'Safo',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF2E5131),
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
                     _isJoinMode
                         ? context.tr(
-                            en: 'Join a shared kitchen',
-                            sk: 'Pripoj sa do zdieľanej kuchyne',
+                            en: 'Join your shared kitchen',
+                            sk: 'Pripoj sa do svojej zdieľanej kuchyne',
                           )
                         : context.tr(
-                            en: 'Start your shared kitchen',
-                            sk: 'Spusti svoju zdieľanú kuchyňu',
+                            en: 'Set up your shared kitchen',
+                            sk: 'Nastav si svoju zdieľanú kuchyňu',
                           ),
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w800,
@@ -162,12 +171,12 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen> {
                   Text(
                     _isJoinMode
                         ? context.tr(
-                            en: 'Enter a household code from another family member to share the same pantry and shopping list.',
-                            sk: 'Zadaj kód domácnosti od ďalšieho člena rodiny, aby ste zdieľali rovnakú špajzu a nákupný zoznam.',
+                            en: 'Enter a Safo household code from another family member to share the same pantry, shopping list, and daily coordination.',
+                            sk: 'Zadaj Safo kód domácnosti od ďalšieho člena rodiny, aby ste zdieľali rovnakú špajzu, nákupný zoznam a dennú koordináciu.',
                           )
                         : context.tr(
-                            en: 'Create one household so your pantry and shopping list can be shared later with other family members.',
-                            sk: 'Vytvor jednu domácnosť, aby si mohol neskôr zdieľať špajzu a nákupný zoznam s ďalšími členmi rodiny.',
+                            en: 'Create one Safo household so your pantry, shopping list, and cooking plans can stay in sync with the rest of the family.',
+                            sk: 'Vytvor jednu Safo domácnosť, aby špajza, nákupný zoznam a plány varenia ostali zosynchronizované so zvyškom rodiny.',
                           ),
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),

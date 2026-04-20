@@ -52,7 +52,7 @@ class _FoodInventoryAppState extends State<FoodInventoryApp> {
         animation: _localeController,
         builder: (context, _) {
           return MaterialApp(
-            title: context.tr(en: 'Food Inventory', sk: 'Správa potravín'),
+            title: 'Safo',
             debugShowCheckedModeBanner: false,
             locale: _localeController.locale,
             supportedLocales: const [Locale('en'), Locale('sk')],
