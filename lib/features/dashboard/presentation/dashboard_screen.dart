@@ -6,6 +6,8 @@ import '../../../app/theme/safo_tokens.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/app_feedback.dart';
 import '../../../core/widgets/safo_logo.dart';
+import '../../auth/data/auth_repository.dart';
+import '../../auth/presentation/sign_out_action.dart';
 import '../../food_items/data/food_items_repository.dart';
 import '../../food_items/data/scan_sessions_repository.dart';
 import '../../food_items/domain/food_item.dart';
@@ -35,6 +37,7 @@ import '../../user_preferences/domain/user_preferences.dart';
 import '../../user_preferences/presentation/user_preferences_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
+  final AuthRepository authRepository;
   final Household household;
   final int pantryRefreshToken;
   final int shoppingListRefreshToken;
@@ -52,6 +55,7 @@ class DashboardScreen extends StatefulWidget {
 
   const DashboardScreen({
     super.key,
+    required this.authRepository,
     required this.household,
     required this.pantryRefreshToken,
     required this.shoppingListRefreshToken,
@@ -156,6 +160,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
       return;
     }
     await _reload();
+  }
+
+  Future<void> _handleSignOut() async {
+    await confirmAndSignOut(context, widget.authRepository);
   }
 
   Future<void> _openQuickCommand() async {
@@ -534,6 +542,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   notificationCount: alertCount,
                   onOpenNotifications: _openNotifications,
                   onOpenPreferences: _openPreferences,
+                  onSignOut: _handleSignOut,
+                ),
+                const SizedBox(height: 18),
+                _DashboardWelcomeCard(
+                  householdName: widget.household.name,
+                  showGettingStarted: showGettingStarted,
+                  completedGettingStartedCount: completedGettingStartedCount,
+                  totalGettingStartedCount: gettingStartedSteps.length,
+                  onOpenPantry: widget.onOpenPantry,
+                  onOpenQuickRecipes: widget.onOpenQuickRecipes,
                 ),
                 const SizedBox(height: 18),
                 GridView.count(
@@ -1470,6 +1488,146 @@ class _MetricCard extends StatelessWidget {
   }
 }
 
+class _DashboardWelcomeCard extends StatelessWidget {
+  final String householdName;
+  final bool showGettingStarted;
+  final int completedGettingStartedCount;
+  final int totalGettingStartedCount;
+  final VoidCallback onOpenPantry;
+  final VoidCallback onOpenQuickRecipes;
+
+  const _DashboardWelcomeCard({
+    required this.householdName,
+    required this.showGettingStarted,
+    required this.completedGettingStartedCount,
+    required this.totalGettingStartedCount,
+    required this.onOpenPantry,
+    required this.onOpenQuickRecipes,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final title = showGettingStarted
+        ? context.tr(
+            en: 'Welcome to your kitchen in Safo',
+            sk: 'Vitaj vo svojej kuchyni v Safo',
+          )
+        : context.tr(
+            en: 'Everything is ready for today',
+            sk: 'Na dnes je všetko pripravené',
+          );
+    final subtitle = showGettingStarted
+        ? context.tr(
+            en: '$completedGettingStartedCount of $totalGettingStartedCount setup steps are done. One or two quick actions and Safo will start feeling fully personal.',
+            sk: '$completedGettingStartedCount z $totalGettingStartedCount krokov nastavenia je hotových. Stačí ešte jeden alebo dva rýchle kroky a Safo bude pôsobiť úplne osobne.',
+          )
+        : context.tr(
+            en: '$householdName is ready with pantry, planning, and recommendations in one place.',
+            sk: '$householdName je pripravená so špajzou, plánovaním aj odporúčaniami na jednom mieste.',
+          );
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            SafoColors.primary,
+            const Color(0xFF5A73E5),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: SafoColors.primary.withValues(alpha: 0.18),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Center(
+                  child: SafoLogo(
+                    variant: SafoLogoVariant.iconTransparent,
+                    width: 22,
+                    height: 22,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  householdName,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.86),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Text(
+            title,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+              height: 1.1,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            subtitle,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Colors.white.withValues(alpha: 0.84),
+              height: 1.45,
+            ),
+          ),
+          const SizedBox(height: 18),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              FilledButton.tonal(
+                onPressed: onOpenPantry,
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: SafoColors.primary,
+                ),
+                child: Text(
+                  context.tr(en: 'Open pantry', sk: 'Otvoriť špajzu'),
+                ),
+              ),
+              FilledButton.tonal(
+                onPressed: onOpenQuickRecipes,
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.white.withValues(alpha: 0.14),
+                  foregroundColor: Colors.white,
+                ),
+                child: Text(
+                  context.tr(en: 'See quick ideas', sk: 'Pozrieť rýchle tipy'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _SectionCard extends StatelessWidget {
   final String title;
   final Widget child;
@@ -1606,6 +1764,7 @@ class _DashboardHeader extends StatelessWidget {
   final int notificationCount;
   final VoidCallback onOpenNotifications;
   final VoidCallback onOpenPreferences;
+  final VoidCallback onSignOut;
 
   const _DashboardHeader({
     required this.householdName,
@@ -1614,6 +1773,7 @@ class _DashboardHeader extends StatelessWidget {
     required this.notificationCount,
     required this.onOpenNotifications,
     required this.onOpenPreferences,
+    required this.onSignOut,
   });
 
   @override
@@ -1643,6 +1803,11 @@ class _DashboardHeader extends StatelessWidget {
             _HeaderIconButton(
               icon: Icons.tune_rounded,
               onTap: onOpenPreferences,
+            ),
+            const SizedBox(width: 8),
+            _HeaderIconButton(
+              icon: Icons.logout_rounded,
+              onTap: onSignOut,
             ),
           ],
         ),

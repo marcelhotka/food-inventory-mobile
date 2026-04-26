@@ -52,9 +52,13 @@ class _RootScreenState extends State<_RootScreen> {
   Future<Household?>? _householdFuture;
   Future<UserPreferences?>? _preferencesFuture;
   String? _activeUserId;
+  bool _showKitchenSetupAgain = false;
+  bool _showHouseholdSetupAgain = false;
+  AuthScreenInitialStep _authInitialStep = AuthScreenInitialStep.splash;
 
   Future<void> _loadHousehold() async {
     setState(() {
+      _showHouseholdSetupAgain = false;
       _householdFuture = _householdRepository.getPrimaryHousehold();
     });
     await _householdFuture!;
@@ -68,12 +72,15 @@ class _RootScreenState extends State<_RootScreen> {
     }
 
     _activeUserId = userId;
+    _authInitialStep = AuthScreenInitialStep.splash;
     _householdFuture = _householdRepository.getPrimaryHousehold();
     _preferencesFuture = _userPreferencesRepository.getCurrentUserPreferences();
   }
 
   Future<void> _loadPreferences() async {
     setState(() {
+      _showKitchenSetupAgain = false;
+      _showHouseholdSetupAgain = false;
       _preferencesFuture = _userPreferencesRepository
           .getCurrentUserPreferences();
     });
@@ -88,6 +95,29 @@ class _RootScreenState extends State<_RootScreen> {
     _householdFuture = null;
     _preferencesFuture = null;
     _activeUserId = null;
+    _showKitchenSetupAgain = false;
+    _showHouseholdSetupAgain = false;
+  }
+
+  void _returnToKitchenSetup() {
+    setState(() {
+      _showKitchenSetupAgain = true;
+      _showHouseholdSetupAgain = false;
+    });
+  }
+
+  void _goToHouseholdSetup() {
+    setState(() {
+      _showKitchenSetupAgain = false;
+      _showHouseholdSetupAgain = true;
+    });
+  }
+
+  Future<void> _returnToSignIn() async {
+    setState(() {
+      _authInitialStep = AuthScreenInitialStep.account;
+    });
+    await widget.authRepository.signOut();
   }
 
   @override
@@ -100,7 +130,10 @@ class _RootScreenState extends State<_RootScreen> {
               snapshot.data?.session ?? widget.authRepository.currentSession;
           if (session == null) {
             _resetCachedSessionState();
-            return AuthScreen(repository: widget.authRepository);
+            return AuthScreen(
+              repository: widget.authRepository,
+              initialStep: _authInitialStep,
+            );
           }
 
           return _buildForAuthenticatedSession(session.user.id);
@@ -138,10 +171,31 @@ class _RootScreenState extends State<_RootScreen> {
 
         final household = snapshot.data;
         if (household == null) {
+          if (_showKitchenSetupAgain) {
+            return UserPreferencesScreen(
+              isOnboarding: true,
+              onCompleted: _loadPreferences,
+              onBackToSignIn: _returnToSignIn,
+              onNextToHouseholdSetup: _goToHouseholdSetup,
+            );
+          }
+
           return HouseholdSetupScreen(
             repository: _householdRepository,
             authRepository: widget.authRepository,
             onCreated: _loadHousehold,
+            onBackToKitchenSetup: _returnToKitchenSetup,
+          );
+        }
+
+        if (_showHouseholdSetupAgain) {
+          return HouseholdSetupScreen(
+            repository: _householdRepository,
+            authRepository: widget.authRepository,
+            onCreated: _loadHousehold,
+            onBackToKitchenSetup: _returnToKitchenSetup,
+            editableHousehold: household,
+            openCreateByDefault: true,
           );
         }
 
@@ -181,6 +235,8 @@ class _RootScreenState extends State<_RootScreen> {
               return UserPreferencesScreen(
                 isOnboarding: true,
                 onCompleted: _loadPreferences,
+                onBackToSignIn: _returnToSignIn,
+                onNextToHouseholdSetup: _goToHouseholdSetup,
               );
             }
 

@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../app/localization/app_locale.dart';
+import '../../../app/theme/safo_tokens.dart';
 import '../../../core/forms/app_input_decoration.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/app_feedback.dart';
+import '../../../core/widgets/safo_logo.dart';
+import '../../auth/data/auth_repository.dart';
+import '../../auth/presentation/sign_out_action.dart';
 import '../data/user_preferences_remote_data_source.dart';
 import '../data/user_preferences_repository.dart';
 import '../domain/user_preferences.dart';
@@ -12,11 +16,15 @@ import '../domain/user_preferences.dart';
 class UserPreferencesScreen extends StatefulWidget {
   final bool isOnboarding;
   final Future<void> Function()? onCompleted;
+  final Future<void> Function()? onBackToSignIn;
+  final VoidCallback? onNextToHouseholdSetup;
 
   const UserPreferencesScreen({
     super.key,
     this.isOnboarding = false,
     this.onCompleted,
+    this.onBackToSignIn,
+    this.onNextToHouseholdSetup,
   });
 
   @override
@@ -24,6 +32,9 @@ class UserPreferencesScreen extends StatefulWidget {
 }
 
 class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
+  static const _kitchenSetupHeroAsset =
+      'assets/branding/kitchen-setup-hero.png';
+
   final _formKey = GlobalKey<FormState>();
   final _favoriteMealsController = TextEditingController();
   final _favoriteFoodsController = TextEditingController();
@@ -33,10 +44,11 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
 
   late final UserPreferencesRepository _repository =
       UserPreferencesRepository();
+  late final AuthRepository _authRepository = AuthRepository();
   late Future<UserPreferences?> _preferencesFuture = _repository
       .getCurrentUserPreferences();
 
-  String? _selectedDietStyle;
+  Set<String> _selectedDietStyles = <String>{};
   String? _selectedCookingFrequency;
   String? _selectedLanguage;
   Set<String> _selectedFavoriteMeals = <String>{};
@@ -46,14 +58,23 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
   bool _onboardingCompleted = false;
   bool _isSaving = false;
   UserPreferences? _loadedPreferences;
+  bool _didPrecacheHero = false;
 
   static const _dietStyles = [
-    'omnivore',
-    'vegetarian',
+    'no_special_diet',
     'vegan',
+    'vegetarian',
+    'keto',
+    'omnivore',
+    'flexitarian',
     'pescatarian',
     'low_carb',
-    'high_protein',
+    'mediterranean',
+    'gluten_free',
+    'lactose_free',
+    'halal',
+    'kosher',
+    'plant_based',
   ];
 
   static const _cookingFrequencies = [
@@ -65,39 +86,59 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
 
   static const _favoriteMealOptions = [
     'pasta',
-    'omelette',
-    'rice_bowl',
-    'sandwich',
     'salad',
     'soup',
+    'sandwich',
+    'pizza',
+    'burger',
+    'sushi',
     'curry',
-    'breakfast',
+    'rice_dishes',
+    'noodles',
+    'grilled',
+    'omelette',
   ];
 
   static const _favoriteFoodOptions = [
-    'milk',
-    'cheese',
-    'eggs',
-    'yogurt',
-    'bread',
-    'rice',
-    'pasta',
     'chicken',
+    'rice',
+    'eggs',
+    'cheese',
+    'bread',
+    'potatoes',
+    'pasta',
+    'beef',
+    'fish',
+    'seafood',
+    'fruit',
+    'vegetables',
+    'chocolate',
+    'yogurt',
+    'nuts',
     'beans',
-    'tomatoes',
   ];
 
   static const _allergyOptions = [
-    'peanuts',
-    'tree_nuts',
     'eggs',
+    'peanuts',
     'soy',
+    'tree_nuts',
+    'milk',
+    'wheat',
     'fish',
     'shellfish',
     'sesame',
   ];
 
-  static const _intoleranceOptions = ['lactose', 'gluten', 'milk', 'eggs'];
+  static const _intoleranceOptions = [
+    'lactose',
+    'gluten',
+    'histamine',
+    'fructose',
+    'fodmap',
+    'additives',
+    'alcohol',
+  ];
 
   @override
   void dispose() {
@@ -107,6 +148,16 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
     _intolerancesController.dispose();
     _householdSizeController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_didPrecacheHero || !widget.isOnboarding) {
+      return;
+    }
+    _didPrecacheHero = true;
+    precacheImage(const AssetImage(_kitchenSetupHeroAsset), context);
   }
 
   Future<void> _reload() async {
@@ -152,7 +203,9 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
     );
     _householdSizeController.text =
         preferences?.householdSize?.toString() ?? '';
-    _selectedDietStyle = preferences?.dietStyle;
+    _selectedDietStyles = {
+      ...(preferences?.dietStyles ?? const <String>[]),
+    };
     _selectedCookingFrequency = preferences?.cookingFrequency;
     _selectedLanguage =
         preferences?.preferredLanguage ??
@@ -201,7 +254,7 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
         _selectedIntolerances,
         _intolerancesController.text,
       ),
-      dietStyle: _selectedDietStyle,
+      dietStyles: _selectedDietStyles.toList()..sort(),
       cookingFrequency: _selectedCookingFrequency,
       preferredLanguage: _selectedLanguage,
       householdSize: _parseHouseholdSize(_householdSizeController.text),
@@ -266,7 +319,7 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
       _allergiesController.text = '';
       _intolerancesController.text = '';
       _householdSizeController.text = '2';
-      _selectedDietStyle = 'omnivore';
+      _selectedDietStyles = {'no_special_diet'};
       _selectedCookingFrequency = 'few_times_week';
       _selectedLanguage ??= context.localeController.locale.languageCode;
       if (!widget.isOnboarding) {
@@ -295,20 +348,51 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
     );
   }
 
+  Future<void> _handleSignOut() async {
+    await confirmAndSignOut(context, _authRepository);
+  }
+
+  void _handleOnboardingBackToHousehold() {
+    if (widget.onNextToHouseholdSetup == null || _isSaving) {
+      return;
+    }
+    widget.onNextToHouseholdSetup!.call();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: !widget.isOnboarding,
-        title: Text(
-          widget.isOnboarding
-              ? context.tr(en: 'Set up your kitchen', sk: 'Nastavenie kuchyne')
-              : context.tr(en: 'Preferences', sk: 'Preferencie'),
-        ),
+        title: widget.isOnboarding
+            ? const SafoLogo(
+                variant: SafoLogoVariant.pill,
+                height: 28,
+              )
+            : Text(context.tr(en: 'Preferences', sk: 'Preferencie')),
+        actions: widget.isOnboarding
+            ? [
+                IconButton(
+                  onPressed: _handleSignOut,
+                  icon: const Icon(Icons.logout_rounded),
+                  tooltip: context.tr(en: 'Sign out', sk: 'Odhlásiť sa'),
+                ),
+              ]
+            : null,
       ),
-      body: FutureBuilder<UserPreferences?>(
-        future: _preferencesFuture,
-        builder: (context, snapshot) {
+      body: GestureDetector(
+        onHorizontalDragEnd: widget.isOnboarding
+            ? (details) {
+                if ((details.primaryVelocity ?? 0) > 180) {
+                  _handleOnboardingBackToHousehold();
+                } else if ((details.primaryVelocity ?? 0) < -180) {
+                  _save();
+                }
+              }
+            : null,
+        child: FutureBuilder<UserPreferences?>(
+          future: _preferencesFuture,
+          builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const AppLoadingState();
           }
@@ -355,6 +439,41 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
           return ListView(
             padding: const EdgeInsets.all(24),
             children: [
+              if (widget.isOnboarding) ...[
+                _KitchenSetupHero(
+                  imageAsset: _kitchenSetupHeroAsset,
+                  title: context.tr(
+                    en: 'Set up your kitchen',
+                    sk: 'Nastav si kuchyňu',
+                  ),
+                  subtitle: context.tr(
+                    en: 'A few choices now help Safo suggest safer recipes, smarter shopping, and a calmer household flow from day one.',
+                    sk: 'Pár volieb teraz pomôže Safo odporúčať bezpečnejšie recepty, múdrejšie nákupy a pokojnejší chod domácnosti od prvého dňa.',
+                  ),
+                ),
+                const SizedBox(height: 18),
+                _KitchenSetupSummary(
+                  title: context.tr(
+                    en: 'What we’ll personalize',
+                    sk: 'Čo si prispôsobíme',
+                  ),
+                  items: [
+                    context.tr(
+                      en: 'Meals and foods you enjoy most',
+                      sk: 'Jedlá a potraviny, ktoré máš najradšej',
+                    ),
+                    context.tr(
+                      en: 'Allergies, intolerances, and diet style',
+                      sk: 'Alergie, intolerancie a štýl stravovania',
+                    ),
+                    context.tr(
+                      en: 'Household habits like language and cooking rhythm',
+                      sk: 'Návyky domácnosti ako jazyk a rytmus varenia',
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+              ],
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
@@ -399,6 +518,8 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
                           en: 'Meals and foods',
                           sk: 'Jedlá a potraviny',
                         ),
+                        icon: Icons.restaurant_menu_rounded,
+                        accent: const Color(0xFF4C8C68),
                         subtitle: context.tr(
                           en: 'Tell us what you enjoy most so we can later shape recipe suggestions and shopping defaults.',
                           sk: 'Povedz nám, čo máš rád, aby sme neskôr vedeli lepšie odporúčať recepty a nákupy.',
@@ -419,6 +540,8 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
                               labelBuilder: (value) =>
                                   _favoriteMealLabel(context, value),
                               customController: _favoriteMealsController,
+                              featuredCount: 4,
+                              allowCustom: true,
                               customLabel: context.tr(
                                 en: 'Other favorite meals',
                                 sk: 'Iné obľúbené jedlá',
@@ -446,6 +569,8 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
                               labelBuilder: (value) =>
                                   _favoriteFoodLabel(context, value),
                               customController: _favoriteFoodsController,
+                              featuredCount: 4,
+                              allowCustom: true,
                               customLabel: context.tr(
                                 en: 'Other favorite foods',
                                 sk: 'Iné obľúbené potraviny',
@@ -465,6 +590,8 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
                           en: 'Dietary needs',
                           sk: 'Stravovacie potreby',
                         ),
+                        icon: Icons.health_and_safety_rounded,
+                        accent: const Color(0xFFCE6A52),
                         subtitle: context.tr(
                           en: 'Capture allergies, intolerances and diet style so later suggestions stay relevant and safe.',
                           sk: 'Zadaj alergie, intolerancie a štýl stravovania, aby boli odporúčania bezpečné a relevantné.',
@@ -482,6 +609,8 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
                               labelBuilder: (value) =>
                                   _allergyLabel(context, value),
                               customController: _allergiesController,
+                              featuredCount: 4,
+                              allowCustom: true,
                               customLabel: context.tr(
                                 en: 'Other allergies',
                                 sk: 'Iné alergie',
@@ -509,6 +638,8 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
                               labelBuilder: (value) =>
                                   _intoleranceLabel(context, value),
                               customController: _intolerancesController,
+                              featuredCount: 4,
+                              allowCustom: true,
                               customLabel: context.tr(
                                 en: 'Other intolerances',
                                 sk: 'Iné intolerancie',
@@ -530,27 +661,16 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
                               en: 'Choose the closest long-term preference',
                               sk: 'Vyber najbližšie dlhodobé nastavenie',
                             ),
-                            child: DropdownButtonFormField<String>(
-                              initialValue: _selectedDietStyle,
-                              decoration: appInputDecoration(
-                                context.tr(
-                                  en: 'Diet style',
-                                  sk: 'Štýl stravovania',
-                                ),
-                              ),
-                              items: _dietStyles
-                                  .map(
-                                    (value) => DropdownMenuItem(
-                                      value: value,
-                                      child: Text(
-                                        _dietStyleLabel(context, value),
-                                      ),
-                                    ),
-                                  )
-                                  .toList(),
-                              onChanged: (value) {
+                            child: _MultiChoiceChipSelector(
+                              options: _dietStyles,
+                              selectedValues: _selectedDietStyles,
+                              featuredCount: 4,
+                              labelBuilder: (value) =>
+                                  _dietStyleLabel(context, value),
+                              onChanged: (values) {
                                 setState(() {
-                                  _selectedDietStyle = value;
+                                  _selectedDietStyles =
+                                      _normalizeDietStyles(values);
                                 });
                               },
                             ),
@@ -560,6 +680,8 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
                       const SizedBox(height: 18),
                       _PreferenceSection(
                         title: context.tr(en: 'Language', sk: 'Jazyk'),
+                        icon: Icons.translate_rounded,
+                        accent: const Color(0xFF5B74E8),
                         subtitle: context.tr(
                           en: 'Choose which language the app should use.',
                           sk: 'Vyber jazyk, ktorý má aplikácia používať.',
@@ -611,6 +733,8 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
                           en: 'Household habits',
                           sk: 'Návyky domácnosti',
                         ),
+                        icon: Icons.home_work_rounded,
+                        accent: const Color(0xFF8B6F45),
                         subtitle: context.tr(
                           en: 'These values help us tune meal-planning and pantry expectations later on.',
                           sk: 'Tieto údaje nám neskôr pomôžu lepšie nastaviť plánovanie jedál a očakávania pre špajzu.',
@@ -779,6 +903,7 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
             ],
           );
         },
+        ),
       ),
     );
   }
@@ -823,16 +948,47 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
     return int.tryParse(normalized);
   }
 
+  static Set<String> _normalizeDietStyles(Set<String> values) {
+    final next = {...values};
+    if (next.contains('no_special_diet') && next.length > 1) {
+      next.remove('no_special_diet');
+    }
+    if (next.isEmpty) {
+      return <String>{};
+    }
+    return next;
+  }
+
   static String _dietStyleLabel(BuildContext context, String value) {
     return switch (value) {
-      'omnivore' => context.tr(en: 'Omnivore', sk: 'Všežravec'),
-      'vegetarian' => context.tr(en: 'Vegetarian', sk: 'Vegetarián'),
+      'no_special_diet' => context.tr(
+        en: 'No special diet',
+        sk: 'Bez špeciálnej diéty',
+      ),
       'vegan' => context.tr(en: 'Vegan', sk: 'Vegán'),
+      'vegetarian' => context.tr(en: 'Vegetarian', sk: 'Vegetarián'),
+      'keto' => context.tr(en: 'Keto', sk: 'Keto'),
+      'omnivore' => context.tr(en: 'Omnivore', sk: 'Všežravec'),
+      'flexitarian' => context.tr(en: 'Flexitarian', sk: 'Flexitarián'),
       'pescatarian' => context.tr(en: 'Pescatarian', sk: 'Pescetarián'),
-      'low_carb' => context.tr(en: 'Low carb', sk: 'Nízkosacharidová strava'),
-      'high_protein' => context.tr(
-        en: 'High protein',
-        sk: 'Vysokobielkovinová strava',
+      'low_carb' => context.tr(
+        en: 'Low-carb',
+        sk: 'Nízkosacharidová strava',
+      ),
+      'mediterranean' => context.tr(
+        en: 'Mediterranean',
+        sk: 'Stredomorská strava',
+      ),
+      'gluten_free' => context.tr(en: 'Gluten-free', sk: 'Bezlepková strava'),
+      'lactose_free' => context.tr(
+        en: 'Lactose-free',
+        sk: 'Bezlaktózová strava',
+      ),
+      'halal' => context.tr(en: 'Halal', sk: 'Halal'),
+      'kosher' => context.tr(en: 'Kosher', sk: 'Kóšer'),
+      'plant_based' => context.tr(
+        en: 'Plant-based',
+        sk: 'Rastlinná strava',
       ),
       _ => value,
     };
@@ -854,39 +1010,51 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
   static String _favoriteMealLabel(BuildContext context, String value) {
     return switch (value) {
       'pasta' => context.tr(en: 'Pasta', sk: 'Cestoviny'),
-      'omelette' => context.tr(en: 'Omelette', sk: 'Omeleta'),
-      'rice_bowl' => context.tr(en: 'Rice bowl', sk: 'Ryžový bowl'),
-      'sandwich' => context.tr(en: 'Sandwich', sk: 'Sendvič'),
       'salad' => context.tr(en: 'Salad', sk: 'Šalát'),
       'soup' => context.tr(en: 'Soup', sk: 'Polievka'),
+      'sandwich' => context.tr(en: 'Sandwich', sk: 'Sendvič'),
+      'pizza' => context.tr(en: 'Pizza', sk: 'Pizza'),
+      'burger' => context.tr(en: 'Burger', sk: 'Burger'),
+      'sushi' => context.tr(en: 'Sushi', sk: 'Sushi'),
       'curry' => context.tr(en: 'Curry', sk: 'Kari'),
-      'breakfast' => context.tr(en: 'Breakfast', sk: 'Raňajky'),
+      'rice_dishes' => context.tr(en: 'Rice dishes', sk: 'Ryžové jedlá'),
+      'noodles' => context.tr(en: 'Noodles', sk: 'Rezance'),
+      'grilled' => context.tr(en: 'Grilled', sk: 'Grilované jedlá'),
+      'omelette' => context.tr(en: 'Omelette', sk: 'Omeleta'),
       _ => value,
     };
   }
 
   static String _favoriteFoodLabel(BuildContext context, String value) {
     return switch (value) {
-      'milk' => context.tr(en: 'Milk', sk: 'Mlieko'),
-      'cheese' => context.tr(en: 'Cheese', sk: 'Syr'),
-      'eggs' => context.tr(en: 'Eggs', sk: 'Vajcia'),
-      'yogurt' => context.tr(en: 'Yogurt', sk: 'Jogurt'),
-      'bread' => context.tr(en: 'Bread', sk: 'Chlieb'),
-      'rice' => context.tr(en: 'Rice', sk: 'Ryža'),
-      'pasta' => context.tr(en: 'Pasta', sk: 'Cestoviny'),
       'chicken' => context.tr(en: 'Chicken', sk: 'Kuracie mäso'),
+      'rice' => context.tr(en: 'Rice', sk: 'Ryža'),
+      'eggs' => context.tr(en: 'Eggs', sk: 'Vajcia'),
+      'cheese' => context.tr(en: 'Cheese', sk: 'Syr'),
+      'bread' => context.tr(en: 'Bread', sk: 'Chlieb'),
+      'potatoes' => context.tr(en: 'Potatoes', sk: 'Zemiaky'),
+      'pasta' => context.tr(en: 'Pasta', sk: 'Cestoviny'),
+      'beef' => context.tr(en: 'Beef', sk: 'Hovädzie mäso'),
+      'fish' => context.tr(en: 'Fish', sk: 'Ryby'),
+      'seafood' => context.tr(en: 'Seafood', sk: 'Morské plody'),
+      'fruit' => context.tr(en: 'Fruit', sk: 'Ovocie'),
+      'vegetables' => context.tr(en: 'Vegetables', sk: 'Zelenina'),
+      'chocolate' => context.tr(en: 'Chocolate', sk: 'Čokoláda'),
+      'yogurt' => context.tr(en: 'Yogurt', sk: 'Jogurt'),
+      'nuts' => context.tr(en: 'Nuts', sk: 'Orechy'),
       'beans' => context.tr(en: 'Beans', sk: 'Fazuľa'),
-      'tomatoes' => context.tr(en: 'Tomatoes', sk: 'Paradajky'),
       _ => value,
     };
   }
 
   static String _allergyLabel(BuildContext context, String value) {
     return switch (value) {
-      'peanuts' => context.tr(en: 'Peanuts', sk: 'Arašidy'),
-      'tree_nuts' => context.tr(en: 'Tree nuts', sk: 'Orechy'),
       'eggs' => context.tr(en: 'Eggs', sk: 'Vajcia'),
+      'peanuts' => context.tr(en: 'Peanuts', sk: 'Arašidy'),
       'soy' => context.tr(en: 'Soy', sk: 'Sója'),
+      'tree_nuts' => context.tr(en: 'Tree nuts', sk: 'Stromové orechy'),
+      'milk' => context.tr(en: 'Milk', sk: 'Mlieko'),
+      'wheat' => context.tr(en: 'Wheat', sk: 'Pšenica'),
       'fish' => context.tr(en: 'Fish', sk: 'Ryby'),
       'shellfish' => context.tr(en: 'Shellfish', sk: 'Morské plody'),
       'sesame' => context.tr(en: 'Sesame', sk: 'Sezam'),
@@ -898,8 +1066,11 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
     return switch (value) {
       'lactose' => context.tr(en: 'Lactose', sk: 'Laktóza'),
       'gluten' => context.tr(en: 'Gluten', sk: 'Lepok'),
-      'milk' => context.tr(en: 'Milk', sk: 'Mlieko'),
-      'eggs' => context.tr(en: 'Eggs', sk: 'Vajcia'),
+      'histamine' => context.tr(en: 'Histamine', sk: 'Histamín'),
+      'fructose' => context.tr(en: 'Fructose', sk: 'Fruktóza'),
+      'fodmap' => context.tr(en: 'FODMAP', sk: 'FODMAP'),
+      'additives' => context.tr(en: 'Additives', sk: 'Prídavné látky'),
+      'alcohol' => context.tr(en: 'Alcohol', sk: 'Alkohol'),
       _ => value,
     };
   }
@@ -909,11 +1080,15 @@ class _PreferenceSection extends StatelessWidget {
   final String title;
   final String subtitle;
   final List<Widget> children;
+  final IconData? icon;
+  final Color? accent;
 
   const _PreferenceSection({
     required this.title,
     required this.subtitle,
     required this.children,
+    this.icon,
+    this.accent,
   });
 
   @override
@@ -928,16 +1103,193 @@ class _PreferenceSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+          Row(
+            children: [
+              if (icon != null) ...[
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: (accent ?? SafoColors.primary).withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: accent ?? SafoColors.primary,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+              ],
+              Expanded(
+                child: Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 6),
           Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
           const SizedBox(height: 16),
           ...children,
+        ],
+      ),
+    );
+  }
+}
+
+class _KitchenSetupHero extends StatelessWidget {
+  final String imageAsset;
+  final String title;
+  final String subtitle;
+
+  const _KitchenSetupHero({
+    required this.imageAsset,
+    required this.title,
+    required this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: SafoColors.border),
+      ),
+      child: Stack(
+        children: [
+          AspectRatio(
+            aspectRatio: 1.12,
+            child: Image.asset(
+              imageAsset,
+              fit: BoxFit.cover,
+              alignment: Alignment.center,
+            ),
+          ),
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.white.withValues(alpha: 0.02),
+                    const Color(0xFFF7F3EB).withValues(alpha: 0.18),
+                    SafoColors.background.withValues(alpha: 0.84),
+                    SafoColors.background,
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  stops: const [0, 0.36, 0.78, 1],
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 18,
+            right: 18,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.92),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                context.tr(en: 'Kitchen profile', sk: 'Profil kuchyne'),
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            left: 22,
+            right: 22,
+            bottom: 22,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  subtitle,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: SafoColors.textSecondary,
+                    height: 1.45,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _KitchenSetupSummary extends StatelessWidget {
+  final String title;
+  final List<String> items;
+
+  const _KitchenSetupSummary({
+    required this.title,
+    required this.items,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7F3EB),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: SafoColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 14),
+          ...items.map(
+            (item) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.only(top: 2),
+                    child: Icon(
+                      Icons.check_circle_rounded,
+                      size: 18,
+                      color: SafoColors.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      item,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: SafoColors.textSecondary,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -980,7 +1332,9 @@ class _PreferenceChipSelector extends StatelessWidget {
   final Set<String> selectedValues;
   final String Function(String value) labelBuilder;
   final TextEditingController customController;
+  final bool allowCustom;
   final String customLabel;
+  final int featuredCount;
   final ValueChanged<Set<String>> onChanged;
 
   const _PreferenceChipSelector({
@@ -988,19 +1342,24 @@ class _PreferenceChipSelector extends StatelessWidget {
     required this.selectedValues,
     required this.labelBuilder,
     required this.customController,
+    this.allowCustom = true,
     required this.customLabel,
+    this.featuredCount = 4,
     required this.onChanged,
   });
 
   @override
   Widget build(BuildContext context) {
+    final featuredOptions = options.take(featuredCount).toList();
+    final moreOptions = options.skip(featuredCount).toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: options.map((value) {
+          children: featuredOptions.map((value) {
             final selected = selectedValues.contains(value);
             return FilterChip(
               label: Text(labelBuilder(value)),
@@ -1017,11 +1376,151 @@ class _PreferenceChipSelector extends StatelessWidget {
             );
           }).toList(),
         ),
-        const SizedBox(height: 12),
-        TextFormField(
-          controller: customController,
-          decoration: appInputDecoration(customLabel),
+        if (moreOptions.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            initialValue: null,
+            decoration: appInputDecoration(
+              context.tr(en: 'More options', sk: 'Ďalšie možnosti'),
+            ),
+            hint: Text(
+              context.tr(
+                en: 'Select more options',
+                sk: 'Vyber ďalšie možnosti',
+              ),
+            ),
+            items: moreOptions
+                .map(
+                  (value) => DropdownMenuItem(
+                    value: value,
+                    child: Row(
+                      children: [
+                        Expanded(child: Text(labelBuilder(value))),
+                        if (selectedValues.contains(value))
+                          const Icon(
+                            Icons.check_rounded,
+                            size: 18,
+                            color: SafoColors.primary,
+                          ),
+                      ],
+                    ),
+                  ),
+                )
+                .toList(),
+            onChanged: (value) {
+              if (value == null) {
+                return;
+              }
+              final next = {...selectedValues};
+              if (next.contains(value)) {
+                next.remove(value);
+              } else {
+                next.add(value);
+              }
+              onChanged(next);
+            },
+          ),
+        ],
+        if (allowCustom) ...[
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: customController,
+            decoration: appInputDecoration(customLabel),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _MultiChoiceChipSelector extends StatelessWidget {
+  final List<String> options;
+  final Set<String> selectedValues;
+  final String Function(String value) labelBuilder;
+  final int featuredCount;
+  final ValueChanged<Set<String>> onChanged;
+
+  const _MultiChoiceChipSelector({
+    required this.options,
+    required this.selectedValues,
+    required this.labelBuilder,
+    this.featuredCount = 3,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final featuredOptions = options.take(featuredCount).toList();
+    final moreOptions = options.skip(featuredCount).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: featuredOptions.map((value) {
+            final selected = selectedValues.contains(value);
+            return FilterChip(
+              label: Text(labelBuilder(value)),
+              selected: selected,
+              onSelected: (isSelected) {
+                final next = {...selectedValues};
+                if (isSelected) {
+                  next.add(value);
+                } else {
+                  next.remove(value);
+                }
+                onChanged(next);
+              },
+            );
+          }).toList(),
         ),
+        if (moreOptions.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            initialValue: null,
+            decoration: appInputDecoration(
+              context.tr(en: 'More diet styles', sk: 'Ďalšie štýly stravy'),
+            ),
+            hint: Text(
+              context.tr(
+                en: 'Select another option',
+                sk: 'Vyber ďalšiu možnosť',
+              ),
+            ),
+            items: moreOptions
+                .map(
+                  (value) => DropdownMenuItem(
+                    value: value,
+                    child: Row(
+                      children: [
+                        Expanded(child: Text(labelBuilder(value))),
+                        if (selectedValues.contains(value))
+                          const Icon(
+                            Icons.check_rounded,
+                            size: 18,
+                            color: SafoColors.primary,
+                          ),
+                      ],
+                    ),
+                  ),
+                )
+                .toList(),
+            onChanged: (value) {
+              if (value == null) {
+                return;
+              }
+              final next = {...selectedValues};
+              if (next.contains(value)) {
+                next.remove(value);
+              } else {
+                next.add(value);
+              }
+              onChanged(next);
+            },
+          ),
+        ],
       ],
     );
   }

@@ -20,6 +20,10 @@ class HouseholdRepository {
     return _remoteDataSource.joinHousehold(householdId);
   }
 
+  Future<Household> updateHouseholdName(String householdId, String name) {
+    return _remoteDataSource.updateHouseholdName(householdId, name);
+  }
+
   Future<List<HouseholdMember>> getMembers(String householdId) {
     return _remoteDataSource.fetchMembers(householdId);
   }

@@ -99,6 +99,7 @@ class _HomeShellState extends State<HomeShell> {
   Widget build(BuildContext context) {
     final screens = [
       DashboardScreen(
+        authRepository: widget.authRepository,
         household: widget.household,
         pantryRefreshToken: _pantryRefreshToken,
         shoppingListRefreshToken: _shoppingListRefreshToken,

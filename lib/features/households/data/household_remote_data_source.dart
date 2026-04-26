@@ -81,6 +81,20 @@ class HouseholdRemoteDataSource {
     return Household.fromMap(householdResponse);
   }
 
+  Future<Household> updateHouseholdName(String householdId, String name) async {
+    final client = _requireClient();
+    _requireUser(client);
+
+    final response = await client
+        .from('households')
+        .update({'name': name})
+        .eq('id', householdId)
+        .select()
+        .single();
+
+    return Household.fromMap(response);
+  }
+
   Future<List<HouseholdMember>> fetchMembers(String householdId) async {
     final client = _requireClient();
 

@@ -43,13 +43,13 @@ class UserPreferencesRemoteDataSource {
     try {
       final response = await client
           .from('user_preferences')
-          .upsert({
+        .upsert({
             'user_id': preferences.userId,
             'favorite_meals': preferences.favoriteMeals,
             'favorite_foods': preferences.favoriteFoods,
             'allergies': preferences.allergies,
             'intolerances': preferences.intolerances,
-            'diet_style': preferences.dietStyle,
+            'diet_style': preferences.dietStyles.join(','),
             'cooking_frequency': preferences.cookingFrequency,
             'preferred_language': preferences.preferredLanguage,
             'household_size': preferences.householdSize,

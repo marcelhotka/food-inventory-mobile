@@ -4,7 +4,7 @@ class UserPreferences {
   final List<String> favoriteFoods;
   final List<String> allergies;
   final List<String> intolerances;
-  final String? dietStyle;
+  final List<String> dietStyles;
   final String? cookingFrequency;
   final String? preferredLanguage;
   final int? householdSize;
@@ -18,7 +18,7 @@ class UserPreferences {
     required this.favoriteFoods,
     required this.allergies,
     required this.intolerances,
-    required this.dietStyle,
+    required this.dietStyles,
     required this.cookingFrequency,
     required this.preferredLanguage,
     required this.householdSize,
@@ -34,7 +34,7 @@ class UserPreferences {
       favoriteFoods: _toStringList(map['favorite_foods']),
       allergies: _toStringList(map['allergies']),
       intolerances: _toStringList(map['intolerances']),
-      dietStyle: map['diet_style'] as String?,
+      dietStyles: _toDietStyleList(map['diet_style']),
       cookingFrequency: map['cooking_frequency'] as String?,
       preferredLanguage: map['preferred_language'] as String?,
       householdSize: map['household_size'] as int?,
@@ -50,8 +50,8 @@ class UserPreferences {
     List<String>? favoriteFoods,
     List<String>? allergies,
     List<String>? intolerances,
-    String? dietStyle,
-    bool clearDietStyle = false,
+    List<String>? dietStyles,
+    bool clearDietStyles = false,
     String? cookingFrequency,
     bool clearCookingFrequency = false,
     String? preferredLanguage,
@@ -68,7 +68,7 @@ class UserPreferences {
       favoriteFoods: favoriteFoods ?? this.favoriteFoods,
       allergies: allergies ?? this.allergies,
       intolerances: intolerances ?? this.intolerances,
-      dietStyle: clearDietStyle ? null : (dietStyle ?? this.dietStyle),
+      dietStyles: clearDietStyles ? const [] : (dietStyles ?? this.dietStyles),
       cookingFrequency: clearCookingFrequency
           ? null
           : (cookingFrequency ?? this.cookingFrequency),
@@ -93,5 +93,16 @@ class UserPreferences {
           .toList();
     }
     return const [];
+  }
+
+  static List<String> _toDietStyleList(dynamic value) {
+    if (value is String) {
+      return value
+          .split(',')
+          .map((item) => item.trim())
+          .where((item) => item.isNotEmpty)
+          .toList();
+    }
+    return _toStringList(value);
   }
 }
