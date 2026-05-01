@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/localization/app_locale.dart';
+import '../../../app/theme/safo_tokens.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
+import '../../../core/widgets/safo_logo.dart';
 import '../data/scan_sessions_repository.dart';
 import '../domain/scan_candidate.dart';
 import '../domain/scan_session.dart';
@@ -33,9 +35,6 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(context.tr(en: 'Scan history', sk: 'História scanov')),
-      ),
       body: FutureBuilder<List<ScanSession>>(
         future: _sessionsFuture,
         builder: (context, snapshot) {
@@ -73,15 +72,44 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
             );
           }
 
+          final selectedCount = sessions.fold<int>(
+            0,
+            (sum, session) =>
+                sum +
+                session.candidates.where((item) => item.isSelected).length,
+          );
+          final latestScan = sessions.first.createdAt;
+
           return RefreshIndicator(
             onRefresh: _reload,
             child: ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: sessions.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 12),
+              padding: const EdgeInsets.fromLTRB(
+                SafoSpacing.md,
+                SafoSpacing.sm,
+                SafoSpacing.md,
+                SafoSpacing.xxl,
+              ),
+              itemCount: sessions.length + 2,
+              separatorBuilder: (_, index) => SizedBox(
+                height: index == 0 ? SafoSpacing.lg : SafoSpacing.sm,
+              ),
               itemBuilder: (context, index) {
-                final session = sessions[index];
-                final selectedCount = session.candidates
+                if (index == 0) {
+                  return _ScanHistoryHeader(
+                    onBack: () => Navigator.of(context).maybePop(),
+                  );
+                }
+
+                if (index == 1) {
+                  return _ScanHistorySummary(
+                    sessionCount: sessions.length,
+                    selectedCount: selectedCount,
+                    latestScan: latestScan,
+                  );
+                }
+
+                final session = sessions[index - 2];
+                final selectedCountForSession = session.candidates
                     .where((item) => item.isSelected)
                     .length;
 
@@ -99,11 +127,18 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
                     );
                   },
                   child: Container(
-                    padding: const EdgeInsets.all(18),
+                    padding: const EdgeInsets.all(SafoSpacing.lg),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFFFCF7),
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: const Color(0xFFE6DDCF)),
+                      color: SafoColors.surface,
+                      borderRadius: BorderRadius.circular(SafoRadii.xl),
+                      border: Border.all(color: SafoColors.border),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x120F172A),
+                          blurRadius: 18,
+                          offset: Offset(0, 10),
+                        ),
+                      ],
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -120,15 +155,16 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
                             const Icon(Icons.chevron_right_rounded),
                           ],
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: SafoSpacing.xs),
                         Text(
-                          '${_formatDateTime(session.createdAt)} • $selectedCount ${context.tr(en: 'selected', sk: 'vybrané')}',
-                          style: Theme.of(context).textTheme.bodyMedium,
+                          '${_formatDateTime(session.createdAt)} • $selectedCountForSession ${context.tr(en: 'selected', sk: 'vybrané')}',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: SafoColors.textSecondary),
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: SafoSpacing.sm),
                         Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
+                          spacing: SafoSpacing.xs,
+                          runSpacing: SafoSpacing.xs,
                           children: [
                             _HistoryChip(
                               icon: Icons.inventory_2_outlined,
@@ -138,7 +174,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
                             _HistoryChip(
                               icon: Icons.check_circle_outline_rounded,
                               label:
-                                  '$selectedCount ${context.tr(en: 'confirmed', sk: 'potvrdené')}',
+                                  '$selectedCountForSession ${context.tr(en: 'confirmed', sk: 'potvrdené')}',
                             ),
                           ],
                         ),
@@ -191,9 +227,6 @@ class _ScanSessionDetailScreenState extends State<ScanSessionDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(context.tr(en: 'Scan detail', sk: 'Detail scanu')),
-      ),
       body: FutureBuilder<ScanSession>(
         future: _sessionFuture,
         builder: (context, snapshot) {
@@ -225,36 +258,22 @@ class _ScanSessionDetailScreenState extends State<ScanSessionDetailScreen> {
           return RefreshIndicator(
             onRefresh: _reload,
             child: ListView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(
+                SafoSpacing.md,
+                SafoSpacing.sm,
+                SafoSpacing.md,
+                SafoSpacing.xxl,
+              ),
               children: [
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFFCF7),
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: const Color(0xFFE6DDCF)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        session.imageLabel,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        _formatDateTime(session.createdAt),
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                    ],
-                  ),
+                _ScanHistoryDetailHeader(
+                  onBack: () => Navigator.of(context).maybePop(),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: SafoSpacing.lg),
+                _ScanSessionOverview(session: session),
+                const SizedBox(height: SafoSpacing.md),
                 ...session.candidates.map(
                   (candidate) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.only(bottom: SafoSpacing.sm),
                     child: _CandidateCard(candidate: candidate),
                   ),
                 ),
@@ -277,14 +296,14 @@ class _CandidateCard extends StatelessWidget {
     final prefill = candidate.prefill;
 
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(SafoSpacing.lg),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFCF7),
-        borderRadius: BorderRadius.circular(24),
+        color: SafoColors.surface,
+        borderRadius: BorderRadius.circular(SafoRadii.xl),
         border: Border.all(
           color: candidate.isSelected
-              ? const Color(0xFFC7D7C3)
-              : const Color(0xFFE6DDCF),
+              ? SafoColors.primary.withValues(alpha: 0.25)
+              : SafoColors.border,
         ),
       ),
       child: Column(
@@ -310,20 +329,26 @@ class _CandidateCard extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             '${context.tr(en: 'Confidence', sk: 'Istota')} ${(candidate.confidence * 100).round()}%',
-            style: Theme.of(context).textTheme.bodySmall,
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: SafoColors.textSecondary),
           ),
           if (prefill.barcode != null && prefill.barcode!.isNotEmpty) ...[
             const SizedBox(height: 6),
             Text(
               '${context.tr(en: 'Code', sk: 'Kód')} ${prefill.barcode}',
-              style: Theme.of(context).textTheme.bodySmall,
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: SafoColors.textSecondary),
             ),
           ],
           if (prefill.expirationDate != null) ...[
             const SizedBox(height: 6),
             Text(
               '${context.tr(en: 'Expires', sk: 'Spotreba do')} ${_formatDate(prefill.expirationDate!)}',
-              style: Theme.of(context).textTheme.bodySmall,
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: SafoColors.textSecondary),
             ),
           ],
         ],
@@ -339,9 +364,7 @@ class _StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isSelected
-        ? const Color(0xFFDDEBD7)
-        : const Color(0xFFF1E2D1);
+    final color = isSelected ? SafoColors.primarySoft : SafoColors.warningSoft;
     final text = isSelected
         ? context.tr(en: 'Confirmed', sk: 'Potvrdené')
         : context.tr(en: 'Rejected', sk: 'Odmietnuté');
@@ -350,7 +373,7 @@ class _StatusChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: color,
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(SafoRadii.pill),
       ),
       child: Text(
         text,
@@ -373,12 +396,253 @@ class _HistoryChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F1E7),
-        borderRadius: BorderRadius.circular(999),
+        color: SafoColors.surfaceSoft,
+        borderRadius: BorderRadius.circular(SafoRadii.pill),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
-        children: [Icon(icon, size: 16), const SizedBox(width: 6), Text(label)],
+        children: [
+          Icon(icon, size: 16, color: SafoColors.textSecondary),
+          const SizedBox(width: 6),
+          Text(label),
+        ],
+      ),
+    );
+  }
+}
+
+class _ScanHistoryHeader extends StatelessWidget {
+  final VoidCallback onBack;
+
+  const _ScanHistoryHeader({required this.onBack});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(SafoSpacing.lg),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(SafoRadii.xl),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF1E2D4E), Color(0xFF2F4858)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              IconButton(
+                onPressed: onBack,
+                style: IconButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  backgroundColor: Colors.white.withValues(alpha: 0.12),
+                ),
+                icon: const Icon(Icons.arrow_back_rounded),
+              ),
+              const Spacer(),
+              const SafoLogo(
+                variant: SafoLogoVariant.horizontalLight,
+                width: 84,
+              ),
+            ],
+          ),
+          const SizedBox(height: SafoSpacing.lg),
+          Text(
+            context.tr(
+              en: 'Fridge scan history',
+              sk: 'História scanov chladničky',
+            ),
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: SafoSpacing.xs),
+          Text(
+            context.tr(
+              en: 'Review previous scans, confirmed items, and quick fridge captures in one place.',
+              sk: 'Pozri si predchádzajúce scany, potvrdené položky a rýchle snímky chladničky na jednom mieste.',
+            ),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Colors.white.withValues(alpha: 0.8),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ScanHistorySummary extends StatelessWidget {
+  final int sessionCount;
+  final int selectedCount;
+  final DateTime latestScan;
+
+  const _ScanHistorySummary({
+    required this.sessionCount,
+    required this.selectedCount,
+    required this.latestScan,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _ScanHistorySummaryCard(
+            label: context.tr(en: 'Scans', sk: 'Scany'),
+            value: '$sessionCount',
+            tone: SafoColors.primarySoft,
+            accent: SafoColors.primary,
+          ),
+        ),
+        const SizedBox(width: SafoSpacing.sm),
+        Expanded(
+          child: _ScanHistorySummaryCard(
+            label: context.tr(en: 'Confirmed', sk: 'Potvrdené'),
+            value: '$selectedCount',
+            tone: SafoColors.accentSoft,
+            accent: SafoColors.accent,
+          ),
+        ),
+        const SizedBox(width: SafoSpacing.sm),
+        Expanded(
+          child: _ScanHistorySummaryCard(
+            label: context.tr(en: 'Latest', sk: 'Posledný'),
+            value: _formatShortDate(latestScan),
+            tone: SafoColors.warningSoft,
+            accent: SafoColors.warning,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ScanHistorySummaryCard extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color tone;
+  final Color accent;
+
+  const _ScanHistorySummaryCard({
+    required this.label,
+    required this.value,
+    required this.tone,
+    required this.accent,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(SafoSpacing.md),
+      decoration: BoxDecoration(
+        color: tone,
+        borderRadius: BorderRadius.circular(SafoRadii.lg),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: SafoColors.textSecondary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: SafoSpacing.xs),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: accent,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ScanHistoryDetailHeader extends StatelessWidget {
+  final VoidCallback onBack;
+
+  const _ScanHistoryDetailHeader({required this.onBack});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        IconButton(
+          onPressed: onBack,
+          style: IconButton.styleFrom(
+            foregroundColor: SafoColors.textPrimary,
+            backgroundColor: SafoColors.surface,
+            side: const BorderSide(color: SafoColors.border),
+          ),
+          icon: const Icon(Icons.arrow_back_rounded),
+        ),
+        const SizedBox(width: SafoSpacing.sm),
+        const SafoLogo(variant: SafoLogoVariant.pill, width: 82),
+      ],
+    );
+  }
+}
+
+class _ScanSessionOverview extends StatelessWidget {
+  final ScanSession session;
+
+  const _ScanSessionOverview({required this.session});
+
+  @override
+  Widget build(BuildContext context) {
+    final selectedCount = session.candidates
+        .where((item) => item.isSelected)
+        .length;
+
+    return Container(
+      padding: const EdgeInsets.all(SafoSpacing.lg),
+      decoration: BoxDecoration(
+        color: SafoColors.surface,
+        borderRadius: BorderRadius.circular(SafoRadii.xl),
+        border: Border.all(color: SafoColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            session.imageLabel,
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: SafoSpacing.xs),
+          Text(
+            _formatDateTime(session.createdAt),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: SafoColors.textSecondary),
+          ),
+          const SizedBox(height: SafoSpacing.md),
+          Wrap(
+            spacing: SafoSpacing.xs,
+            runSpacing: SafoSpacing.xs,
+            children: [
+              _HistoryChip(
+                icon: Icons.inventory_2_outlined,
+                label:
+                    '${session.candidates.length} ${context.tr(en: 'detected', sk: 'rozpoznané')}',
+              ),
+              _HistoryChip(
+                icon: Icons.check_circle_outline_rounded,
+                label:
+                    '$selectedCount ${context.tr(en: 'confirmed', sk: 'potvrdené')}',
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -400,6 +664,13 @@ String _formatDate(DateTime value) {
   final month = local.month.toString().padLeft(2, '0');
   final year = local.year.toString();
   return '$day.$month.$year';
+}
+
+String _formatShortDate(DateTime value) {
+  final local = value.toLocal();
+  final day = local.day.toString().padLeft(2, '0');
+  final month = local.month.toString().padLeft(2, '0');
+  return '$day.$month.';
 }
 
 String _formatQuantity(double value) {

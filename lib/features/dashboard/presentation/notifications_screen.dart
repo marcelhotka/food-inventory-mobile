@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../../app/localization/app_locale.dart';
 import '../../../app/supabase.dart';
+import '../../../app/theme/safo_tokens.dart';
 import '../../../core/food/food_signal_catalog.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/app_feedback.dart';
+import '../../../core/widgets/safo_page_header.dart';
 import '../../food_items/data/food_items_repository.dart';
 import '../../food_items/domain/food_item.dart';
 import '../../food_items/domain/opened_food_guidance.dart';
@@ -634,9 +636,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(context.tr(en: 'Notifications', sk: 'Upozornenia')),
-      ),
       body: FutureBuilder<List<_AppNotificationItem>>(
         future: _notificationsFuture,
         builder: (context, snapshot) {
@@ -678,30 +677,99 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           return RefreshIndicator(
             onRefresh: _reload,
             child: ListView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(
+                SafoSpacing.md,
+                SafoSpacing.sm,
+                SafoSpacing.md,
+                SafoSpacing.xxl,
+              ),
               children: [
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: _NotificationFilter.values.map((filter) {
-                    final count = _applyNotificationFilter(
-                      notifications,
-                      filterOverride: filter,
-                    ).length;
-                    return ChoiceChip(
-                      selected: _selectedFilter == filter,
-                      onSelected: (_) {
-                        setState(() {
-                          _selectedFilter = filter;
-                        });
-                      },
-                      label: Text(
-                        '${_notificationFilterLabel(context, filter)}${count > 0 ? ' ($count)' : ''}',
+                SafeArea(
+                  bottom: false,
+                  child: SafoPageHeader(
+                    title: context.tr(en: 'Notifications', sk: 'Upozornenia'),
+                    subtitle: context.tr(
+                      en: 'Review what needs attention in pantry, shopping, and cooking today.',
+                      sk: 'Pozri si, čo dnes potrebuje pozornosť v špajzi, nákupe a varení.',
+                    ),
+                    onBack: () => Navigator.of(context).maybePop(),
+                    badges: [
+                      _NotificationHeaderBadge(
+                        icon: Icons.notifications_active_outlined,
+                        label:
+                            '${filteredNotifications.length} ${context.tr(en: 'active', sk: 'aktívne')}',
                       ),
-                    );
-                  }).toList(),
+                      _NotificationHeaderBadge(
+                        icon: Icons.person_outline_rounded,
+                        label:
+                            '${notifications.where((item) => item.isForCurrentUser).length} ${context.tr(en: 'for you', sk: 'pre teba')}',
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: SafoSpacing.lg),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _NotificationSummaryCard(
+                        label: context.tr(en: 'Total', sk: 'Spolu'),
+                        value: '${notifications.length}',
+                        tone: SafoColors.primarySoft,
+                        accent: SafoColors.primary,
+                      ),
+                    ),
+                    const SizedBox(width: SafoSpacing.sm),
+                    Expanded(
+                      child: _NotificationSummaryCard(
+                        label: context.tr(en: 'Filtered', sk: 'Filtrované'),
+                        value: '${filteredNotifications.length}',
+                        tone: SafoColors.accentSoft,
+                        accent: SafoColors.accent,
+                      ),
+                    ),
+                    const SizedBox(width: SafoSpacing.sm),
+                    Expanded(
+                      child: _NotificationSummaryCard(
+                        label: context.tr(en: 'For you', sk: 'Pre teba'),
+                        value:
+                            '${filteredNotifications.where((item) => item.isForCurrentUser).length}',
+                        tone: SafoColors.warningSoft,
+                        accent: SafoColors.warning,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: SafoSpacing.md),
+                Container(
+                  padding: const EdgeInsets.all(SafoSpacing.md),
+                  decoration: BoxDecoration(
+                    color: SafoColors.surface,
+                    borderRadius: BorderRadius.circular(SafoRadii.lg),
+                    border: Border.all(color: SafoColors.border),
+                  ),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _NotificationFilter.values.map((filter) {
+                      final count = _applyNotificationFilter(
+                        notifications,
+                        filterOverride: filter,
+                      ).length;
+                      return ChoiceChip(
+                        selected: _selectedFilter == filter,
+                        onSelected: (_) {
+                          setState(() {
+                            _selectedFilter = filter;
+                          });
+                        },
+                        label: Text(
+                          '${_notificationFilterLabel(context, filter)}${count > 0 ? ' ($count)' : ''}',
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+                const SizedBox(height: SafoSpacing.md),
                 if (filteredNotifications.isEmpty)
                   Card(
                     child: Padding(
@@ -1033,6 +1101,83 @@ String _defaultPantryCategory(String itemKey) {
 }
 
 enum _NotificationKind { expiringSoon, opened, lowStock, shopping, mealPlan }
+
+class _NotificationHeaderBadge extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _NotificationHeaderBadge({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(SafoRadii.pill),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: Colors.white),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NotificationSummaryCard extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color tone;
+  final Color accent;
+
+  const _NotificationSummaryCard({
+    required this.label,
+    required this.value,
+    required this.tone,
+    required this.accent,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(SafoSpacing.md),
+      decoration: BoxDecoration(
+        color: tone,
+        borderRadius: BorderRadius.circular(SafoRadii.lg),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: SafoColors.textSecondary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: SafoSpacing.xs),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: accent,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 enum _NotificationFilter { all, forYou, pantry, shopping, cooking }
 

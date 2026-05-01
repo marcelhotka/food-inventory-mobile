@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/localization/app_locale.dart';
+import '../../../app/theme/safo_tokens.dart';
 import '../../../core/forms/app_input_decoration.dart';
 import '../../../core/widgets/app_feedback.dart';
+import '../../../core/widgets/safo_page_header.dart';
 import '../data/quick_command_service.dart';
 import '../domain/quick_command_models.dart';
 
@@ -42,10 +44,7 @@ class _QuickCommandScreenState extends State<QuickCommandScreen> {
       showErrorFeedback(
         context,
         context.tr(en: 'Enter a command first.', sk: 'Najprv zadaj príkaz.'),
-        title: context.tr(
-          en: 'Command missing',
-          sk: 'Chýba príkaz',
-        ),
+        title: context.tr(en: 'Command missing', sk: 'Chýba príkaz'),
       );
       return;
     }
@@ -302,128 +301,259 @@ class _QuickCommandScreenState extends State<QuickCommandScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(context.tr(en: 'Quick command', sk: 'Rýchly príkaz')),
-      ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(
+          SafoSpacing.md,
+          SafoSpacing.sm,
+          SafoSpacing.md,
+          SafoSpacing.xxl,
+        ),
         children: [
-          Text(
-            context.tr(
-              en: 'Type what happened in the kitchen and the app will update pantry or shopping for you.',
-              sk: 'Napíš, čo sa stalo v kuchyni, a aplikácia podľa toho upraví špajzu alebo nákupný zoznam.',
-            ),
-            style: Theme.of(context).textTheme.bodyLarge,
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _commandController,
-            minLines: 3,
-            maxLines: 5,
-            decoration: appInputDecoration(
-              context.tr(
-                en: 'Example: pridaj 2 jogurty a mlieko',
-                sk: 'Príklad: pridaj 2 jogurty a mlieko',
+          SafeArea(
+            bottom: false,
+            child: SafoPageHeader(
+              title: context.tr(
+                en: 'Quick kitchen command',
+                sk: 'Rýchly kuchynský príkaz',
               ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              ActionChip(
-                label: const Text('pridaj 2 jogurty a mlieko'),
-                onPressed: () => _fillExample('pridaj 2 jogurty a mlieko'),
+              subtitle: context.tr(
+                en: 'Tell Safo what happened and it will update pantry or shopping for you.',
+                sk: 'Povedz Safo, čo sa stalo, a ono podľa toho upraví špajzu alebo nákupný zoznam.',
               ),
-              ActionChip(
-                label: const Text('minuli sa vajcia'),
-                onPressed: () => _fillExample('minuli sa vajcia'),
-              ),
-              ActionChip(
-                label: const Text('otvoril som syr'),
-                onPressed: () => _fillExample('otvoril som syr'),
-              ),
-              ActionChip(
-                label: const Text('kup 2 litre mlieka'),
-                onPressed: () => _fillExample('kup 2 litre mlieka'),
-              ),
-              ActionChip(
-                label: const Text('pridaj mlieko 1 liter'),
-                onPressed: () => _fillExample('pridaj mlieko 1 liter'),
-              ),
-              ActionChip(
-                label: const Text('pridaj 2 jogurty do chladničky'),
-                onPressed: () => _fillExample('pridaj 2 jogurty do chladničky'),
-              ),
-              ActionChip(
-                label: const Text('pridaj hrášok do mrazničky'),
-                onPressed: () => _fillExample('pridaj hrášok do mrazničky'),
-              ),
-              ActionChip(
-                label: const Text('pridaj mlieko do chladničky; kup chlieb'),
-                onPressed: () =>
-                    _fillExample('pridaj mlieko do chladničky; kup chlieb'),
-              ),
-              ActionChip(
-                label: const Text('pridaj mlieko do chladničky a kup chlieb'),
-                onPressed: () =>
-                    _fillExample('pridaj mlieko do chladničky a kup chlieb'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: _isSubmitting ? null : _submit,
-              icon: _isSubmitting
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.bolt_rounded),
-              label: Text(
-                _isSubmitting
-                    ? context.tr(en: 'Processing...', sk: 'Spracovávam...')
-                    : context.tr(en: 'Run command', sk: 'Spustiť príkaz'),
-              ),
+              onBack: () => Navigator.of(context).maybePop(),
+              badges: [
+                _QuickCommandBadge(
+                  icon: Icons.record_voice_over_outlined,
+                  label: context.tr(
+                    en: 'Natural language',
+                    sk: 'Prirodzený jazyk',
+                  ),
+                ),
+                _QuickCommandBadge(
+                  icon: Icons.checklist_rtl_rounded,
+                  label: context.tr(en: 'Preview first', sk: 'Najprv kontrola'),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 24),
-          if (_lastResult != null) ...[
-            Text(
-              context.tr(en: 'Last result', sk: 'Posledný výsledok'),
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+          const SizedBox(height: SafoSpacing.lg),
+          Container(
+            padding: const EdgeInsets.all(SafoSpacing.lg),
+            decoration: BoxDecoration(
+              color: SafoColors.surface,
+              borderRadius: BorderRadius.circular(SafoRadii.xl),
+              border: Border.all(color: SafoColors.border),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x120F172A),
+                  blurRadius: 20,
+                  offset: Offset(0, 10),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.tr(
+                    en: 'Type what happened in the kitchen and the app will update pantry or shopping for you.',
+                    sk: 'Napíš, čo sa stalo v kuchyni, a aplikácia podľa toho upraví špajzu alebo nákupný zoznam.',
+                  ),
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: SafoColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: SafoSpacing.md),
+                TextField(
+                  controller: _commandController,
+                  minLines: 3,
+                  maxLines: 5,
+                  decoration: appInputDecoration(
+                    context.tr(
+                      en: 'Example: pridaj 2 jogurty a mlieko',
+                      sk: 'Príklad: pridaj 2 jogurty a mlieko',
+                    ),
+                  ),
+                ),
+                const SizedBox(height: SafoSpacing.md),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: _isSubmitting ? null : _submit,
+                    icon: _isSubmitting
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.bolt_rounded),
+                    label: Text(
+                      _isSubmitting
+                          ? context.tr(
+                              en: 'Processing...',
+                              sk: 'Spracovávam...',
+                            )
+                          : context.tr(en: 'Run command', sk: 'Spustiť príkaz'),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: SafoSpacing.lg),
+          Container(
+            padding: const EdgeInsets.all(SafoSpacing.lg),
+            decoration: BoxDecoration(
+              color: SafoColors.surface,
+              borderRadius: BorderRadius.circular(SafoRadii.xl),
+              border: Border.all(color: SafoColors.border),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.tr(
+                    en: 'Try example commands',
+                    sk: 'Skús vzorové príkazy',
+                  ),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: SafoSpacing.xs),
+                Text(
+                  context.tr(
+                    en: 'Great for testing pantry, shopping, and opened-item flows quickly.',
+                    sk: 'Hodí sa na rýchle testovanie špajze, nákupu a otvorených položiek.',
+                  ),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: SafoColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: SafoSpacing.md),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
                   children: [
-                    Text(
-                      _lastResult!.summary,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
+                    ActionChip(
+                      label: const Text('pridaj 2 jogurty a mlieko'),
+                      onPressed: () =>
+                          _fillExample('pridaj 2 jogurty a mlieko'),
+                    ),
+                    ActionChip(
+                      label: const Text('minuli sa vajcia'),
+                      onPressed: () => _fillExample('minuli sa vajcia'),
+                    ),
+                    ActionChip(
+                      label: const Text('otvoril som syr'),
+                      onPressed: () => _fillExample('otvoril som syr'),
+                    ),
+                    ActionChip(
+                      label: const Text('kup 2 litre mlieka'),
+                      onPressed: () => _fillExample('kup 2 litre mlieka'),
+                    ),
+                    ActionChip(
+                      label: const Text('pridaj mlieko 1 liter'),
+                      onPressed: () => _fillExample('pridaj mlieko 1 liter'),
+                    ),
+                    ActionChip(
+                      label: const Text('pridaj 2 jogurty do chladničky'),
+                      onPressed: () =>
+                          _fillExample('pridaj 2 jogurty do chladničky'),
+                    ),
+                    ActionChip(
+                      label: const Text('pridaj hrášok do mrazničky'),
+                      onPressed: () =>
+                          _fillExample('pridaj hrášok do mrazničky'),
+                    ),
+                    ActionChip(
+                      label: const Text(
+                        'pridaj mlieko do chladničky; kup chlieb',
+                      ),
+                      onPressed: () => _fillExample(
+                        'pridaj mlieko do chladničky; kup chlieb',
                       ),
                     ),
-                    const SizedBox(height: 10),
-                    ..._lastResult!.details.map(
-                      (detail) => Padding(
-                        padding: const EdgeInsets.only(bottom: 6),
-                        child: Text('• $detail'),
+                    ActionChip(
+                      label: const Text(
+                        'pridaj mlieko do chladničky a kup chlieb',
+                      ),
+                      onPressed: () => _fillExample(
+                        'pridaj mlieko do chladničky a kup chlieb',
                       ),
                     ),
                   ],
                 ),
+              ],
+            ),
+          ),
+          const SizedBox(height: SafoSpacing.lg),
+          if (_lastResult != null)
+            Container(
+              padding: const EdgeInsets.all(SafoSpacing.lg),
+              decoration: BoxDecoration(
+                color: SafoColors.surface,
+                borderRadius: BorderRadius.circular(SafoRadii.xl),
+                border: Border.all(color: SafoColors.border),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    context.tr(en: 'Last result', sk: 'Posledný výsledok'),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: SafoSpacing.md),
+                  Text(
+                    _lastResult!.summary,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  ..._lastResult!.details.map(
+                    (detail) => Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Text('• $detail'),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _QuickCommandBadge extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _QuickCommandBadge({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(SafoRadii.pill),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: Colors.white),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );

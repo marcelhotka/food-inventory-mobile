@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../app/localization/app_locale.dart';
+import '../../../app/theme/safo_tokens.dart';
 import '../../../core/forms/app_input_decoration.dart';
+import '../../../core/widgets/safo_page_header.dart';
 import '../domain/recipe.dart';
 import '../domain/recipe_ingredient.dart';
 
@@ -127,216 +129,254 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          widget.isEditing
-              ? context.tr(en: 'Edit Recipe', sk: 'Upraviť recept')
-              : context.tr(en: 'Add Recipe', sk: 'Pridať recept'),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(
+          SafoSpacing.md,
+          SafoSpacing.sm,
+          SafoSpacing.md,
+          SafoSpacing.xxl,
         ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextFormField(
-                controller: _nameController,
-                decoration: appInputDecoration(
-                  context.tr(en: 'Recipe name', sk: 'Názov receptu'),
-                ),
-                validator: (value) {
-                  if ((value ?? '').trim().isEmpty) {
-                    return context.tr(
-                      en: 'Enter a recipe name',
-                      sk: 'Zadaj názov receptu',
-                    );
-                  }
-                  return null;
-                },
+        children: [
+          SafeArea(
+            bottom: false,
+            child: SafoPageHeader(
+              title: widget.isEditing
+                  ? context.tr(en: 'Edit recipe', sk: 'Upraviť recept')
+                  : context.tr(en: 'Create recipe', sk: 'Vytvoriť recept'),
+              subtitle: context.tr(
+                en: 'Build a reusable recipe with time, servings, and ingredients for Safo planning.',
+                sk: 'Vytvor znovupoužiteľný recept s časom, porciami a ingredienciami pre plánovanie v Safo.',
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _descriptionController,
-                minLines: 2,
-                maxLines: 4,
-                decoration: appInputDecoration(
-                  context.tr(en: 'Description', sk: 'Popis'),
+              onBack: () => Navigator.of(context).maybePop(),
+            ),
+          ),
+          const SizedBox(height: SafoSpacing.lg),
+          Container(
+            padding: const EdgeInsets.all(SafoSpacing.lg),
+            decoration: BoxDecoration(
+              color: SafoColors.surface,
+              borderRadius: BorderRadius.circular(SafoRadii.xl),
+              border: Border.all(color: SafoColors.border),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x120F172A),
+                  blurRadius: 20,
+                  offset: Offset(0, 10),
                 ),
-              ),
-              const SizedBox(height: 16),
-              Row(
+              ],
+            ),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _totalMinutesController,
-                      keyboardType: TextInputType.number,
-                      decoration: appInputDecoration(
-                        context.tr(en: 'Total minutes', sk: 'Celkový čas'),
-                      ),
-                      validator: (value) {
-                        final parsed = int.tryParse((value ?? '').trim());
-                        if (parsed == null || parsed <= 0) {
-                          return context.tr(
-                            en: 'Enter valid minutes',
-                            sk: 'Zadaj platný počet minút',
-                          );
-                        }
-                        return null;
-                      },
+                  TextFormField(
+                    controller: _nameController,
+                    decoration: appInputDecoration(
+                      context.tr(en: 'Recipe name', sk: 'Názov receptu'),
+                    ),
+                    validator: (value) {
+                      if ((value ?? '').trim().isEmpty) {
+                        return context.tr(
+                          en: 'Enter a recipe name',
+                          sk: 'Zadaj názov receptu',
+                        );
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _descriptionController,
+                    minLines: 2,
+                    maxLines: 4,
+                    decoration: appInputDecoration(
+                      context.tr(en: 'Description', sk: 'Popis'),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _defaultServingsController,
-                      keyboardType: TextInputType.number,
-                      decoration: appInputDecoration(
-                        context.tr(en: 'Servings', sk: 'Porcie'),
-                      ),
-                      validator: (value) {
-                        final parsed = int.tryParse((value ?? '').trim());
-                        if (parsed == null || parsed <= 0) {
-                          return context.tr(
-                            en: 'Enter servings',
-                            sk: 'Zadaj počet porcií',
-                          );
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              Text(
-                context.tr(en: 'Ingredients', sk: 'Ingrediencie'),
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 12),
-              ...List.generate(_ingredients.length, (index) {
-                final ingredient = _ingredients[index];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        children: [
-                          TextFormField(
-                            controller: ingredient.nameController,
-                            decoration: appInputDecoration(
-                              context.tr(
-                                en: 'Ingredient name',
-                                sk: 'Názov ingrediencie',
-                              ),
-                            ),
-                            validator: (value) {
-                              if ((value ?? '').trim().isEmpty) {
-                                return context.tr(
-                                  en: 'Enter ingredient name',
-                                  sk: 'Zadaj názov ingrediencie',
-                                );
-                              }
-                              return null;
-                            },
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _totalMinutesController,
+                          keyboardType: TextInputType.number,
+                          decoration: appInputDecoration(
+                            context.tr(en: 'Total minutes', sk: 'Celkový čas'),
                           ),
-                          const SizedBox(height: 12),
-                          Row(
+                          validator: (value) {
+                            final parsed = int.tryParse((value ?? '').trim());
+                            if (parsed == null || parsed <= 0) {
+                              return context.tr(
+                                en: 'Enter valid minutes',
+                                sk: 'Zadaj platný počet minút',
+                              );
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _defaultServingsController,
+                          keyboardType: TextInputType.number,
+                          decoration: appInputDecoration(
+                            context.tr(en: 'Servings', sk: 'Porcie'),
+                          ),
+                          validator: (value) {
+                            final parsed = int.tryParse((value ?? '').trim());
+                            if (parsed == null || parsed <= 0) {
+                              return context.tr(
+                                en: 'Enter servings',
+                                sk: 'Zadaj počet porcií',
+                              );
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    context.tr(en: 'Ingredients', sk: 'Ingrediencie'),
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  ...List.generate(_ingredients.length, (index) {
+                    final ingredient = _ingredients[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
                             children: [
-                              Expanded(
-                                child: TextFormField(
-                                  controller: ingredient.quantityController,
-                                  keyboardType:
-                                      const TextInputType.numberWithOptions(
-                                        decimal: true,
-                                      ),
-                                  decoration: appInputDecoration(
-                                    context.tr(en: 'Quantity', sk: 'Množstvo'),
+                              TextFormField(
+                                controller: ingredient.nameController,
+                                decoration: appInputDecoration(
+                                  context.tr(
+                                    en: 'Ingredient name',
+                                    sk: 'Názov ingrediencie',
                                   ),
-                                  validator: (value) {
-                                    if ((value ?? '').trim().isEmpty) {
-                                      return context.tr(
-                                        en: 'Enter quantity',
-                                        sk: 'Zadaj množstvo',
-                                      );
-                                    }
-                                    if (double.tryParse(value!.trim()) ==
-                                        null) {
-                                      return context.tr(
-                                        en: 'Enter a valid number',
-                                        sk: 'Zadaj platné číslo',
-                                      );
-                                    }
-                                    return null;
-                                  },
                                 ),
+                                validator: (value) {
+                                  if ((value ?? '').trim().isEmpty) {
+                                    return context.tr(
+                                      en: 'Enter ingredient name',
+                                      sk: 'Zadaj názov ingrediencie',
+                                    );
+                                  }
+                                  return null;
+                                },
                               ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: TextFormField(
-                                  controller: ingredient.unitController,
-                                  decoration: appInputDecoration(
-                                    context.tr(en: 'Unit', sk: 'Jednotka'),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: TextFormField(
+                                      controller: ingredient.quantityController,
+                                      keyboardType:
+                                          const TextInputType.numberWithOptions(
+                                            decimal: true,
+                                          ),
+                                      decoration: appInputDecoration(
+                                        context.tr(
+                                          en: 'Quantity',
+                                          sk: 'Množstvo',
+                                        ),
+                                      ),
+                                      validator: (value) {
+                                        if ((value ?? '').trim().isEmpty) {
+                                          return context.tr(
+                                            en: 'Enter quantity',
+                                            sk: 'Zadaj množstvo',
+                                          );
+                                        }
+                                        if (double.tryParse(value!.trim()) ==
+                                            null) {
+                                          return context.tr(
+                                            en: 'Enter a valid number',
+                                            sk: 'Zadaj platné číslo',
+                                          );
+                                        }
+                                        return null;
+                                      },
+                                    ),
                                   ),
-                                  validator: (value) {
-                                    if ((value ?? '').trim().isEmpty) {
-                                      return context.tr(
-                                        en: 'Enter a unit',
-                                        sk: 'Zadaj jednotku',
-                                      );
-                                    }
-                                    return null;
-                                  },
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: TextFormField(
+                                      controller: ingredient.unitController,
+                                      decoration: appInputDecoration(
+                                        context.tr(en: 'Unit', sk: 'Jednotka'),
+                                      ),
+                                      validator: (value) {
+                                        if ((value ?? '').trim().isEmpty) {
+                                          return context.tr(
+                                            en: 'Enter a unit',
+                                            sk: 'Zadaj jednotku',
+                                          );
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: TextButton.icon(
+                                  onPressed: () => _removeIngredient(index),
+                                  icon: const Icon(Icons.delete_outline),
+                                  label: Text(
+                                    context.tr(en: 'Remove', sk: 'Odstrániť'),
+                                  ),
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 12),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton.icon(
-                              onPressed: () => _removeIngredient(index),
-                              icon: const Icon(Icons.delete_outline),
-                              label: Text(
-                                context.tr(en: 'Remove', sk: 'Odstrániť'),
-                              ),
-                            ),
-                          ),
-                        ],
+                        ),
+                      ),
+                    );
+                  }),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.tonalIcon(
+                      onPressed: _addIngredient,
+                      icon: const Icon(Icons.add),
+                      label: Text(
+                        context.tr(
+                          en: 'Add ingredient',
+                          sk: 'Pridať ingredienciu',
+                        ),
                       ),
                     ),
                   ),
-                );
-              }),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.tonalIcon(
-                  onPressed: _addIngredient,
-                  icon: const Icon(Icons.add),
-                  label: Text(
-                    context.tr(en: 'Add ingredient', sk: 'Pridať ingredienciu'),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: _save,
+                      child: Text(
+                        widget.isEditing
+                            ? context.tr(en: 'Save changes', sk: 'Uložiť zmeny')
+                            : context.tr(
+                                en: 'Save recipe',
+                                sk: 'Uložiť recept',
+                              ),
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: _save,
-                  child: Text(
-                    widget.isEditing
-                        ? context.tr(en: 'Save changes', sk: 'Uložiť zmeny')
-                        : context.tr(en: 'Save recipe', sk: 'Uložiť recept'),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

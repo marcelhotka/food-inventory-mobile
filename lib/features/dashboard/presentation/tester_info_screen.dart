@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../app/localization/app_locale.dart';
+import '../../../app/theme/safo_tokens.dart';
 import '../../../core/widgets/app_feedback.dart';
+import '../../../core/widgets/safo_page_header.dart';
 import '../../food_items/data/food_items_repository.dart';
 import '../../households/domain/household.dart';
 import '../../meal_plan/data/meal_plan_repository.dart';
@@ -70,10 +72,7 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
           en: 'You need to be signed in.',
           sk: 'Musíš byť prihlásený.',
         ),
-        title: context.tr(
-          en: 'Sign in required',
-          sk: 'Treba sa prihlásiť',
-        ),
+        title: context.tr(en: 'Sign in required', sk: 'Treba sa prihlásiť'),
       );
     } catch (_) {
       if (!mounted) return;
@@ -209,12 +208,36 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(context.tr(en: 'Tester info', sk: 'Tester info')),
-      ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(
+          SafoSpacing.md,
+          SafoSpacing.sm,
+          SafoSpacing.md,
+          SafoSpacing.xxl,
+        ),
         children: [
+          SafeArea(
+            bottom: false,
+            child: SafoPageHeader(
+              title: context.tr(en: 'Tester info', sk: 'Tester info'),
+              subtitle: context.tr(
+                en: 'Use this screen to load test data, clear it, and run a structured Safo review pass.',
+                sk: 'Použi túto obrazovku na nahratie test dát, ich vymazanie a štruktúrovaný testovací priechod Safo.',
+              ),
+              onBack: () => Navigator.of(context).maybePop(),
+              badges: [
+                _TesterBadge(
+                  icon: Icons.dataset_outlined,
+                  label: context.tr(en: 'Sample data', sk: 'Ukážkové dáta'),
+                ),
+                _TesterBadge(
+                  icon: Icons.verified_outlined,
+                  label: context.tr(en: 'QA flow', sk: 'QA flow'),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: SafoSpacing.lg),
           _InfoCard(
             title: context.tr(en: 'Current build', sk: 'Aktuálny build'),
             child: Column(
@@ -398,6 +421,38 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
                   ),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TesterBadge extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _TesterBadge({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(SafoRadii.pill),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: Colors.white),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],

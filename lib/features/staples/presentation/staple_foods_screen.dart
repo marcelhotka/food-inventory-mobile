@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../app/localization/app_locale.dart';
+import '../../../app/theme/safo_tokens.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/app_feedback.dart';
+import '../../../core/widgets/safo_page_header.dart';
 import '../../food_items/data/food_items_repository.dart';
 import '../../food_items/domain/food_item.dart';
 import '../../shopping_list/data/shopping_list_repository.dart';
@@ -440,9 +442,6 @@ class _StapleFoodsScreenState extends State<StapleFoodsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(context.tr(en: 'Staple foods', sk: 'Základné potraviny')),
-      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openCreateForm,
         icon: const Icon(Icons.add),
@@ -481,8 +480,35 @@ class _StapleFoodsScreenState extends State<StapleFoodsScreen> {
           return RefreshIndicator(
             onRefresh: _reload,
             child: ListView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(
+                SafoSpacing.md,
+                SafoSpacing.sm,
+                SafoSpacing.md,
+                SafoSpacing.xxl,
+              ),
               children: [
+                SafeArea(
+                  bottom: false,
+                  child: SafoPageHeader(
+                    title: context.tr(
+                      en: 'Staple foods',
+                      sk: 'Základné potraviny',
+                    ),
+                    subtitle: context.tr(
+                      en: 'Keep track of what your household wants to have at home regularly.',
+                      sk: 'Sleduj, čo chce mať tvoja domácnosť doma pravidelne.',
+                    ),
+                    onBack: () => Navigator.of(context).maybePop(),
+                    badges: [
+                      _StapleBadge(
+                        icon: Icons.home_outlined,
+                        label:
+                            '${items.length} ${context.tr(en: 'tracked', sk: 'sledované')}',
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: SafoSpacing.lg),
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(18),
@@ -642,5 +668,37 @@ class _StapleFoodsScreenState extends State<StapleFoodsScreen> {
       'beverages' => context.tr(en: 'Beverages', sk: 'Nápoje'),
       _ => context.tr(en: 'Other', sk: 'Ostatné'),
     };
+  }
+}
+
+class _StapleBadge extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _StapleBadge({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(SafoRadii.pill),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: Colors.white),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

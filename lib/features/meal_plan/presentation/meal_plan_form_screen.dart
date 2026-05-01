@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../app/localization/app_locale.dart';
+import '../../../app/theme/safo_tokens.dart';
 import '../../../core/forms/app_input_decoration.dart';
+import '../../../core/widgets/safo_page_header.dart';
 import '../../recipes/domain/recipe.dart';
 import '../../recipes/presentation/recipe_display_text.dart';
 import '../domain/meal_plan_entry.dart';
@@ -117,168 +119,206 @@ class _MealPlanFormScreenState extends State<MealPlanFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          widget.isEditing
-              ? context.tr(en: 'Edit Meal Plan', sk: 'Upraviť jedálniček')
-              : context.tr(en: 'Add Meal Plan', sk: 'Pridať do jedálnička'),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(
+          SafoSpacing.md,
+          SafoSpacing.sm,
+          SafoSpacing.md,
+          SafoSpacing.xxl,
         ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              DropdownButtonFormField<String?>(
-                initialValue: _selectedRecipeId,
-                decoration: appInputDecoration(
-                  context.tr(
-                    en: 'Recipe (optional, includes your own recipes)',
-                    sk: 'Recept (voliteľné, vrátane tvojich vlastných receptov)',
-                  ),
+        children: [
+          SafeArea(
+            bottom: false,
+            child: SafoPageHeader(
+              title: widget.isEditing
+                  ? context.tr(
+                      en: 'Edit meal plan entry',
+                      sk: 'Upraviť položku jedálnička',
+                    )
+                  : context.tr(
+                      en: 'Add to meal plan',
+                      sk: 'Pridať do jedálnička',
+                    ),
+              subtitle: context.tr(
+                en: 'Plan what you want to cook, connect a recipe, and keep servings under control.',
+                sk: 'Naplánuj si, čo chceš variť, pripoj recept a maj pod kontrolou porcie.',
+              ),
+              onBack: () => Navigator.of(context).maybePop(),
+            ),
+          ),
+          const SizedBox(height: SafoSpacing.lg),
+          Container(
+            padding: const EdgeInsets.all(SafoSpacing.lg),
+            decoration: BoxDecoration(
+              color: SafoColors.surface,
+              borderRadius: BorderRadius.circular(SafoRadii.xl),
+              border: Border.all(color: SafoColors.border),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x120F172A),
+                  blurRadius: 20,
+                  offset: Offset(0, 10),
                 ),
-                items: [
-                  DropdownMenuItem<String?>(
-                    value: null,
-                    child: Text(
-                      context.tr(en: 'Custom meal', sk: 'Vlastné jedlo'),
+              ],
+            ),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  DropdownButtonFormField<String?>(
+                    initialValue: _selectedRecipeId,
+                    decoration: appInputDecoration(
+                      context.tr(
+                        en: 'Recipe (optional, includes your own recipes)',
+                        sk: 'Recept (voliteľné, vrátane tvojich vlastných receptov)',
+                      ),
+                    ),
+                    items: [
+                      DropdownMenuItem<String?>(
+                        value: null,
+                        child: Text(
+                          context.tr(en: 'Custom meal', sk: 'Vlastné jedlo'),
+                        ),
+                      ),
+                      ...widget.recipes.map(
+                        (recipe) => DropdownMenuItem<String?>(
+                          value: recipe.id,
+                          child: Text(localizedRecipeName(context, recipe)),
+                        ),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedRecipeId = value;
+                        final recipe = _findRecipeById(value);
+                        if (recipe != null) {
+                          _recipeNameController.text = localizedRecipeName(
+                            context,
+                            recipe,
+                          );
+                          _servingsController.text = recipe.defaultServings
+                              .toString();
+                        }
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  if (_selectedRecipeId == null)
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        context.tr(
+                          en: 'Tip: create your own recipe in Recipes and later link it here.',
+                          sk: 'Tip: vytvor si vlastný recept v Receptoch a neskôr ho tu prepoj.',
+                        ),
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                  if (_selectedRecipeId == null) const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _recipeNameController,
+                    decoration: appInputDecoration(
+                      context.tr(en: 'Meal name', sk: 'Názov jedla'),
+                    ),
+                    validator: (value) {
+                      if ((value ?? '').trim().isEmpty) {
+                        return context.tr(
+                          en: 'Enter a meal name',
+                          sk: 'Zadaj názov jedla',
+                        );
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _servingsController,
+                    keyboardType: TextInputType.number,
+                    decoration: appInputDecoration(
+                      context.tr(en: 'Servings', sk: 'Porcie'),
+                    ),
+                    validator: (value) {
+                      final parsed = int.tryParse((value ?? '').trim());
+                      if (parsed == null || parsed <= 0) {
+                        return context.tr(
+                          en: 'Enter servings',
+                          sk: 'Zadaj počet porcií',
+                        );
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    initialValue: _mealType,
+                    decoration: appInputDecoration(
+                      context.tr(en: 'Meal type', sk: 'Typ jedla'),
+                    ),
+                    items: _mealTypes
+                        .map(
+                          (value) => DropdownMenuItem(
+                            value: value,
+                            child: Text(_mealTypeLabel(context, value)),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      if (value == null) {
+                        return;
+                      }
+                      setState(() {
+                        _mealType = value;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  InkWell(
+                    onTap: _pickDate,
+                    borderRadius: BorderRadius.circular(18),
+                    child: InputDecorator(
+                      decoration: appInputDecoration(
+                        context.tr(en: 'Date', sk: 'Dátum'),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(_formatDate(_scheduledFor)),
+                          const Icon(Icons.calendar_today_outlined),
+                        ],
+                      ),
                     ),
                   ),
-                  ...widget.recipes.map(
-                    (recipe) => DropdownMenuItem<String?>(
-                      value: recipe.id,
-                      child: Text(localizedRecipeName(context, recipe)),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _noteController,
+                    maxLines: 3,
+                    decoration: appInputDecoration(
+                      context.tr(
+                        en: 'Note (optional)',
+                        sk: 'Poznámka (voliteľné)',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: _save,
+                      child: Text(
+                        widget.isEditing
+                            ? context.tr(en: 'Save changes', sk: 'Uložiť zmeny')
+                            : context.tr(
+                                en: 'Add to meal plan',
+                                sk: 'Pridať do jedálnička',
+                              ),
+                      ),
                     ),
                   ),
                 ],
-                onChanged: (value) {
-                  setState(() {
-                    _selectedRecipeId = value;
-                    final recipe = _findRecipeById(value);
-                    if (recipe != null) {
-                      _recipeNameController.text = localizedRecipeName(
-                        context,
-                        recipe,
-                      );
-                      _servingsController.text = recipe.defaultServings
-                          .toString();
-                    }
-                  });
-                },
               ),
-              const SizedBox(height: 16),
-              if (_selectedRecipeId == null)
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    context.tr(
-                      en: 'Tip: create your own recipe in Recipes and later link it here.',
-                      sk: 'Tip: vytvor si vlastný recept v Receptoch a neskôr ho tu prepoj.',
-                    ),
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ),
-              if (_selectedRecipeId == null) const SizedBox(height: 16),
-              TextFormField(
-                controller: _recipeNameController,
-                decoration: appInputDecoration(
-                  context.tr(en: 'Meal name', sk: 'Názov jedla'),
-                ),
-                validator: (value) {
-                  if ((value ?? '').trim().isEmpty) {
-                    return context.tr(
-                      en: 'Enter a meal name',
-                      sk: 'Zadaj názov jedla',
-                    );
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _servingsController,
-                keyboardType: TextInputType.number,
-                decoration: appInputDecoration(
-                  context.tr(en: 'Servings', sk: 'Porcie'),
-                ),
-                validator: (value) {
-                  final parsed = int.tryParse((value ?? '').trim());
-                  if (parsed == null || parsed <= 0) {
-                    return context.tr(
-                      en: 'Enter servings',
-                      sk: 'Zadaj počet porcií',
-                    );
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                initialValue: _mealType,
-                decoration: appInputDecoration(
-                  context.tr(en: 'Meal type', sk: 'Typ jedla'),
-                ),
-                items: _mealTypes
-                    .map(
-                      (value) => DropdownMenuItem(
-                        value: value,
-                        child: Text(_mealTypeLabel(context, value)),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (value) {
-                  if (value == null) {
-                    return;
-                  }
-                  setState(() {
-                    _mealType = value;
-                  });
-                },
-              ),
-              const SizedBox(height: 16),
-              InkWell(
-                onTap: _pickDate,
-                borderRadius: BorderRadius.circular(18),
-                child: InputDecorator(
-                  decoration: appInputDecoration(
-                    context.tr(en: 'Date', sk: 'Dátum'),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(_formatDate(_scheduledFor)),
-                      const Icon(Icons.calendar_today_outlined),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _noteController,
-                maxLines: 3,
-                decoration: appInputDecoration(
-                  context.tr(en: 'Note (optional)', sk: 'Poznámka (voliteľné)'),
-                ),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: _save,
-                  child: Text(
-                    widget.isEditing
-                        ? context.tr(en: 'Save changes', sk: 'Uložiť zmeny')
-                        : context.tr(
-                            en: 'Add to meal plan',
-                            sk: 'Pridať do jedálnička',
-                          ),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

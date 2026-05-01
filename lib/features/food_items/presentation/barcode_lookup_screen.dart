@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/localization/app_locale.dart';
+import '../../../app/theme/safo_tokens.dart';
 import '../../../core/forms/app_input_decoration.dart';
 import '../../../core/widgets/app_feedback.dart';
+import '../../../core/widgets/safo_page_header.dart';
 import '../data/barcode_lookup_service.dart';
 import '../domain/barcode_lookup_result.dart';
 import '../domain/food_item_prefill.dart';
@@ -126,18 +128,55 @@ class _BarcodeLookupScreenState extends State<BarcodeLookupScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(context.tr(en: 'Scan code', sk: 'Skenovať kód')),
-      ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(
+          SafoSpacing.md,
+          SafoSpacing.sm,
+          SafoSpacing.md,
+          SafoSpacing.xxl,
+        ),
         children: [
+          SafeArea(
+            bottom: false,
+            child: SafoPageHeader(
+              title: context.tr(
+                en: 'Scan or lookup code',
+                sk: 'Naskenuj alebo vyhľadaj kód',
+              ),
+              subtitle: context.tr(
+                en: 'Find product details quickly and open pantry form with prefilled values.',
+                sk: 'Rýchlo nájdi detaily produktu a otvor formulár špajze s predvyplnenými hodnotami.',
+              ),
+              onBack: () => Navigator.of(context).maybePop(),
+              badges: [
+                _LookupBadge(
+                  icon: Icons.bolt_rounded,
+                  label: context.tr(en: 'Fast lookup', sk: 'Rýchle vyhľadanie'),
+                ),
+                _LookupBadge(
+                  icon: Icons.inventory_2_outlined,
+                  label: context.tr(
+                    en: 'Prefilled pantry',
+                    sk: 'Predvyplnená špajza',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: SafoSpacing.lg),
           Container(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(SafoSpacing.lg),
             decoration: BoxDecoration(
-              color: const Color(0xFFFFFCF7),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: const Color(0xFFE6DDCF)),
+              color: SafoColors.surface,
+              borderRadius: BorderRadius.circular(SafoRadii.xl),
+              border: Border.all(color: SafoColors.border),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x120F172A),
+                  blurRadius: 20,
+                  offset: Offset(0, 10),
+                ),
+              ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -148,12 +187,12 @@ class _BarcodeLookupScreenState extends State<BarcodeLookupScreen> {
                       width: 48,
                       height: 48,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFE5F0DF),
-                        borderRadius: BorderRadius.circular(16),
+                        color: SafoColors.primarySoft,
+                        borderRadius: BorderRadius.circular(SafoRadii.md),
                       ),
                       child: const Icon(
                         Icons.qr_code_scanner_rounded,
-                        color: Color(0xFF4E7A51),
+                        color: SafoColors.primary,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -176,9 +215,11 @@ class _BarcodeLookupScreenState extends State<BarcodeLookupScreen> {
                     en: 'We first try an online product lookup. If nothing is found, we fall back to the local demo products. After lookup, the pantry form opens prefilled.',
                     sk: 'Najprv skúšame online vyhľadanie produktu. Ak sa nič nenájde, použijeme lokálne demo produkty. Po vyhľadaní sa otvorí formulár špajze s predvyplnenými údajmi.',
                   ),
-                  style: theme.textTheme.bodyMedium,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: SafoColors.textSecondary,
+                  ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: SafoSpacing.lg),
                 Form(
                   key: _formKey,
                   child: TextFormField(
@@ -205,7 +246,7 @@ class _BarcodeLookupScreenState extends State<BarcodeLookupScreen> {
                     },
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: SafoSpacing.md),
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton.icon(
@@ -224,25 +265,82 @@ class _BarcodeLookupScreenState extends State<BarcodeLookupScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 20),
-          Text(
-            context.tr(en: 'Try a demo code', sk: 'Skús demo kód'),
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
+          const SizedBox(height: SafoSpacing.lg),
+          Container(
+            padding: const EdgeInsets.all(SafoSpacing.lg),
+            decoration: BoxDecoration(
+              color: SafoColors.surface,
+              borderRadius: BorderRadius.circular(SafoRadii.xl),
+              border: Border.all(color: SafoColors.border),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.tr(en: 'Try a demo code', sk: 'Skús demo kód'),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: SafoSpacing.xs),
+                Text(
+                  context.tr(
+                    en: 'Useful for testing how lookup opens pantry forms in Safo.',
+                    sk: 'Hodí sa na testovanie, ako lookup v Safo otvorí formulár špajze.',
+                  ),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: SafoColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: SafoSpacing.md),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _service.demoCodes
+                      .map(
+                        (code) => ActionChip(
+                          label: Text(code),
+                          onPressed: _isLookingUp
+                              ? null
+                              : () => _useDemoCode(code),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _service.demoCodes
-                .map(
-                  (code) => ActionChip(
-                    label: Text(code),
-                    onPressed: _isLookingUp ? null : () => _useDemoCode(code),
-                  ),
-                )
-                .toList(),
+        ],
+      ),
+    );
+  }
+}
+
+class _LookupBadge extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _LookupBadge({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(SafoRadii.pill),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: Colors.white),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),

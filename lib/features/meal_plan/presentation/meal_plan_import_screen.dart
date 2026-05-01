@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../app/localization/app_locale.dart';
+import '../../../app/theme/safo_tokens.dart';
 import '../../../core/forms/app_input_decoration.dart';
+import '../../../core/widgets/safo_page_header.dart';
 import '../../recipes/domain/recipe.dart';
 import '../../recipes/presentation/recipe_display_text.dart';
 import '../domain/meal_plan_entry.dart';
@@ -266,54 +268,95 @@ class _MealPlanImportScreenState extends State<MealPlanImportScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          context.tr(en: 'Import Meal Plan', sk: 'Import jedálnička'),
-        ),
-      ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(
+          SafoSpacing.md,
+          SafoSpacing.sm,
+          SafoSpacing.md,
+          SafoSpacing.xxl,
+        ),
         children: [
-          Text(
-            context.tr(
-              en: 'Paste one meal per line.',
-              sk: 'Vlož jedno jedlo na každý riadok.',
-            ),
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            context.tr(en: 'Supported formats:', sk: 'Podporované formáty:'),
-          ),
-          const SizedBox(height: 6),
-          const Text('• 2026-03-20 | dinner | Cheese Omelette'),
-          const Text('• 20.03.2026 | lunch | Chicken Rice Bowl'),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _controller,
-            maxLines: 8,
-            decoration: appInputDecoration(
-              context.tr(en: 'Meal plan text', sk: 'Text jedálnička'),
+          SafeArea(
+            bottom: false,
+            child: SafoPageHeader(
+              title: context.tr(
+                en: 'Import meal plan',
+                sk: 'Import jedálnička',
+              ),
+              subtitle: context.tr(
+                en: 'Paste your meal plan text and let Safo turn it into structured entries.',
+                sk: 'Vlož text jedálnička a nechaj Safo premeniť ho na štruktúrované položky.',
+              ),
+              onBack: () => Navigator.of(context).maybePop(),
             ),
           ),
-          const SizedBox(height: 16),
-          FilledButton(
-            onPressed: _parse,
-            child: Text(
-              context.tr(en: 'Review import', sk: 'Skontrolovať import'),
+          const SizedBox(height: SafoSpacing.lg),
+          Container(
+            padding: const EdgeInsets.all(SafoSpacing.lg),
+            decoration: BoxDecoration(
+              color: SafoColors.surface,
+              borderRadius: BorderRadius.circular(SafoRadii.xl),
+              border: Border.all(color: SafoColors.border),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x120F172A),
+                  blurRadius: 20,
+                  offset: Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.tr(
+                    en: 'Paste one meal per line.',
+                    sk: 'Vlož jedno jedlo na každý riadok.',
+                  ),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: SafoSpacing.xs),
+                Text(
+                  context.tr(
+                    en: 'Supported formats:',
+                    sk: 'Podporované formáty:',
+                  ),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: SafoColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Text('• 2026-03-20 | dinner | Cheese Omelette'),
+                const Text('• 20.03.2026 | lunch | Chicken Rice Bowl'),
+                const SizedBox(height: SafoSpacing.md),
+                TextField(
+                  controller: _controller,
+                  maxLines: 8,
+                  decoration: appInputDecoration(
+                    context.tr(en: 'Meal plan text', sk: 'Text jedálnička'),
+                  ),
+                ),
+                const SizedBox(height: SafoSpacing.md),
+                FilledButton(
+                  onPressed: _parse,
+                  child: Text(
+                    context.tr(en: 'Review import', sk: 'Skontrolovať import'),
+                  ),
+                ),
+              ],
             ),
           ),
           if (_errorText != null) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: SafoSpacing.sm),
             Text(
               _errorText!,
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
           ],
           if (_parsedLines.isNotEmpty) ...[
-            const SizedBox(height: 20),
+            const SizedBox(height: SafoSpacing.lg),
             Text(
               context.tr(en: 'Preview', sk: 'Náhľad'),
               style: Theme.of(
@@ -324,12 +367,12 @@ class _MealPlanImportScreenState extends State<MealPlanImportScreen> {
             ..._parsedLines.map((line) {
               final entry = line.entry;
               return Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(14),
+                margin: const EdgeInsets.only(bottom: SafoSpacing.sm),
+                padding: const EdgeInsets.all(SafoSpacing.md),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFFCF7),
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: const Color(0xFFE6DDCF)),
+                  color: SafoColors.surface,
+                  borderRadius: BorderRadius.circular(SafoRadii.lg),
+                  border: Border.all(color: SafoColors.border),
                 ),
                 child: entry == null
                     ? Column(
@@ -381,7 +424,7 @@ class _MealPlanImportScreenState extends State<MealPlanImportScreen> {
                       ),
               );
             }),
-            const SizedBox(height: 8),
+            const SizedBox(height: SafoSpacing.xs),
             FilledButton.tonal(
               onPressed: _import,
               child: Text(

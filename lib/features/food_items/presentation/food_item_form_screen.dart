@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../app/localization/app_locale.dart';
+import '../../../app/theme/safo_tokens.dart';
 import '../../../core/forms/app_input_decoration.dart';
+import '../../../core/widgets/safo_page_header.dart';
 import '../domain/food_item.dart';
 import '../domain/food_item_prefill.dart';
 
@@ -140,222 +142,257 @@ class _FoodItemFormScreenState extends State<FoodItemFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          widget.isEditing
-              ? context.tr(en: 'Edit Pantry Item', sk: 'Upraviť položku špajze')
-              : context.tr(
-                  en: 'Add Pantry Item',
-                  sk: 'Pridať položku do špajze',
-                ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(
+          SafoSpacing.md,
+          SafoSpacing.sm,
+          SafoSpacing.md,
+          SafoSpacing.xxl,
         ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextFormField(
-                controller: _nameController,
-                decoration: appInputDecoration(
-                  context.tr(en: 'Name', sk: 'Názov'),
-                ),
-                validator: (value) {
-                  if ((value ?? '').trim().isEmpty) {
-                    return context.tr(en: 'Enter a name', sk: 'Zadaj názov');
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _barcodeController,
-                keyboardType: TextInputType.number,
-                decoration: appInputDecoration(
-                  context.tr(en: 'Barcode', sk: 'Čiarový kód'),
-                ),
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                initialValue: _selectedCategory,
-                decoration: appInputDecoration(
-                  context.tr(en: 'Category', sk: 'Kategória'),
-                ),
-                items: _categoryOptions
-                    .map(
-                      (value) => DropdownMenuItem(
-                        value: value,
-                        child: Text(_categoryLabel(context, value)),
-                      ),
+        children: [
+          SafeArea(
+            bottom: false,
+            child: SafoPageHeader(
+              title: widget.isEditing
+                  ? context.tr(
+                      en: 'Edit pantry item',
+                      sk: 'Upraviť položku špajze',
                     )
-                    .toList(),
-                onChanged: (value) {
-                  if (value == null) {
-                    return;
-                  }
-                  setState(() {
-                    _selectedCategory = value;
-                  });
-                },
+                  : context.tr(
+                      en: 'Add pantry item',
+                      sk: 'Pridať položku do špajze',
+                    ),
+              subtitle: context.tr(
+                en: 'Adjust quantity, category, storage, and expiry before saving to Safo.',
+                sk: 'Pred uložením do Safo uprav množstvo, kategóriu, uloženie a spotrebu.',
               ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                initialValue: _selectedStorageLocation,
-                decoration: appInputDecoration(
-                  context.tr(en: 'Storage location', sk: 'Umiestnenie'),
+              onBack: () => Navigator.of(context).maybePop(),
+            ),
+          ),
+          const SizedBox(height: SafoSpacing.lg),
+          Container(
+            padding: const EdgeInsets.all(SafoSpacing.lg),
+            decoration: BoxDecoration(
+              color: SafoColors.surface,
+              borderRadius: BorderRadius.circular(SafoRadii.xl),
+              border: Border.all(color: SafoColors.border),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x120F172A),
+                  blurRadius: 20,
+                  offset: Offset(0, 10),
                 ),
-                items: _storageOptions
-                    .map(
-                      (value) => DropdownMenuItem(
-                        value: value,
-                        child: Text(_storageLabel(context, value)),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (value) {
-                  if (value == null) {
-                    return;
-                  }
-                  setState(() {
-                    _selectedStorageLocation = value;
-                  });
-                },
-              ),
-              const SizedBox(height: 16),
-              Row(
+              ],
+            ),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _quantityController,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      decoration: appInputDecoration(
-                        context.tr(en: 'Quantity', sk: 'Množstvo'),
-                      ),
-                      validator: (value) {
-                        if ((value ?? '').trim().isEmpty) {
-                          return context.tr(
-                            en: 'Enter quantity',
-                            sk: 'Zadaj množstvo',
-                          );
-                        }
-                        if (double.tryParse(value!.trim()) == null) {
-                          return context.tr(
-                            en: 'Enter a valid number',
-                            sk: 'Zadaj platné číslo',
-                          );
-                        }
-                        return null;
-                      },
+                  TextFormField(
+                    controller: _nameController,
+                    decoration: appInputDecoration(
+                      context.tr(en: 'Name', sk: 'Názov'),
+                    ),
+                    validator: (value) {
+                      if ((value ?? '').trim().isEmpty) {
+                        return context.tr(
+                          en: 'Enter a name',
+                          sk: 'Zadaj názov',
+                        );
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _barcodeController,
+                    keyboardType: TextInputType.number,
+                    decoration: appInputDecoration(
+                      context.tr(en: 'Barcode', sk: 'Čiarový kód'),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _unitController,
-                      decoration: appInputDecoration(
-                        context.tr(en: 'Unit', sk: 'Jednotka'),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    initialValue: _selectedCategory,
+                    decoration: appInputDecoration(
+                      context.tr(en: 'Category', sk: 'Kategória'),
+                    ),
+                    items: _categoryOptions
+                        .map(
+                          (value) => DropdownMenuItem(
+                            value: value,
+                            child: Text(_categoryLabel(context, value)),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      if (value == null) {
+                        return;
+                      }
+                      setState(() {
+                        _selectedCategory = value;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    initialValue: _selectedStorageLocation,
+                    decoration: appInputDecoration(
+                      context.tr(en: 'Storage location', sk: 'Umiestnenie'),
+                    ),
+                    items: _storageOptions
+                        .map(
+                          (value) => DropdownMenuItem(
+                            value: value,
+                            child: Text(_storageLabel(context, value)),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      if (value == null) {
+                        return;
+                      }
+                      setState(() {
+                        _selectedStorageLocation = value;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _quantityController,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          decoration: appInputDecoration(
+                            context.tr(en: 'Quantity', sk: 'Množstvo'),
+                          ),
+                          validator: (value) {
+                            if ((value ?? '').trim().isEmpty) {
+                              return context.tr(
+                                en: 'Enter quantity',
+                                sk: 'Zadaj množstvo',
+                              );
+                            }
+                            if (double.tryParse(value!.trim()) == null) {
+                              return context.tr(
+                                en: 'Enter a valid number',
+                                sk: 'Zadaj platné číslo',
+                              );
+                            }
+                            return null;
+                          },
+                        ),
                       ),
-                      validator: (value) {
-                        if ((value ?? '').trim().isEmpty) {
-                          return context.tr(
-                            en: 'Enter a unit',
-                            sk: 'Zadaj jednotku',
-                          );
-                        }
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _unitController,
+                          decoration: appInputDecoration(
+                            context.tr(en: 'Unit', sk: 'Jednotka'),
+                          ),
+                          validator: (value) {
+                            if ((value ?? '').trim().isEmpty) {
+                              return context.tr(
+                                en: 'Enter a unit',
+                                sk: 'Zadaj jednotku',
+                              );
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _lowStockThresholdController,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: appInputDecoration(
+                      context.tr(
+                        en: 'Low stock threshold (optional)',
+                        sk: 'Limit nízkej zásoby (voliteľné)',
+                      ),
+                    ),
+                    validator: (value) {
+                      final trimmed = (value ?? '').trim();
+                      if (trimmed.isEmpty) {
                         return null;
+                      }
+                      if (double.tryParse(trimmed) == null) {
+                        return context.tr(
+                          en: 'Enter a valid number',
+                          sk: 'Zadaj platné číslo',
+                        );
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  InkWell(
+                    onTap: _pickExpirationDate,
+                    child: InputDecorator(
+                      decoration: appInputDecoration(
+                        context.tr(en: 'Expiration date', sk: 'Dátum spotreby'),
+                      ),
+                      child: Text(
+                        _expirationDate == null
+                            ? context.tr(en: 'Optional', sk: 'Voliteľné')
+                            : _formatDate(_expirationDate!),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  if (_expirationDate != null)
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          _expirationDate = null;
+                        });
                       },
+                      child: Text(
+                        context.tr(en: 'Clear date', sk: 'Vymazať dátum'),
+                      ),
+                    ),
+                  const SizedBox(height: 24),
+                  if (!widget.isEditing && widget.prefill != null) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEFF5EA),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Text(
+                        context.tr(
+                          en: 'Product details were prefilled from barcode lookup. You can still edit them before saving.',
+                          sk: 'Detaily produktu boli predvyplnené podľa čiarového kódu. Pred uložením ich ešte môžeš upraviť.',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: _save,
+                      child: Text(
+                        widget.isEditing
+                            ? context.tr(en: 'Save changes', sk: 'Uložiť zmeny')
+                            : context.tr(en: 'Add item', sk: 'Pridať položku'),
+                      ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _lowStockThresholdController,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                decoration: appInputDecoration(
-                  context.tr(
-                    en: 'Low stock threshold (optional)',
-                    sk: 'Limit nízkej zásoby (voliteľné)',
-                  ),
-                ),
-                validator: (value) {
-                  final trimmed = (value ?? '').trim();
-                  if (trimmed.isEmpty) {
-                    return null;
-                  }
-                  if (double.tryParse(trimmed) == null) {
-                    return context.tr(
-                      en: 'Enter a valid number',
-                      sk: 'Zadaj platné číslo',
-                    );
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              InkWell(
-                onTap: _pickExpirationDate,
-                child: InputDecorator(
-                  decoration: appInputDecoration(
-                    context.tr(en: 'Expiration date', sk: 'Dátum spotreby'),
-                  ),
-                  child: Text(
-                    _expirationDate == null
-                        ? context.tr(en: 'Optional', sk: 'Voliteľné')
-                        : _formatDate(_expirationDate!),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              if (_expirationDate != null)
-                TextButton(
-                  onPressed: () {
-                    setState(() {
-                      _expirationDate = null;
-                    });
-                  },
-                  child: Text(
-                    context.tr(en: 'Clear date', sk: 'Vymazať dátum'),
-                  ),
-                ),
-              const SizedBox(height: 24),
-              if (!widget.isEditing && widget.prefill != null) ...[
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEFF5EA),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Text(
-                    context.tr(
-                      en: 'Product details were prefilled from barcode lookup. You can still edit them before saving.',
-                      sk: 'Detaily produktu boli predvyplnené podľa čiarového kódu. Pred uložením ich ešte môžeš upraviť.',
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ],
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: _save,
-                  child: Text(
-                    widget.isEditing
-                        ? context.tr(en: 'Save changes', sk: 'Uložiť zmeny')
-                        : context.tr(en: 'Add item', sk: 'Pridať položku'),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

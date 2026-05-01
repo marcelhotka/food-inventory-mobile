@@ -4,9 +4,11 @@ import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../app/localization/app_locale.dart';
+import '../../../app/theme/safo_tokens.dart';
 import '../../../core/food/food_signal_catalog.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/app_feedback.dart';
+import '../../../core/widgets/safo_logo.dart';
 import '../data/fridge_scan_ai_service.dart';
 import '../data/scan_sessions_repository.dart';
 import '../data/scan_sessions_remote_data_source.dart';
@@ -117,7 +119,8 @@ class _FridgeScanScreenState extends State<FridgeScanScreen> {
       setState(() {
         _isPickingImage = false;
       });
-      final isPermissionIssue = error is PlatformException &&
+      final isPermissionIssue =
+          error is PlatformException &&
           (error.code.toLowerCase().contains('camera_access_denied') ||
               error.code.toLowerCase().contains('photo_access_denied') ||
               error.code.toLowerCase().contains('permission'));
@@ -140,43 +143,122 @@ class _FridgeScanScreenState extends State<FridgeScanScreen> {
 
     if (scanFuture == null) {
       return Scaffold(
-        appBar: AppBar(
-          title: Text(context.tr(en: 'Scan fridge', sk: 'Skenovať chladničku')),
-        ),
         body: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(
+            SafoSpacing.md,
+            SafoSpacing.sm,
+            SafoSpacing.md,
+            SafoSpacing.xxl,
+          ),
           children: [
+            SafeArea(
+              bottom: false,
+              child: _ScanScreenHeader(
+                title: context.tr(
+                  en: 'Scan your fridge',
+                  sk: 'Naskenuj svoju chladničku',
+                ),
+                subtitle: context.tr(
+                  en: 'Take one clear photo and let Safo prepare detected pantry items for review.',
+                  sk: 'Sprav jednu jasnú fotku a Safo pripraví rozpoznané položky na kontrolu.',
+                ),
+                onBack: () => Navigator.of(context).maybePop(),
+              ),
+            ),
+            const SizedBox(height: SafoSpacing.lg),
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(SafoSpacing.lg),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFFCF7),
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: const Color(0xFFE6DDCF)),
+                color: SafoColors.surface,
+                borderRadius: BorderRadius.circular(SafoRadii.xl),
+                border: Border.all(color: SafoColors.border),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x120F172A),
+                    blurRadius: 20,
+                    offset: Offset(0, 10),
+                  ),
+                ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    context.tr(
-                      en: 'Upload one fridge photo',
-                      sk: 'Nahraj jednu fotku chladničky',
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(SafoSpacing.md),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(SafoRadii.lg),
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFEAF5EE), Color(0xFFF3F8F4)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
                     ),
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          context.tr(
+                            en: 'Upload one fridge photo',
+                            sk: 'Nahraj jednu fotku chladničky',
+                          ),
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.w800),
+                        ),
+                        const SizedBox(height: SafoSpacing.xs),
+                        Text(
+                          context.tr(
+                            en: 'We will show you detected items, let you correct them, and then save selected ones to pantry.',
+                            sk: 'Ukážeme rozpoznané položky, necháme ťa ich opraviť a potom uložíme vybrané do špajze.',
+                          ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: SafoColors.textSecondary),
+                        ),
+                        const SizedBox(height: SafoSpacing.md),
+                        Wrap(
+                          spacing: SafoSpacing.xs,
+                          runSpacing: SafoSpacing.xs,
+                          children: [
+                            _ScanMetaChip(
+                              label: context.tr(
+                                en: '1 clear photo',
+                                sk: '1 jasná fotka',
+                              ),
+                              icon: Icons.photo_camera_outlined,
+                            ),
+                            _ScanMetaChip(
+                              label: context.tr(
+                                en: 'Review before save',
+                                sk: 'Kontrola pred uložením',
+                              ),
+                              icon: Icons.rule_folder_outlined,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: SafoSpacing.lg),
+                  Text(
+                    context.tr(en: 'Best results', sk: 'Najlepšie výsledky'),
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: SafoSpacing.sm),
                   Text(
                     context.tr(
-                      en: 'Choose or take a single photo of your fridge. We will run the current scan review flow on that image, then later replace the mock detection with real AI.',
-                      sk: 'Vyber alebo odfoť jednu fotku svojej chladničky. Na tejto fotke spustíme aktuálny kontrolný flow scanu a neskôr nahradíme mock detekciu reálnou AI.',
+                      en: 'Use good light, include the full shelf view, and avoid blurry photos.',
+                      sk: 'Použi dobré svetlo, zachyť celý pohľad na poličky a vyhni sa rozmazanej fotke.',
                     ),
-                    style: Theme.of(context).textTheme.bodyMedium,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: SafoColors.textSecondary,
+                    ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: SafoSpacing.lg),
                   if (_photoBytes != null) ...[
                     ClipRRect(
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(SafoRadii.lg),
                       child: Image.memory(
                         _photoBytes!,
                         height: 220,
@@ -184,7 +266,7 @@ class _FridgeScanScreenState extends State<FridgeScanScreen> {
                         fit: BoxFit.cover,
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: SafoSpacing.md),
                   ],
                   SizedBox(
                     width: double.infinity,
@@ -203,7 +285,7 @@ class _FridgeScanScreenState extends State<FridgeScanScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: SafoSpacing.sm),
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton.tonalIcon(
@@ -225,9 +307,6 @@ class _FridgeScanScreenState extends State<FridgeScanScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(context.tr(en: 'Scan fridge', sk: 'Skenovať chladničku')),
-      ),
       body: FutureBuilder<ScanSession>(
         future: scanFuture,
         builder: (context, snapshot) {
@@ -236,12 +315,39 @@ class _FridgeScanScreenState extends State<FridgeScanScreen> {
           }
 
           if (snapshot.hasError) {
-            return AppErrorState(
-              kind: _scanErrorKind(snapshot.error),
-              title: _scanErrorTitle(context, snapshot.error),
-              message: _scanErrorMessage(context, snapshot.error),
-              hint: _scanErrorHint(context, snapshot.error),
-              onRetry: _reload,
+            return SafeArea(
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      SafoSpacing.md,
+                      SafoSpacing.sm,
+                      SafoSpacing.md,
+                      SafoSpacing.md,
+                    ),
+                    child: _ScanScreenHeader(
+                      title: context.tr(
+                        en: 'Scan your fridge',
+                        sk: 'Naskenuj svoju chladničku',
+                      ),
+                      subtitle: context.tr(
+                        en: 'Something went wrong while preparing your fridge scan.',
+                        sk: 'Pri príprave scanu chladničky sa niečo pokazilo.',
+                      ),
+                      onBack: () => Navigator.of(context).maybePop(),
+                    ),
+                  ),
+                  Expanded(
+                    child: AppErrorState(
+                      kind: _scanErrorKind(snapshot.error),
+                      title: _scanErrorTitle(context, snapshot.error),
+                      message: _scanErrorMessage(context, snapshot.error),
+                      hint: _scanErrorHint(context, snapshot.error),
+                      onRetry: _reload,
+                    ),
+                  ),
+                ],
+              ),
             );
           }
 
@@ -534,10 +640,7 @@ class _FridgeScanReviewState extends State<_FridgeScanReview> {
           en: 'Select at least one item to continue.',
           sk: 'Vyber aspoň jednu položku, aby si mohol pokračovať.',
         ),
-        title: context.tr(
-          en: 'Nothing selected',
-          sk: 'Nič nie je vybrané',
-        ),
+        title: context.tr(en: 'Nothing selected', sk: 'Nič nie je vybrané'),
       );
       return;
     }
@@ -569,10 +672,7 @@ class _FridgeScanReviewState extends State<_FridgeScanReview> {
           en: 'Failed to save scan session.',
           sk: 'Scan sa nepodarilo uložiť.',
         ),
-        title: context.tr(
-          en: 'Scan not saved',
-          sk: 'Scan sa neuložil',
-        ),
+        title: context.tr(en: 'Scan not saved', sk: 'Scan sa neuložil'),
         actionLabel: context.tr(en: 'Retry', sk: 'Skúsiť znova'),
         onAction: _finish,
       );
@@ -587,39 +687,58 @@ class _FridgeScanReviewState extends State<_FridgeScanReview> {
     final selectedCount = _candidates.where((item) => item.isSelected).length;
 
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(
+        SafoSpacing.md,
+        SafoSpacing.sm,
+        SafoSpacing.md,
+        SafoSpacing.xxl,
+      ),
       children: [
+        SafeArea(
+          bottom: false,
+          child: _ScanScreenHeader(
+            title: context.tr(
+              en: 'Review detected items',
+              sk: 'Skontroluj rozpoznané položky',
+            ),
+            subtitle: context.tr(
+              en: 'Confirm what Safo found before anything is saved to your pantry.',
+              sk: 'Potvrď, čo Safo našlo, ešte pred uložením do špajze.',
+            ),
+            onBack: () => Navigator.of(context).maybePop(),
+          ),
+        ),
+        const SizedBox(height: SafoSpacing.lg),
         Container(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(SafoSpacing.lg),
           decoration: BoxDecoration(
-            color: const Color(0xFFFFFCF7),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: const Color(0xFFE6DDCF)),
+            color: SafoColors.surface,
+            borderRadius: BorderRadius.circular(SafoRadii.xl),
+            border: Border.all(color: SafoColors.border),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x120F172A),
+                blurRadius: 20,
+                offset: Offset(0, 10),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 context.tr(
-                  en: 'Review detected items',
-                  sk: 'Skontroluj rozpoznané položky',
-                ),
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                context.tr(
                   en: 'This is the scan confirmation flow. Later we will replace the mock results with real AI detection from one fridge photo.',
                   sk: 'Toto je potvrdzovací flow scanu. Neskôr nahradíme mock výsledky reálnou AI detekciou z jednej fotky chladničky.',
                 ),
-                style: Theme.of(context).textTheme.bodyMedium,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: SafoColors.textSecondary,
+                ),
               ),
               if (widget.photoBytes != null) ...[
-                const SizedBox(height: 16),
+                const SizedBox(height: SafoSpacing.md),
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(SafoRadii.lg),
                   child: Image.memory(
                     widget.photoBytes!,
                     height: 200,
@@ -628,10 +747,10 @@ class _FridgeScanReviewState extends State<_FridgeScanReview> {
                   ),
                 ),
               ],
-              const SizedBox(height: 16),
+              const SizedBox(height: SafoSpacing.md),
               Wrap(
-                spacing: 8,
-                runSpacing: 8,
+                spacing: SafoSpacing.xs,
+                runSpacing: SafoSpacing.xs,
                 children: [
                   _ScanMetaChip(
                     label: widget.session.imageLabel,
@@ -644,7 +763,7 @@ class _FridgeScanReviewState extends State<_FridgeScanReview> {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: SafoSpacing.md),
               TextButton.icon(
                 onPressed: widget.onPickAnotherPhoto,
                 icon: const Icon(Icons.restart_alt_rounded),
@@ -655,7 +774,7 @@ class _FridgeScanReviewState extends State<_FridgeScanReview> {
             ],
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: SafoSpacing.md),
         SizedBox(
           width: double.infinity,
           child: FilledButton.tonalIcon(
@@ -669,10 +788,10 @@ class _FridgeScanReviewState extends State<_FridgeScanReview> {
             ),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: SafoSpacing.md),
         ..._candidates.map(
           (candidate) => Padding(
-            padding: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.only(bottom: SafoSpacing.sm),
             child: Card(
               child: ListTile(
                 contentPadding: const EdgeInsets.symmetric(
@@ -799,7 +918,7 @@ class _FridgeScanReviewState extends State<_FridgeScanReview> {
             ),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: SafoSpacing.xs),
         SizedBox(
           width: double.infinity,
           child: FilledButton(
@@ -815,6 +934,70 @@ class _FridgeScanReviewState extends State<_FridgeScanReview> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ScanScreenHeader extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final VoidCallback onBack;
+
+  const _ScanScreenHeader({
+    required this.title,
+    required this.subtitle,
+    required this.onBack,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(SafoSpacing.lg),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(SafoRadii.xl),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF1E2D4E), Color(0xFF2F4858)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              IconButton(
+                onPressed: onBack,
+                style: IconButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  backgroundColor: Colors.white.withValues(alpha: 0.12),
+                ),
+                icon: const Icon(Icons.arrow_back_rounded),
+              ),
+              const Spacer(),
+              const SafoLogo(
+                variant: SafoLogoVariant.horizontalLight,
+                width: 84,
+              ),
+            ],
+          ),
+          const SizedBox(height: SafoSpacing.lg),
+          Text(
+            title,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: SafoSpacing.xs),
+          Text(
+            subtitle,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Colors.white.withValues(alpha: 0.82),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -947,12 +1130,16 @@ class _ScanMetaChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(999),
+        color: SafoColors.surfaceSoft,
+        borderRadius: BorderRadius.circular(SafoRadii.pill),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
-        children: [Icon(icon, size: 16), const SizedBox(width: 6), Text(label)],
+        children: [
+          Icon(icon, size: 16, color: SafoColors.textSecondary),
+          const SizedBox(width: 6),
+          Text(label),
+        ],
       ),
     );
   }

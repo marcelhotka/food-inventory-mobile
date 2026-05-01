@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../app/localization/app_locale.dart';
+import '../../../app/theme/safo_tokens.dart';
 import '../../../core/forms/app_input_decoration.dart';
+import '../../../core/widgets/safo_page_header.dart';
 import '../domain/staple_food.dart';
 import '../domain/staple_food_presets.dart';
 
@@ -114,197 +116,229 @@ class _StapleFoodFormScreenState extends State<StapleFoodFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          widget.isEditing
-              ? context.tr(
-                  en: 'Edit Staple Food',
-                  sk: 'Upraviť základnú potravinu',
-                )
-              : context.tr(
-                  en: 'Add Staple Food',
-                  sk: 'Pridať základnú potravinu',
-                ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(
+          SafoSpacing.md,
+          SafoSpacing.sm,
+          SafoSpacing.md,
+          SafoSpacing.xxl,
         ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  context.tr(
-                    en: 'Popular staples',
-                    sk: 'Obľúbené základné potraviny',
-                  ),
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  context.tr(
-                    en: 'Tap one to prefill the form faster.',
-                    sk: 'Ťukni na niektorú a formulár sa rýchlo predvyplní.',
-                  ),
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: stapleFoodPresets.map((preset) {
-                  final isSelected = _selectedPresetId == preset.id;
-                  return FilterChip(
-                    selected: isSelected,
-                    label: Text(
-                      context.tr(en: preset.nameEn, sk: preset.nameSk),
-                    ),
-                    onSelected: (_) => _applyPreset(preset),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 20),
-              TextFormField(
-                controller: _nameController,
-                decoration: appInputDecoration(
-                  context.tr(en: 'Name', sk: 'Názov'),
-                ),
-                validator: (value) {
-                  if ((value ?? '').trim().isEmpty) {
-                    return context.tr(en: 'Enter a name', sk: 'Zadaj názov');
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                initialValue: _selectedCategory,
-                decoration: appInputDecoration(
-                  context.tr(en: 'Category', sk: 'Kategória'),
-                ),
-                items: _categoryOptions
-                    .map(
-                      (value) => DropdownMenuItem(
-                        value: value,
-                        child: Text(_categoryLabel(value)),
-                      ),
+        children: [
+          SafeArea(
+            bottom: false,
+            child: SafoPageHeader(
+              title: widget.isEditing
+                  ? context.tr(
+                      en: 'Edit staple food',
+                      sk: 'Upraviť základnú potravinu',
                     )
-                    .toList(),
-                onChanged: (value) {
-                  if (value == null) {
-                    return;
-                  }
-                  setState(() {
-                    _selectedCategory = value;
-                  });
-                },
+                  : context.tr(
+                      en: 'Add staple food',
+                      sk: 'Pridať základnú potravinu',
+                    ),
+              subtitle: context.tr(
+                en: 'Define what should stay regularly stocked at home and in what quantity.',
+                sk: 'Nastav, čo má byť doma pravidelne dostupné a v akom množstve.',
               ),
-              const SizedBox(height: 16),
-              Row(
+              onBack: () => Navigator.of(context).maybePop(),
+            ),
+          ),
+          const SizedBox(height: SafoSpacing.lg),
+          Container(
+            padding: const EdgeInsets.all(SafoSpacing.lg),
+            decoration: BoxDecoration(
+              color: SafoColors.surface,
+              borderRadius: BorderRadius.circular(SafoRadii.xl),
+              border: Border.all(color: SafoColors.border),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x120F172A),
+                  blurRadius: 20,
+                  offset: Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Form(
+              key: _formKey,
+              child: Column(
                 children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _quantityController,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      context.tr(
+                        en: 'Popular staples',
+                        sk: 'Obľúbené základné potraviny',
                       ),
-                      decoration: appInputDecoration(
-                        context.tr(
-                          en: 'Target quantity',
-                          sk: 'Cieľové množstvo',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      context.tr(
+                        en: 'Tap one to prefill the form faster.',
+                        sk: 'Ťukni na niektorú a formulár sa rýchlo predvyplní.',
+                      ),
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: stapleFoodPresets.map((preset) {
+                      final isSelected = _selectedPresetId == preset.id;
+                      return FilterChip(
+                        selected: isSelected,
+                        label: Text(
+                          context.tr(en: preset.nameEn, sk: preset.nameSk),
                         ),
+                        onSelected: (_) => _applyPreset(preset),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 20),
+                  TextFormField(
+                    controller: _nameController,
+                    decoration: appInputDecoration(
+                      context.tr(en: 'Name', sk: 'Názov'),
+                    ),
+                    validator: (value) {
+                      if ((value ?? '').trim().isEmpty) {
+                        return context.tr(
+                          en: 'Enter a name',
+                          sk: 'Zadaj názov',
+                        );
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    initialValue: _selectedCategory,
+                    decoration: appInputDecoration(
+                      context.tr(en: 'Category', sk: 'Kategória'),
+                    ),
+                    items: _categoryOptions
+                        .map(
+                          (value) => DropdownMenuItem(
+                            value: value,
+                            child: Text(_categoryLabel(value)),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      if (value == null) {
+                        return;
+                      }
+                      setState(() {
+                        _selectedCategory = value;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _quantityController,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          decoration: appInputDecoration(
+                            context.tr(
+                              en: 'Target quantity',
+                              sk: 'Cieľové množstvo',
+                            ),
+                          ),
+                          validator: (value) {
+                            if ((value ?? '').trim().isEmpty) {
+                              return context.tr(
+                                en: 'Enter quantity',
+                                sk: 'Zadaj množstvo',
+                              );
+                            }
+                            if (double.tryParse(value!.trim()) == null) {
+                              return context.tr(
+                                en: 'Enter a valid number',
+                                sk: 'Zadaj platné číslo',
+                              );
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          initialValue: _selectedUnit,
+                          decoration: appInputDecoration(
+                            context.tr(en: 'Unit', sk: 'Jednotka'),
+                          ),
+                          items: _unitOptions
+                              .map(
+                                (value) => DropdownMenuItem(
+                                  value: value,
+                                  child: Text(_unitLabel(value)),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (value) {
+                            if (value == null) {
+                              return;
+                            }
+                            setState(() {
+                              _selectedUnit = value;
+                              if (value != 'custom') {
+                                _unitController.text = value;
+                              } else if (_unitController.text.trim().isEmpty) {
+                                _unitController.clear();
+                              }
+                            });
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (_selectedUnit == 'custom') ...[
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _unitController,
+                      decoration: appInputDecoration(
+                        context.tr(en: 'Custom unit', sk: 'Vlastná jednotka'),
                       ),
                       validator: (value) {
                         if ((value ?? '').trim().isEmpty) {
                           return context.tr(
-                            en: 'Enter quantity',
-                            sk: 'Zadaj množstvo',
-                          );
-                        }
-                        if (double.tryParse(value!.trim()) == null) {
-                          return context.tr(
-                            en: 'Enter a valid number',
-                            sk: 'Zadaj platné číslo',
+                            en: 'Enter a unit',
+                            sk: 'Zadaj jednotku',
                           );
                         }
                         return null;
                       },
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      initialValue: _selectedUnit,
-                      decoration: appInputDecoration(
-                        context.tr(en: 'Unit', sk: 'Jednotka'),
+                  ],
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: _save,
+                      child: Text(
+                        widget.isEditing
+                            ? context.tr(en: 'Save changes', sk: 'Uložiť zmeny')
+                            : context.tr(
+                                en: 'Add staple',
+                                sk: 'Pridať základnú potravinu',
+                              ),
                       ),
-                      items: _unitOptions
-                          .map(
-                            (value) => DropdownMenuItem(
-                              value: value,
-                              child: Text(_unitLabel(value)),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        if (value == null) {
-                          return;
-                        }
-                        setState(() {
-                          _selectedUnit = value;
-                          if (value != 'custom') {
-                            _unitController.text = value;
-                          } else if (_unitController.text.trim().isEmpty) {
-                            _unitController.clear();
-                          }
-                        });
-                      },
                     ),
                   ),
                 ],
               ),
-              if (_selectedUnit == 'custom') ...[
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _unitController,
-                  decoration: appInputDecoration(
-                    context.tr(en: 'Custom unit', sk: 'Vlastná jednotka'),
-                  ),
-                  validator: (value) {
-                    if ((value ?? '').trim().isEmpty) {
-                      return context.tr(
-                        en: 'Enter a unit',
-                        sk: 'Zadaj jednotku',
-                      );
-                    }
-                    return null;
-                  },
-                ),
-              ],
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: _save,
-                  child: Text(
-                    widget.isEditing
-                        ? context.tr(en: 'Save changes', sk: 'Uložiť zmeny')
-                        : context.tr(
-                            en: 'Add staple',
-                            sk: 'Pridať základnú potravinu',
-                          ),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
