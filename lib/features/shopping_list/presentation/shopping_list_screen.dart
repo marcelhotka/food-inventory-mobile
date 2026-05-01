@@ -1229,84 +1229,21 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                 }
 
                 final item = filteredItems[index - 3];
-                return Card(
-                  color: item.isBought
-                      ? SafoColors.surfaceSoft
-                      : SafoColors.surface,
-                  margin: EdgeInsets.zero,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(SafoRadii.xl),
-                    side: const BorderSide(color: SafoColors.border),
-                  ),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 8,
-                    ),
-                    onTap: () => _showItemActions(item),
-                    leading: Checkbox(
-                      value: item.isBought,
-                      onChanged: (value) {
-                        if (value == null) return;
-                        _toggleBought(item, value);
-                      },
-                    ),
-                    title: Text(
-                      localizedIngredientDisplayName(context, item.name),
-                      style: TextStyle(
-                        color: SafoColors.textPrimary,
-                        fontWeight: FontWeight.w700,
-                        decoration: item.isBought
-                            ? TextDecoration.lineThrough
-                            : null,
-                      ),
-                    ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(_buildSubtitle(item, members)),
-                        ...switch (_buildFoodSafetyWarning(item, preferences)) {
-                          final _FoodSafetyWarning warning => [
-                            const SizedBox(height: 6),
-                            _ShoppingSafetyBadge(warning: warning),
-                          ],
-                          null => const [],
-                        },
-                      ],
-                    ),
-                    trailing: PopupMenuButton<String>(
-                      icon: const Icon(
-                        Icons.more_horiz_rounded,
-                        color: SafoColors.textMuted,
-                      ),
-                      onSelected: (value) {
-                        if (value == 'add_more') {
-                          _openAddMoreForm(item);
-                        } else if (value == 'edit') {
-                          _openEditForm(item);
-                        } else if (value == 'delete') {
-                          _deleteItem(item);
-                        }
-                      },
-                      itemBuilder: (context) => [
-                        PopupMenuItem(
-                          value: 'add_more',
-                          child: Text(
-                            context.tr(en: 'Add more', sk: 'Pridať viac'),
-                          ),
-                        ),
-                        PopupMenuItem(
-                          value: 'edit',
-                          child: Text(context.tr(en: 'Edit', sk: 'Upraviť')),
-                        ),
-                        PopupMenuItem(
-                          value: 'delete',
-                          child: Text(context.tr(en: 'Delete', sk: 'Zmazať')),
-                        ),
-                      ],
-                    ),
-                  ),
+                return _ShoppingItemCard(
+                  item: item,
+                  title: localizedIngredientDisplayName(context, item.name),
+                  subtitle: _buildSubtitle(item, members),
+                  assignmentLabel: item.assignedToUserId == null
+                      ? null
+                      : item.assignedToUserId == _currentUserId
+                      ? context.tr(en: 'For me', sk: 'Pre mňa')
+                      : _assignedSubtitle(item.assignedToUserId!, members),
+                  quantityLabel:
+                      '${_formatQuantity(item.quantity)} ${item.unit}',
+                  warning: _buildFoodSafetyWarning(item, preferences),
+                  onTap: () => _showItemActions(item),
+                  onMore: () => _showItemActions(item),
+                  onToggleBought: (value) => _toggleBought(item, value),
                 );
               },
             ),
@@ -1318,15 +1255,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
   }
 
   String _buildSubtitle(ShoppingListItem item, List<HouseholdMember> members) {
-    final parts = <String>[
-      '${item.quantity} ${item.unit}',
-      _sourceLabel(item.source),
-      if (item.assignedToUserId == _currentUserId)
-        context.tr(en: 'I will buy this', sk: 'Kúpim to ja')
-      else if (item.assignedToUserId != null)
-        _assignedSubtitle(item.assignedToUserId!, members),
-    ];
-    return parts.join(' • ');
+    return _sourceLabel(item.source);
   }
 
   String _assignedSubtitle(
@@ -2137,6 +2066,160 @@ class _ShoppingSearchAndFilterBar extends StatelessWidget {
           ),
         ),
       ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ShoppingItemCard extends StatelessWidget {
+  final ShoppingListItem item;
+  final String title;
+  final String subtitle;
+  final String quantityLabel;
+  final String? assignmentLabel;
+  final _FoodSafetyWarning? warning;
+  final VoidCallback onTap;
+  final VoidCallback onMore;
+  final ValueChanged<bool> onToggleBought;
+
+  const _ShoppingItemCard({
+    required this.item,
+    required this.title,
+    required this.subtitle,
+    required this.quantityLabel,
+    required this.assignmentLabel,
+    required this.warning,
+    required this.onTap,
+    required this.onMore,
+    required this.onToggleBought,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bought = item.isBought;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(SafoRadii.xl),
+      child: Ink(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: bought ? SafoColors.surfaceSoft : SafoColors.surface,
+          borderRadius: BorderRadius.circular(SafoRadii.xl),
+          border: Border.all(color: SafoColors.border),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Checkbox(
+                value: bought,
+                onChanged: (value) {
+                  if (value == null) {
+                    return;
+                  }
+                  onToggleBought(value);
+                },
+              ),
+            ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: SafoColors.textPrimary,
+                            fontWeight: FontWeight.w700,
+                            decoration: bought ? TextDecoration.lineThrough : null,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      _ShoppingMetaPill(
+                        label: quantityLabel,
+                        tint: SafoColors.primarySoft,
+                        textColor: SafoColors.primary,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _ShoppingMetaPill(
+                        label: subtitle,
+                        tint: const Color(0xFFF3EEE4),
+                        textColor: SafoColors.textSecondary,
+                      ),
+                      if (assignmentLabel != null)
+                        _ShoppingMetaPill(
+                          label: assignmentLabel!,
+                          tint: SafoColors.accentSoft,
+                          textColor: SafoColors.accent,
+                        ),
+                      if (bought)
+                        _ShoppingMetaPill(
+                          label: context.tr(en: 'Bought', sk: 'Kúpené'),
+                          tint: const Color(0xFFE7F5EC),
+                          textColor: const Color(0xFF4E7A51),
+                        ),
+                    ],
+                  ),
+                  if (warning != null) ...[
+                    const SizedBox(height: 10),
+                    _ShoppingSafetyBadge(warning: warning!),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            IconButton(
+              onPressed: onMore,
+              icon: const Icon(
+                Icons.more_horiz_rounded,
+                color: SafoColors.textMuted,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ShoppingMetaPill extends StatelessWidget {
+  final String label;
+  final Color tint;
+  final Color textColor;
+
+  const _ShoppingMetaPill({
+    required this.label,
+    required this.tint,
+    required this.textColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: tint,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: textColor,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );

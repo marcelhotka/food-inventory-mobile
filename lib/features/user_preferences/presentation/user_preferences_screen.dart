@@ -362,35 +362,34 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: !widget.isOnboarding,
-        title: widget.isOnboarding
-            ? const SafoLogo(
+      appBar: widget.isOnboarding
+          ? AppBar(
+              automaticallyImplyLeading: false,
+              title: const SafoLogo(
                 variant: SafoLogoVariant.pill,
                 height: 28,
-              )
-            : Text(context.tr(en: 'Preferences', sk: 'Preferencie')),
-        actions: widget.isOnboarding
-            ? [
+              ),
+              actions: [
                 IconButton(
                   onPressed: _handleSignOut,
                   icon: const Icon(Icons.logout_rounded),
                   tooltip: context.tr(en: 'Sign out', sk: 'Odhlásiť sa'),
                 ),
-              ]
-            : null,
-      ),
-      body: GestureDetector(
-        onHorizontalDragEnd: widget.isOnboarding
-            ? (details) {
-                if ((details.primaryVelocity ?? 0) > 180) {
-                  _handleOnboardingBackToHousehold();
-                } else if ((details.primaryVelocity ?? 0) < -180) {
-                  _save();
+              ],
+            )
+          : null,
+      body: SafeArea(
+        child: GestureDetector(
+          onHorizontalDragEnd: widget.isOnboarding
+              ? (details) {
+                  if ((details.primaryVelocity ?? 0) > 180) {
+                    _handleOnboardingBackToHousehold();
+                  } else if ((details.primaryVelocity ?? 0) < -180) {
+                    _save();
+                  }
                 }
-              }
-            : null,
-        child: FutureBuilder<UserPreferences?>(
+              : null,
+          child: FutureBuilder<UserPreferences?>(
           future: _preferencesFuture,
           builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -435,10 +434,40 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
           }
 
           _applyLoadedPreferences(snapshot.data);
+          final favoriteSummaryCount =
+              _selectedFavoriteMeals.length +
+              _selectedFavoriteFoods.length +
+              _splitList(_favoriteMealsController.text).length +
+              _splitList(_favoriteFoodsController.text).length;
+          final dietarySummaryCount =
+              _selectedAllergies.length +
+              _selectedIntolerances.length +
+              _selectedDietStyles.length +
+              _splitList(_allergiesController.text).length +
+              _splitList(_intolerancesController.text).length;
+          final profileSummaryCount = [
+            if ((_selectedLanguage ?? '').isNotEmpty) _selectedLanguage,
+            if ((_selectedCookingFrequency ?? '').isNotEmpty)
+              _selectedCookingFrequency,
+            if ((_householdSizeController.text.trim()).isNotEmpty)
+              _householdSizeController.text,
+          ].length;
 
           return ListView(
             padding: const EdgeInsets.all(24),
             children: [
+              if (!widget.isOnboarding) ...[
+                _PreferencesHeader(
+                  onBack: () => Navigator.of(context).maybePop(),
+                ),
+                const SizedBox(height: 18),
+                _PreferencesOverview(
+                  favoriteCount: favoriteSummaryCount,
+                  dietaryCount: dietarySummaryCount,
+                  profileCount: profileSummaryCount,
+                ),
+                const SizedBox(height: 18),
+              ],
               if (widget.isOnboarding) ...[
                 _KitchenSetupHero(
                   imageAsset: _kitchenSetupHeroAsset,
@@ -493,8 +522,8 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
                                 sk: 'Povedz nám viac o tvojej kuchyni',
                               )
                             : context.tr(
-                                en: 'Personalize your kitchen',
-                                sk: 'Prispôsob si svoju kuchyňu',
+                                en: 'Update your kitchen profile',
+                                sk: 'Uprav profil svojej kuchyne',
                               ),
                         style: Theme.of(context).textTheme.headlineSmall
                             ?.copyWith(fontWeight: FontWeight.w800),
@@ -507,8 +536,8 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
                                 sk: 'Odpovedz na pár otázok, aby sme od začiatku vedeli pripraviť lepšie odporúčania receptov, nákupov a fungovania domácnosti.',
                               )
                             : context.tr(
-                                en: 'Save favorite meals, food preferences and dietary limits now. Later we can reuse this exact data for onboarding, recipe suggestions and smarter shopping defaults.',
-                                sk: 'Ulož si obľúbené jedlá, potraviny a stravovacie obmedzenia. Neskôr tieto údaje využijeme pri onboardingu, odporúčaní receptov aj pri múdrejších nákupoch.',
+                                en: 'Keep favorite meals, food preferences, and dietary limits up to date so Safo can stay useful in everyday planning.',
+                                sk: 'Udržuj obľúbené jedlá, potraviny a stravovacie obmedzenia aktuálne, aby bolo Safo užitočné pri každodennom plánovaní.',
                               ),
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
@@ -902,8 +931,9 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
               ),
             ],
           );
-        },
+          },
         ),
+      ),
       ),
     );
   }
@@ -1135,6 +1165,168 @@ class _PreferenceSection extends StatelessWidget {
           Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
           const SizedBox(height: 16),
           ...children,
+        ],
+      ),
+    );
+  }
+}
+
+class _PreferencesHeader extends StatelessWidget {
+  final VoidCallback onBack;
+
+  const _PreferencesHeader({required this.onBack});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Material(
+              color: SafoColors.surface,
+              borderRadius: BorderRadius.circular(SafoRadii.pill),
+              child: InkWell(
+                onTap: onBack,
+                borderRadius: BorderRadius.circular(SafoRadii.pill),
+                child: Ink(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: SafoColors.surface,
+                    borderRadius: BorderRadius.circular(SafoRadii.pill),
+                    border: Border.all(color: SafoColors.border),
+                  ),
+                  child: const Icon(
+                    Icons.arrow_back_rounded,
+                    color: SafoColors.textPrimary,
+                  ),
+                ),
+              ),
+            ),
+            const Spacer(),
+            const SafoLogo(
+              variant: SafoLogoVariant.pill,
+              height: 28,
+            ),
+          ],
+        ),
+        const SizedBox(height: 18),
+        Text(
+          context.tr(
+            en: 'Your kitchen settings',
+            sk: 'Nastavenia tvojej kuchyne',
+          ),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: SafoColors.textSecondary,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          context.tr(en: 'Preferences', sk: 'Preferencie'),
+          style: Theme.of(context).textTheme.headlineLarge,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          context.tr(
+            en: 'Keep recipes, shopping defaults, and household recommendations aligned with how you actually live.',
+            sk: 'Udrž recepty, nákupné predvoľby a odporúčania domácnosti v súlade s tým, ako naozaj funguješ.',
+          ),
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: SafoColors.textSecondary,
+            height: 1.45,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PreferencesOverview extends StatelessWidget {
+  final int favoriteCount;
+  final int dietaryCount;
+  final int profileCount;
+
+  const _PreferencesOverview({
+    required this.favoriteCount,
+    required this.dietaryCount,
+    required this.profileCount,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.count(
+      crossAxisCount: 3,
+      crossAxisSpacing: 12,
+      mainAxisSpacing: 12,
+      childAspectRatio: 0.92,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      children: [
+        _PreferencesOverviewCard(
+          label: context.tr(en: 'Favorites', sk: 'Obľúbené'),
+          value: favoriteCount.toString(),
+          background: SafoColors.surface,
+          valueColor: SafoColors.textPrimary,
+        ),
+        _PreferencesOverviewCard(
+          label: context.tr(en: 'Diet & safety', sk: 'Diéta a bezpečnosť'),
+          value: dietaryCount.toString(),
+          background: SafoColors.primarySoft,
+          valueColor: SafoColors.primary,
+        ),
+        _PreferencesOverviewCard(
+          label: context.tr(en: 'Household', sk: 'Domácnosť'),
+          value: profileCount.toString(),
+          background: SafoColors.accentSoft,
+          valueColor: SafoColors.accent,
+        ),
+      ],
+    );
+  }
+}
+
+class _PreferencesOverviewCard extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color background;
+  final Color valueColor;
+
+  const _PreferencesOverviewCard({
+    required this.label,
+    required this.value,
+    required this.background,
+    required this.valueColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(SafoRadii.xl),
+        border: Border.all(color: SafoColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: SafoColors.textSecondary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const Spacer(),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+              color: valueColor,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
         ],
       ),
     );

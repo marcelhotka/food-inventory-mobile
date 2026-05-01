@@ -3,9 +3,11 @@ import 'package:flutter/services.dart';
 
 import '../../../app/localization/app_locale.dart';
 import '../../../app/supabase.dart';
+import '../../../app/theme/safo_tokens.dart';
 import '../../../core/food/food_signal_catalog.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/app_feedback.dart';
+import '../../../core/widgets/safo_logo.dart';
 import '../../food_items/data/food_items_repository.dart';
 import '../../food_items/domain/food_item.dart';
 import '../../food_items/domain/opened_food_guidance.dart';
@@ -121,14 +123,6 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          onPressed: () => Navigator.of(context).maybePop(),
-          icon: const Icon(Icons.arrow_back),
-          tooltip: context.tr(en: 'Back', sk: 'Späť'),
-        ),
-        title: Text(context.tr(en: 'Household', sk: 'Domácnosť')),
-      ),
       body: FutureBuilder<_HouseholdViewData>(
         future: _viewFuture,
         builder: (context, snapshot) {
@@ -185,55 +179,27 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
             mealPlanEntries: mealPlanEntries,
             pantryItems: pantryItems,
           );
-          return RefreshIndicator(
-            onRefresh: _reload,
-            child: ListView(
-              padding: const EdgeInsets.all(16),
+          return SafeArea(
+            bottom: false,
+            child: RefreshIndicator(
+              onRefresh: _reload,
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
               children: [
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.household.name,
-                          style: Theme.of(context).textTheme.headlineSmall
-                              ?.copyWith(fontWeight: FontWeight.w800),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          context.tr(
-                            en: 'Share this household code with another family member so they can join the same pantry and shopping list.',
-                            sk: 'Zdieľaj tento kód domácnosti s ďalším členom rodiny, aby sa pripojil do rovnakej špajze a nákupného zoznamu.',
-                          ),
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                        const SizedBox(height: 16),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF3EEE4),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: SelectableText(
-                            widget.household.id,
-                            style: Theme.of(context).textTheme.bodyLarge
-                                ?.copyWith(fontWeight: FontWeight.w700),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        FilledButton.tonalIcon(
-                          onPressed: _copyCode,
-                          icon: const Icon(Icons.copy_outlined),
-                          label: Text(
-                            context.tr(en: 'Copy code', sk: 'Kopírovať kód'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                _HouseholdHeader(
+                  householdName: widget.household.name,
+                  onBack: () => Navigator.of(context).maybePop(),
+                ),
+                const SizedBox(height: 18),
+                _HouseholdSummary(
+                  memberCount: members.length,
+                  todayEventsCount: todayEvents.length,
+                  waitingCount: personalTasks.length,
+                ),
+                const SizedBox(height: 14),
+                _HouseholdCodeCard(
+                  householdId: widget.household.id,
+                  onCopyCode: _copyCode,
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -638,6 +604,7 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
                         ),
                       ),
               ],
+              ),
             ),
           );
         },
@@ -1405,6 +1372,233 @@ class _HouseholdViewData {
     required this.shoppingItems,
     required this.mealPlanEntries,
   });
+}
+
+class _HouseholdHeader extends StatelessWidget {
+  final String householdName;
+  final VoidCallback onBack;
+
+  const _HouseholdHeader({
+    required this.householdName,
+    required this.onBack,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Material(
+              color: SafoColors.surface,
+              borderRadius: BorderRadius.circular(SafoRadii.pill),
+              child: InkWell(
+                onTap: onBack,
+                borderRadius: BorderRadius.circular(SafoRadii.pill),
+                child: Ink(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: SafoColors.surface,
+                    borderRadius: BorderRadius.circular(SafoRadii.pill),
+                    border: Border.all(color: SafoColors.border),
+                  ),
+                  child: const Icon(
+                    Icons.arrow_back_rounded,
+                    color: SafoColors.textPrimary,
+                  ),
+                ),
+              ),
+            ),
+            const Spacer(),
+            const SafoLogo(
+              variant: SafoLogoVariant.pill,
+              height: 28,
+            ),
+          ],
+        ),
+        const SizedBox(height: 18),
+        Text(
+          context.tr(en: 'Shared home flow', sk: 'Spoločný flow domácnosti'),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: SafoColors.textSecondary,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          context.tr(en: 'Household', sk: 'Domácnosť'),
+          style: Theme.of(context).textTheme.headlineLarge,
+        ),
+        const SizedBox(height: 2),
+        Text(
+          householdName,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: SafoColors.textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _HouseholdSummary extends StatelessWidget {
+  final int memberCount;
+  final int todayEventsCount;
+  final int waitingCount;
+
+  const _HouseholdSummary({
+    required this.memberCount,
+    required this.todayEventsCount,
+    required this.waitingCount,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.count(
+      crossAxisCount: 3,
+      crossAxisSpacing: 12,
+      mainAxisSpacing: 12,
+      childAspectRatio: 0.92,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      children: [
+        _HouseholdSummaryCard(
+          label: context.tr(en: 'Members', sk: 'Členovia'),
+          value: memberCount.toString(),
+          background: SafoColors.surface,
+          valueColor: SafoColors.textPrimary,
+        ),
+        _HouseholdSummaryCard(
+          label: context.tr(en: 'Today', sk: 'Dnes'),
+          value: todayEventsCount.toString(),
+          background: SafoColors.primarySoft,
+          valueColor: SafoColors.primary,
+        ),
+        _HouseholdSummaryCard(
+          label: context.tr(en: 'For you', sk: 'Pre teba'),
+          value: waitingCount.toString(),
+          background: SafoColors.accentSoft,
+          valueColor: SafoColors.accent,
+        ),
+      ],
+    );
+  }
+}
+
+class _HouseholdSummaryCard extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color background;
+  final Color valueColor;
+
+  const _HouseholdSummaryCard({
+    required this.label,
+    required this.value,
+    required this.background,
+    required this.valueColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(SafoRadii.xl),
+        border: Border.all(color: SafoColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: SafoColors.textSecondary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const Spacer(),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+              color: valueColor,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HouseholdCodeCard extends StatelessWidget {
+  final String householdId;
+  final VoidCallback onCopyCode;
+
+  const _HouseholdCodeCard({
+    required this.householdId,
+    required this.onCopyCode,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              context.tr(
+                en: 'Invite another member',
+                sk: 'Pozvi ďalšieho člena',
+              ),
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              context.tr(
+                en: 'Share this household code with your family so they can join the same pantry, shopping list, and meal plan.',
+                sk: 'Zdieľaj tento kód domácnosti s rodinou, aby sa pripojili do rovnakej špajze, nákupu a jedálnička.',
+              ),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: SafoColors.textSecondary,
+                height: 1.45,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF3EEE4),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: SelectableText(
+                householdId,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            FilledButton.tonalIcon(
+              onPressed: onCopyCode,
+              icon: const Icon(Icons.copy_outlined),
+              label: Text(
+                context.tr(en: 'Copy code', sk: 'Kopírovať kód'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _ContributorCount {

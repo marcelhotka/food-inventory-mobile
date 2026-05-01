@@ -140,6 +140,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       MaterialPageRoute(
         builder: (_) => MealPlanScreen(
           householdId: widget.household.id,
+          householdName: widget.household.name,
           onShoppingListChanged: widget.onShoppingListChanged,
         ),
       ),

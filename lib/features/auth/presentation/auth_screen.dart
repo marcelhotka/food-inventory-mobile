@@ -17,7 +17,10 @@ enum _AuthFlowStep {
   signIn,
   register,
   forgotPassword,
+  linkSent,
 }
+
+enum _AuthLinkSentMode { signIn, register }
 
 enum AuthScreenInitialStep { splash, welcome, account }
 
@@ -52,6 +55,8 @@ class _AuthScreenState extends State<AuthScreen> {
   String? _message;
   late _AuthFlowStep _step;
   late _AuthFlowStep _registerBackStep;
+  _AuthLinkSentMode _linkSentMode = _AuthLinkSentMode.signIn;
+  String _linkSentEmail = '';
   bool _didPrecacheImages = false;
 
   @override
@@ -101,10 +106,11 @@ class _AuthScreenState extends State<AuthScreen> {
     try {
       await widget.repository.signInWithMagicLink(_emailController.text.trim());
       setState(() {
-        _message = context.tr(
-          en: 'Check your email for the sign-in link.',
-          sk: 'Skontroluj si e-mail pre prihlasovací odkaz.',
-        );
+        _linkSentEmail = _emailController.text.trim();
+        _linkSentMode = _step == _AuthFlowStep.register
+            ? _AuthLinkSentMode.register
+            : _AuthLinkSentMode.signIn;
+        _step = _AuthFlowStep.linkSent;
       });
     } catch (error) {
       setState(() {
@@ -279,6 +285,12 @@ class _AuthScreenState extends State<AuthScreen> {
         _goTo(_registerBackStep);
       case _AuthFlowStep.forgotPassword:
         _goTo(_AuthFlowStep.signIn);
+      case _AuthFlowStep.linkSent:
+        _goTo(
+          _linkSentMode == _AuthLinkSentMode.register
+              ? _AuthFlowStep.register
+              : _AuthFlowStep.signIn,
+        );
     }
   }
 
@@ -409,6 +421,13 @@ class _AuthScreenState extends State<AuthScreen> {
               message: _message,
               onBack: _goBack,
               onSubmit: _sendPasswordReset,
+            ),
+            _AuthFlowStep.linkSent => _LinkSentStep(
+              key: const ValueKey('link-sent'),
+              mode: _linkSentMode,
+              email: _linkSentEmail,
+              onBack: _goBack,
+              onContinue: () => _goTo(_AuthFlowStep.signIn),
             ),
           },
         ),
@@ -1170,85 +1189,94 @@ class _AuthEntryStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-      children: [
-        Row(
-          children: [
-            _HeaderIconButton(
-              icon: Icons.arrow_back_rounded,
-              onTap: onBack,
-            ),
-            const Spacer(),
-            const SafoLogo(
-              variant: SafoLogoVariant.pill,
-              height: 28,
-            ),
-          ],
-        ),
-        const SizedBox(height: 24),
-        _AccountHeroCard(
-          title: _isRegister
-              ? context.tr(
-                  en: 'Create your Safo account',
-                  sk: 'Vytvor si Safo účet',
-                )
-              : context.tr(en: 'Welcome to Safo', sk: 'Vitaj v Safo'),
-          subtitle: context.tr(
-            en: _isRegister
-                ? 'Create an account to save your household, pantry, shopping list, and preferences in one place.'
-                : 'Sign in to keep your household, pantry, shopping list, and preferences safely linked to one account.',
-            sk: _isRegister
-                ? 'Vytvor si účet a ulož si domácnosť, špajzu, nákupný zoznam aj preferencie na jednom mieste.'
-                : 'Prihlás sa, aby si mal svoju domácnosť, špajzu, nákupný zoznam a preferencie bezpečne prepojené s jedným účtom.',
+    return GestureDetector(
+      onHorizontalDragEnd: (details) {
+        final velocity = details.primaryVelocity ?? 0;
+        if (velocity > 180) {
+          onBack();
+        } else if (velocity < -180) {
+          onSwitchMode();
+        }
+      },
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        children: [
+          Row(
+            children: [
+              _HeaderIconButton(
+                icon: Icons.arrow_back_rounded,
+                onTap: onBack,
+              ),
+              const Spacer(),
+              const SafoLogo(
+                variant: SafoLogoVariant.pill,
+                height: 28,
+              ),
+            ],
           ),
-        ),
-        const SizedBox(height: 18),
-        _AccountSummaryCard(
-          title: _isRegister
-              ? context.tr(
-                  en: 'Why create an account',
-                  sk: 'Prečo si vytvoriť účet',
-                )
-              : context.tr(
-                  en: 'Why sign in now',
-                  sk: 'Prečo sa prihlásiť teraz',
-                ),
-          items: _isRegister
-              ? [
-                  context.tr(
-                    en: 'Your household setup stays saved after the first launch',
-                    sk: 'Nastavenie domácnosti ostane uložené aj po prvom spustení',
-                  ),
-                  context.tr(
-                    en: 'Recipes, pantry, and shopping suggestions can stay personal',
-                    sk: 'Recepty, špajza aj nákupné odporúčania môžu zostať osobné',
-                  ),
-                ]
-              : [
-                  context.tr(
-                    en: 'Your household and pantry stay linked after reopening the app',
-                    sk: 'Domácnosť a špajza ostanú prepojené aj po znovuotvorení aplikácie',
-                  ),
-                  context.tr(
-                    en: 'Shopping lists and preferences stay attached to one account',
-                    sk: 'Nákupné zoznamy a preferencie ostanú naviazané na jeden účet',
-                  ),
-                ],
-        ),
-        const SizedBox(height: 18),
-        Container(
-          padding: const EdgeInsets.all(22),
-          decoration: BoxDecoration(
-            color: SafoColors.surface,
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: SafoColors.border),
+          const SizedBox(height: 24),
+          _AccountHeroCard(
+            title: _isRegister
+                ? context.tr(
+                    en: 'Create your Safo account',
+                    sk: 'Vytvor si Safo účet',
+                  )
+                : context.tr(en: 'Welcome to Safo', sk: 'Vitaj v Safo'),
+            subtitle: context.tr(
+              en: _isRegister
+                  ? 'Create an account to save your household, pantry, shopping list, and preferences in one place.'
+                  : 'Sign in to keep your household, pantry, shopping list, and preferences safely linked to one account.',
+              sk: _isRegister
+                  ? 'Vytvor si účet a ulož si domácnosť, špajzu, nákupný zoznam aj preferencie na jednom mieste.'
+                  : 'Prihlás sa, aby si mal svoju domácnosť, špajzu, nákupný zoznam a preferencie bezpečne prepojené s jedným účtom.',
+            ),
           ),
-          child: Form(
-            key: formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+          const SizedBox(height: 18),
+          _AccountSummaryCard(
+            title: _isRegister
+                ? context.tr(
+                    en: 'Why create an account',
+                    sk: 'Prečo si vytvoriť účet',
+                  )
+                : context.tr(
+                    en: 'Why sign in now',
+                    sk: 'Prečo sa prihlásiť teraz',
+                  ),
+            items: _isRegister
+                ? [
+                    context.tr(
+                      en: 'Your household setup stays saved after the first launch',
+                      sk: 'Nastavenie domácnosti ostane uložené aj po prvom spustení',
+                    ),
+                    context.tr(
+                      en: 'Recipes, pantry, and shopping suggestions can stay personal',
+                      sk: 'Recepty, špajza aj nákupné odporúčania môžu zostať osobné',
+                    ),
+                  ]
+                : [
+                    context.tr(
+                      en: 'Your household and pantry stay linked after reopening the app',
+                      sk: 'Domácnosť a špajza ostanú prepojené aj po znovuotvorení aplikácie',
+                    ),
+                    context.tr(
+                      en: 'Shopping lists and preferences stay attached to one account',
+                      sk: 'Nákupné zoznamy a preferencie ostanú naviazané na jeden účet',
+                    ),
+                  ],
+          ),
+          const SizedBox(height: 18),
+          Container(
+            padding: const EdgeInsets.all(22),
+            decoration: BoxDecoration(
+              color: SafoColors.surface,
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: SafoColors.border),
+            ),
+            child: Form(
+              key: formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                 Text(
                   _isRegister
                       ? context.tr(
@@ -1504,11 +1532,12 @@ class _AuthEntryStep extends StatelessWidget {
                     ),
                   ),
                 ],
-              ],
+                ],
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -1572,61 +1601,67 @@ class _ForgotPasswordStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-      children: [
-        Row(
-          children: [
-            _HeaderIconButton(
-              icon: Icons.arrow_back_rounded,
-              onTap: onBack,
-            ),
-            const Spacer(),
-            const SafoLogo(
-              variant: SafoLogoVariant.pill,
-              height: 28,
-            ),
-          ],
-        ),
-        const SizedBox(height: 24),
-        _AccountHeroCard(
-          title: context.tr(
-            en: 'Reset your password',
-            sk: 'Obnov si heslo',
-          ),
-          subtitle: context.tr(
-            en: 'Enter the email connected to your Safo account and we’ll send you a reset link.',
-            sk: 'Zadaj e-mail pripojený k tvojmu Safo účtu a pošleme ti odkaz na obnovu hesla.',
-          ),
-        ),
-        const SizedBox(height: 18),
-        _AccountSummaryCard(
-          title: context.tr(
-            en: 'What happens next',
-            sk: 'Čo sa stane ďalej',
-          ),
-          items: [
-            context.tr(
-              en: 'We send a reset link to your email',
-              sk: 'Na tvoj e-mail pošleme odkaz na obnovu',
-            ),
-            context.tr(
-              en: 'You return to Safo and continue with the same account',
-              sk: 'Vrátiš sa do Safo a pokračuješ s tým istým účtom',
-            ),
-          ],
-        ),
-        const SizedBox(height: 18),
-        Container(
-          padding: const EdgeInsets.all(22),
-          decoration: BoxDecoration(
-            color: SafoColors.surface,
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: SafoColors.border),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return GestureDetector(
+      onHorizontalDragEnd: (details) {
+        if ((details.primaryVelocity ?? 0) > 180) {
+          onBack();
+        }
+      },
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        children: [
+          Row(
             children: [
+              _HeaderIconButton(
+                icon: Icons.arrow_back_rounded,
+                onTap: onBack,
+              ),
+              const Spacer(),
+              const SafoLogo(
+                variant: SafoLogoVariant.pill,
+                height: 28,
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          _AccountHeroCard(
+            title: context.tr(
+              en: 'Reset your password',
+              sk: 'Obnov si heslo',
+            ),
+            subtitle: context.tr(
+              en: 'Enter the email connected to your Safo account and we’ll send you a reset link.',
+              sk: 'Zadaj e-mail pripojený k tvojmu Safo účtu a pošleme ti odkaz na obnovu hesla.',
+            ),
+          ),
+          const SizedBox(height: 18),
+          _AccountSummaryCard(
+            title: context.tr(
+              en: 'What happens next',
+              sk: 'Čo sa stane ďalej',
+            ),
+            items: [
+              context.tr(
+                en: 'We send a reset link to your email',
+                sk: 'Na tvoj e-mail pošleme odkaz na obnovu',
+              ),
+              context.tr(
+                en: 'You return to Safo and continue with the same account',
+                sk: 'Vrátiš sa do Safo a pokračuješ s tým istým účtom',
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Container(
+            padding: const EdgeInsets.all(22),
+            decoration: BoxDecoration(
+              color: SafoColors.surface,
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: SafoColors.border),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
               Text(
                 context.tr(
                   en: 'Account email',
@@ -1686,10 +1721,167 @@ class _ForgotPasswordStep extends StatelessWidget {
                   ),
                 ),
               ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LinkSentStep extends StatelessWidget {
+  final _AuthLinkSentMode mode;
+  final String email;
+  final VoidCallback onBack;
+  final VoidCallback onContinue;
+
+  const _LinkSentStep({
+    super.key,
+    required this.mode,
+    required this.email,
+    required this.onBack,
+    required this.onContinue,
+  });
+
+  bool get _isRegister => mode == _AuthLinkSentMode.register;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onHorizontalDragEnd: (details) {
+        final velocity = details.primaryVelocity ?? 0;
+        if (velocity > 180) {
+          onBack();
+        } else if (velocity < -180) {
+          onContinue();
+        }
+      },
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        children: [
+          Row(
+            children: [
+              _HeaderIconButton(
+                icon: Icons.arrow_back_rounded,
+                onTap: onBack,
+              ),
+              const Spacer(),
+              const SafoLogo(
+                variant: SafoLogoVariant.pill,
+                height: 28,
+              ),
             ],
           ),
-        ),
-      ],
+          const SizedBox(height: 24),
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: SafoColors.surface,
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: SafoColors.border),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+              Container(
+                width: 62,
+                height: 62,
+                decoration: BoxDecoration(
+                  color: SafoColors.primarySoft,
+                  borderRadius: BorderRadius.circular(22),
+                ),
+                child: const Icon(
+                  Icons.mark_email_read_rounded,
+                  color: SafoColors.primary,
+                  size: 30,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                _isRegister
+                    ? context.tr(
+                        en: 'Finish creating your account',
+                        sk: 'Dokonči vytvorenie účtu',
+                      )
+                    : context.tr(
+                        en: 'Check your email',
+                        sk: 'Skontroluj si e-mail',
+                      ),
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                _isRegister
+                    ? context.tr(
+                        en: 'We sent a magic link to $email. Open it to finish creating your Safo account.',
+                        sk: 'Na $email sme poslali magic link. Otvor ho a dokonči vytvorenie svojho Safo účtu.',
+                      )
+                    : context.tr(
+                        en: 'We sent a sign-in link to $email. Open it and you’ll continue right where you left off.',
+                        sk: 'Na $email sme poslali prihlasovací odkaz. Otvor ho a budeš pokračovať presne tam, kde si skončil.',
+                      ),
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: SafoColors.textSecondary,
+                  height: 1.45,
+                ),
+              ),
+              const SizedBox(height: 20),
+              _AccountSummaryCard(
+                title: context.tr(
+                  en: 'Next steps',
+                  sk: 'Ďalší krok',
+                ),
+                items: [
+                  context.tr(
+                    en: 'Open your email inbox',
+                    sk: 'Otvor si e-mailovú schránku',
+                  ),
+                  context.tr(
+                    en: 'Tap the Safo link',
+                    sk: 'Ťukni na odkaz od Safo',
+                  ),
+                  context.tr(
+                    en: 'Return to the app and continue',
+                    sk: 'Vráť sa do aplikácie a pokračuj',
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: onBack,
+                        child: Text(
+                          context.tr(
+                            en: 'Use another email',
+                            sk: 'Použiť iný e-mail',
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: onContinue,
+                        child: Text(
+                          context.tr(
+                            en: 'Back to sign in',
+                            sk: 'Späť na prihlásenie',
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
