@@ -1635,13 +1635,23 @@ class _PreferenceChipSelector extends StatelessWidget {
                   (value) => DropdownMenuItem(
                     value: value,
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Expanded(child: Text(labelBuilder(value))),
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 220),
+                          child: Text(
+                            labelBuilder(value),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                         if (selectedValues.contains(value))
-                          const Icon(
-                            Icons.check_rounded,
-                            size: 18,
-                            color: SafoColors.primary,
+                          const Padding(
+                            padding: EdgeInsets.only(left: 8),
+                            child: Icon(
+                              Icons.check_rounded,
+                              size: 18,
+                              color: SafoColors.primary,
+                            ),
                           ),
                       ],
                     ),
@@ -1735,13 +1745,23 @@ class _MultiChoiceChipSelector extends StatelessWidget {
                   (value) => DropdownMenuItem(
                     value: value,
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Expanded(child: Text(labelBuilder(value))),
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 220),
+                          child: Text(
+                            labelBuilder(value),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                         if (selectedValues.contains(value))
-                          const Icon(
-                            Icons.check_rounded,
-                            size: 18,
-                            color: SafoColors.primary,
+                          const Padding(
+                            padding: EdgeInsets.only(left: 8),
+                            child: Icon(
+                              Icons.check_rounded,
+                              size: 18,
+                              color: SafoColors.primary,
+                            ),
                           ),
                       ],
                     ),

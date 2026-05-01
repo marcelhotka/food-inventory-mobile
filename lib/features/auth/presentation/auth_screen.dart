@@ -48,7 +48,8 @@ class _AuthScreenState extends State<AuthScreen> {
   static const _onboardingPlanningImageUrl =
       'https://readdy.ai/api/search-image?query=shopping%20list%20notebook%20pen%20recipes%20meal%20planning%20calendar%20flat%20lay%20kitchen%20table%20natural%20light%20earthy%20minimal%20aesthetic%20food%20lifestyle&width=320&height=320&seq=ob3&orientation=squarish';
 
-  final _formKey = GlobalKey<FormState>();
+  final _signInFormKey = GlobalKey<FormState>();
+  final _registerFormKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
 
   bool _isSubmitting = false;
@@ -94,7 +95,10 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) {
+    final activeFormKey = _step == _AuthFlowStep.register
+        ? _registerFormKey
+        : _signInFormKey;
+    if (!activeFormKey.currentState!.validate()) {
       return;
     }
 
@@ -386,7 +390,7 @@ class _AuthScreenState extends State<AuthScreen> {
             ),
             _AuthFlowStep.signIn => _AuthEntryStep(
               key: const ValueKey('sign-in'),
-              formKey: _formKey,
+              formKey: _signInFormKey,
               emailController: _emailController,
               isSubmitting: _isSubmitting,
               message: _message,
@@ -401,7 +405,7 @@ class _AuthScreenState extends State<AuthScreen> {
             ),
             _AuthFlowStep.register => _AuthEntryStep(
               key: const ValueKey('register'),
-              formKey: _formKey,
+              formKey: _registerFormKey,
               emailController: _emailController,
               isSubmitting: _isSubmitting,
               message: _message,
