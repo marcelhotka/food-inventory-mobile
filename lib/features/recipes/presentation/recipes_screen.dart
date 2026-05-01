@@ -1486,6 +1486,9 @@ class _RecipesScreenState extends State<RecipesScreen> {
     }
 
     final freshResult = await _refreshRecipeMatch(result.recipe);
+    if (!mounted) {
+      return;
+    }
 
     final useConfirmed = await showDialog<bool>(
       context: context,
@@ -1572,6 +1575,9 @@ class _RecipesScreenState extends State<RecipesScreen> {
     }
 
     final freshResult = await _refreshRecipeMatch(result.recipe);
+    if (!mounted) {
+      return;
+    }
     final canConsume =
         freshResult.available.isNotEmpty || freshResult.partial.isNotEmpty;
     if (!canConsume) {

@@ -121,6 +121,9 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     if (entry == null) {
       return;
     }
+    if (!mounted) {
+      return;
+    }
 
     final confirmed = await _confirmMealPlanSafetyForEntry(
       entry,
@@ -175,6 +178,9 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         );
 
     if (importedEntries == null || importedEntries.isEmpty) {
+      return;
+    }
+    if (!mounted) {
       return;
     }
 
@@ -232,6 +238,9 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     );
 
     if (updated == null) {
+      return;
+    }
+    if (!mounted) {
       return;
     }
 

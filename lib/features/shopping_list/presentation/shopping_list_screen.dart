@@ -187,6 +187,9 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     if (createdItem == null) {
       return;
     }
+    if (!mounted) {
+      return;
+    }
 
     final safeItem = await _confirmProceedWithSafetyWarning(
       createdItem,
@@ -305,6 +308,9 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     if (updatedItem == null) {
       return;
     }
+    if (!mounted) {
+      return;
+    }
 
     final safeItem = await _confirmProceedWithSafetyWarning(
       updatedItem,
@@ -413,6 +419,9 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     unitController.dispose();
 
     if (additionalItem == null) {
+      return;
+    }
+    if (!mounted) {
       return;
     }
 
@@ -644,6 +653,14 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     }
 
     try {
+      final assignmentDetails = assignedToUserId == null
+          ? context.tr(en: 'Assignment cleared', sk: 'Priradenie zrušené')
+          : assignedToUserId == _currentUserId
+          ? context.tr(en: 'Assigned to me', sk: 'Priradené mne')
+          : context.tr(
+              en: 'Assigned to another household member',
+              sk: 'Priradené inému členovi domácnosti',
+            );
       await repository.editShoppingListItem(
         item.copyWith(
           assignedToUserId: assignedToUserId,
@@ -658,14 +675,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
         itemName: item.name,
         quantity: item.quantity,
         unit: item.unit,
-        details: assignedToUserId == null
-            ? context.tr(en: 'Assignment cleared', sk: 'Priradenie zrušené')
-            : assignedToUserId == _currentUserId
-            ? context.tr(en: 'Assigned to me', sk: 'Priradené mne')
-            : context.tr(
-                en: 'Assigned to another household member',
-                sk: 'Priradené inému členovi domácnosti',
-              ),
+        details: assignmentDetails,
       );
       widget.onShoppingListChanged();
       await _reload();
