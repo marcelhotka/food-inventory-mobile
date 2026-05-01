@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show AuthState;
 
 import 'localization/app_locale.dart';
+import 'theme/safo_tokens.dart';
 import '../core/widgets/app_async_state_widgets.dart';
+import '../core/widgets/safo_page_header.dart';
 import '../features/auth/data/auth_repository.dart';
 import '../features/auth/presentation/auth_screen.dart';
 import '../features/households/data/household_repository.dart';
@@ -259,53 +261,121 @@ class _ConfigErrorScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(context.tr(en: 'Setup needed', sk: 'Treba nastavenie')),
-      ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFFCF7),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: const Color(0xFFE6DDCF)),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.settings_suggest_rounded,
-                  size: 40,
-                  color: Color(0xFF4C6FFF),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  context.tr(
-                    en: 'Safo needs setup',
-                    sk: 'Safo potrebuje nastavenie',
-                  ),
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(message, textAlign: TextAlign.center),
-                const SizedBox(height: 8),
-                Text(
-                  context.tr(
-                    en: 'This usually means environment or integration settings are still missing.',
-                    sk: 'Zvyčajne to znamená, že ešte chýbajú nastavenia prostredia alebo integrácie.',
-                  ),
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodySmall,
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(
+            SafoSpacing.md,
+            SafoSpacing.sm,
+            SafoSpacing.md,
+            SafoSpacing.xxl,
+          ),
+          children: [
+            SafoPageHeader(
+              title: context.tr(en: 'Setup needed', sk: 'Treba nastavenie'),
+              subtitle: context.tr(
+                en: 'Safo still needs a small configuration step before it can continue.',
+                sk: 'Safo ešte potrebuje malé nastavenie, aby mohlo pokračovať.',
+              ),
+              dark: false,
+              badges: [
+                _RouterInfoBadge(
+                  icon: Icons.settings_suggest_rounded,
+                  label: context.tr(en: 'Environment', sk: 'Prostredie'),
                 ),
               ],
             ),
-          ),
+            const SizedBox(height: SafoSpacing.lg),
+            Container(
+              padding: const EdgeInsets.all(SafoSpacing.lg),
+              decoration: BoxDecoration(
+                color: SafoColors.surface,
+                borderRadius: BorderRadius.circular(SafoRadii.xl),
+                border: Border.all(color: SafoColors.border),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x120F172A),
+                    blurRadius: 20,
+                    offset: Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: SafoColors.primarySoft,
+                      borderRadius: BorderRadius.circular(SafoRadii.lg),
+                    ),
+                    child: const Icon(
+                      Icons.settings_suggest_rounded,
+                      color: SafoColors.primary,
+                    ),
+                  ),
+                  const SizedBox(height: SafoSpacing.md),
+                  Text(
+                    context.tr(
+                      en: 'Safo needs setup',
+                      sk: 'Safo potrebuje nastavenie',
+                    ),
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: SafoSpacing.sm),
+                  Text(message),
+                  const SizedBox(height: SafoSpacing.sm),
+                  Text(
+                    context.tr(
+                      en: 'This usually means environment or integration settings are still missing.',
+                      sk: 'Zvyčajne to znamená, že ešte chýbajú nastavenia prostredia alebo integrácie.',
+                    ),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: SafoColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
+      ),
+    );
+  }
+}
+
+class _RouterInfoBadge extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _RouterInfoBadge({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: SafoSpacing.sm,
+        vertical: 10,
+      ),
+      decoration: BoxDecoration(
+        color: SafoColors.surfaceSoft,
+        borderRadius: BorderRadius.circular(SafoRadii.pill),
+        border: Border.all(color: SafoColors.border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: SafoColors.textPrimary),
+          const SizedBox(width: SafoSpacing.xs),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -317,11 +387,51 @@ class _UnknownRouteScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(context.tr(en: 'Page not found', sk: 'Stránka sa nenašla')),
-      ),
-      body: Center(
-        child: Text(context.tr(en: 'Unknown route', sk: 'Neznáma stránka')),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(
+            SafoSpacing.md,
+            SafoSpacing.sm,
+            SafoSpacing.md,
+            SafoSpacing.xxl,
+          ),
+          children: [
+            SafoPageHeader(
+              title: context.tr(
+                en: 'Page not found',
+                sk: 'Stránka sa nenašla',
+              ),
+              subtitle: context.tr(
+                en: 'That part of Safo is not available from this route.',
+                sk: 'Táto časť Safo nie je cez túto cestu dostupná.',
+              ),
+              dark: false,
+              onBack: () => Navigator.of(context).maybePop(),
+              badges: [
+                _RouterInfoBadge(
+                  icon: Icons.explore_off_rounded,
+                  label: context.tr(en: 'Unknown route', sk: 'Neznáma cesta'),
+                ),
+              ],
+            ),
+            const SizedBox(height: SafoSpacing.lg),
+            Container(
+              padding: const EdgeInsets.all(SafoSpacing.lg),
+              decoration: BoxDecoration(
+                color: SafoColors.surface,
+                borderRadius: BorderRadius.circular(SafoRadii.xl),
+                border: Border.all(color: SafoColors.border),
+              ),
+              child: Text(
+                context.tr(
+                  en: 'Try going back to the previous screen or return to the main dashboard.',
+                  sk: 'Skús sa vrátiť na predchádzajúcu obrazovku alebo späť na hlavný dashboard.',
+                ),
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

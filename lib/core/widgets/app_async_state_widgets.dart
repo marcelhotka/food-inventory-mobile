@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../app/localization/app_locale.dart';
+import '../../app/theme/safo_tokens.dart';
+import 'safo_logo.dart';
 
 enum AppErrorKind { generic, connection, sync, setup, permission, camera }
 
@@ -11,25 +13,62 @@ class AppLoadingState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        constraints: const BoxConstraints(maxWidth: 320),
+        margin: const EdgeInsets.all(SafoSpacing.lg),
+        padding: const EdgeInsets.all(SafoSpacing.xl),
         decoration: BoxDecoration(
-          color: const Color(0xFFFFFCF7),
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: const Color(0xFFE6DDCF)),
+          color: SafoColors.surface,
+          borderRadius: BorderRadius.circular(SafoRadii.xl),
+          border: Border.all(color: SafoColors.border),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x120F172A),
+              blurRadius: 20,
+              offset: Offset(0, 10),
+            ),
+          ],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(
-              width: 28,
-              height: 28,
-              child: CircularProgressIndicator(strokeWidth: 3),
+            const SafoLogo(
+              variant: SafoLogoVariant.iconTransparent,
+              width: 52,
+              height: 52,
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: SafoSpacing.md),
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: SafoColors.primarySoft,
+                borderRadius: BorderRadius.circular(SafoRadii.lg),
+              ),
+              child: const Padding(
+                padding: EdgeInsets.all(6),
+                child: CircularProgressIndicator(strokeWidth: 3),
+              ),
+            ),
+            const SizedBox(height: SafoSpacing.md),
             Text(
               context.tr(
                 en: 'Loading your items...',
                 sk: 'Načítavam tvoje položky...',
+              ),
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: SafoSpacing.xs),
+            Text(
+              context.tr(
+                en: 'Safo is preparing the latest view for your kitchen.',
+                sk: 'Safo pripravuje najnovší pohľad na tvoju kuchyňu.',
+              ),
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: SafoColors.textSecondary,
               ),
             ),
           ],
@@ -66,44 +105,64 @@ class AppErrorState extends StatelessWidget {
 
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(SafoSpacing.lg),
         child: Container(
-          padding: const EdgeInsets.all(24),
+          constraints: const BoxConstraints(maxWidth: 360),
+          padding: const EdgeInsets.all(SafoSpacing.xl),
           decoration: BoxDecoration(
-            color: const Color(0xFFFFFCF7),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: const Color(0xFFE6DDCF)),
+            color: SafoColors.surface,
+            borderRadius: BorderRadius.circular(SafoRadii.xl),
+            border: Border.all(color: SafoColors.border),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x120F172A),
+                blurRadius: 20,
+                offset: Offset(0, 10),
+              ),
+            ],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Icon(
-                _defaultErrorIcon(kind),
-                size: 40,
-                color: _defaultErrorColor(kind),
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: _defaultErrorColor(kind).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(SafoRadii.lg),
+                ),
+                child: Icon(
+                  _defaultErrorIcon(kind),
+                  size: 28,
+                  color: _defaultErrorColor(kind),
+                ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: SafoSpacing.md),
               Text(
                 resolvedTitle,
                 textAlign: TextAlign.center,
                 style: Theme.of(
                   context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: SafoSpacing.sm),
               Text(message, textAlign: TextAlign.center),
               if (resolvedHint != null) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: SafoSpacing.sm),
                 Text(
                   resolvedHint,
                   textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodySmall,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: SafoColors.textSecondary,
+                  ),
                 ),
               ],
-              const SizedBox(height: 16),
-              FilledButton(
+              const SizedBox(height: SafoSpacing.lg),
+              FilledButton.icon(
                 onPressed: onRetry,
-                child: Text(resolvedActionLabel),
+                icon: const Icon(Icons.refresh_rounded),
+                label: Text(resolvedActionLabel),
               ),
             ],
           ),
@@ -206,47 +265,75 @@ class AppEmptyState extends StatelessWidget {
       onRefresh: onRefresh,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 24),
+        padding: const EdgeInsets.fromLTRB(
+          SafoSpacing.lg,
+          120,
+          SafoSpacing.lg,
+          SafoSpacing.xxl,
+        ),
         children: [
-          const SizedBox(height: 120),
           Container(
-            padding: const EdgeInsets.all(28),
+            constraints: const BoxConstraints(maxWidth: 360),
+            padding: const EdgeInsets.all(SafoSpacing.xl),
             decoration: BoxDecoration(
-              color: const Color(0xFFFFFCF7),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: const Color(0xFFE6DDCF)),
+              color: SafoColors.surface,
+              borderRadius: BorderRadius.circular(SafoRadii.xl),
+              border: Border.all(color: SafoColors.border),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x120F172A),
+                  blurRadius: 20,
+                  offset: Offset(0, 10),
+                ),
+              ],
             ),
             child: Column(
               children: [
-                const Icon(
-                  Icons.inventory_2_outlined,
-                  size: 42,
-                  color: Color(0xFF4E7A51),
+                Container(
+                  width: 58,
+                  height: 58,
+                  decoration: BoxDecoration(
+                    color: SafoColors.primarySoft,
+                    borderRadius: BorderRadius.circular(SafoRadii.lg),
+                  ),
+                  child: const Icon(
+                    Icons.inventory_2_outlined,
+                    size: 28,
+                    color: SafoColors.primary,
+                  ),
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: SafoSpacing.md),
                 Text(
                   context.tr(
                     en: 'Nothing here yet',
                     sk: 'Zatiaľ tu nič nie je',
                   ),
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: SafoSpacing.sm),
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: SafoColors.textSecondary,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 12),
-          Center(child: Text(message, textAlign: TextAlign.center)),
-          const SizedBox(height: 10),
+          const SizedBox(height: SafoSpacing.md),
           Center(
             child: Text(
               context.tr(
                 en: 'Pull down to refresh.',
                 sk: 'Potiahni nadol pre obnovenie.',
               ),
-              style: Theme.of(context).textTheme.bodySmall,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: SafoColors.textSecondary,
+              ),
             ),
           ),
         ],

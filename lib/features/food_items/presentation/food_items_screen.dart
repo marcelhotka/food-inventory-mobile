@@ -5,6 +5,7 @@ import '../../../app/theme/safo_tokens.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/app_feedback.dart';
 import '../../../core/widgets/safo_logo.dart';
+import '../../../core/widgets/safo_page_header.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/presentation/sign_out_action.dart';
 import '../../household_activity/data/household_activity_repository.dart';
@@ -1785,33 +1786,26 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
 
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => Scaffold(
-          appBar: AppBar(
-            title: Text(context.tr(en: 'Low stock', sk: 'Málo zásob')),
+        builder: (context) => _PantrySubsetScreen(
+          title: context.tr(en: 'Low stock', sk: 'Málo zásob'),
+          subtitle: context.tr(
+            en: 'These pantry items are close to their minimum stock level.',
+            sk: 'Tieto pantry položky sú blízko svojho minimálneho stavu zásob.',
           ),
-          body: lowStockItems.isEmpty
-              ? AppEmptyState(
-                  message: context.tr(
-                    en: 'No low stock items.',
-                    sk: 'Žiadne položky s nízkou zásobou.',
-                  ),
-                  onRefresh: _reload,
-                )
-              : ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: lowStockItems.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    final item = lowStockItems[index];
-                    return _buildFoodItemCard(
-                      item,
-                      subtitle:
-                          '${_formatCompactNumber(item.quantity)} ${item.unit} • ${_categoryLabel(item.category)} • ${_storageLocationLabel(item.storageLocation)}'
-                          '${item.lowStockThreshold == null ? '' : ' • Limit ${_formatCompactNumber(item.lowStockThreshold!)} ${item.unit}'}',
-                      warning: _buildFoodSafetyWarning(item, preferences),
-                    );
-                  },
-                ),
+          badgeLabel: context.tr(en: 'Restock', sk: 'Doplniť'),
+          emptyMessage: context.tr(
+            en: 'No low stock items.',
+            sk: 'Žiadne položky s nízkou zásobou.',
+          ),
+          items: lowStockItems,
+          itemBuilder: (item) => _buildFoodItemCard(
+            item,
+            subtitle:
+                '${_formatCompactNumber(item.quantity)} ${item.unit} • ${_categoryLabel(item.category)} • ${_storageLocationLabel(item.storageLocation)}'
+                '${item.lowStockThreshold == null ? '' : ' • Limit ${_formatCompactNumber(item.lowStockThreshold!)} ${item.unit}'}',
+            warning: _buildFoodSafetyWarning(item, preferences),
+          ),
+          onRefresh: _reload,
         ),
       ),
     );
@@ -1826,35 +1820,26 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
 
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => Scaffold(
-          appBar: AppBar(
-            title: Text(
-              context.tr(en: 'Expiring soon', sk: 'Čoskoro sa minie'),
-            ),
+        builder: (context) => _PantrySubsetScreen(
+          title: context.tr(en: 'Expiring soon', sk: 'Čoskoro sa minie'),
+          subtitle: context.tr(
+            en: 'Use these pantry items first to waste less food.',
+            sk: 'Tieto pantry položky použi ako prvé, aby sa vyhodilo menej jedla.',
           ),
-          body: expiringSoonItems.isEmpty
-              ? AppEmptyState(
-                  message: context.tr(
-                    en: 'No expiring soon items.',
-                    sk: 'Žiadne položky Čoskoro sa minie.',
-                  ),
-                  onRefresh: _reload,
-                )
-              : ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: expiringSoonItems.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    final item = expiringSoonItems[index];
-                    return _buildFoodItemCard(
-                      item,
-                      subtitle:
-                          '${_formatCompactNumber(item.quantity)} ${item.unit} • ${_categoryLabel(item.category)} • ${_storageLocationLabel(item.storageLocation)}'
-                          '${item.expirationDate == null ? '' : ' • ${_expiryShortLabel(item.expirationDate!)}'}',
-                      warning: _buildFoodSafetyWarning(item, preferences),
-                    );
-                  },
-                ),
+          badgeLabel: context.tr(en: 'Use first', sk: 'Použiť skôr'),
+          emptyMessage: context.tr(
+            en: 'No expiring soon items.',
+            sk: 'Žiadne položky čoskoro sa minie.',
+          ),
+          items: expiringSoonItems,
+          itemBuilder: (item) => _buildFoodItemCard(
+            item,
+            subtitle:
+                '${_formatCompactNumber(item.quantity)} ${item.unit} • ${_categoryLabel(item.category)} • ${_storageLocationLabel(item.storageLocation)}'
+                '${item.expirationDate == null ? '' : ' • ${_expiryShortLabel(item.expirationDate!)}'}',
+            warning: _buildFoodSafetyWarning(item, preferences),
+          ),
+          onRefresh: _reload,
         ),
       ),
     );
@@ -2646,6 +2631,119 @@ class _StorageSectionHeader extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _PantrySubsetScreen extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final String badgeLabel;
+  final String emptyMessage;
+  final List<FoodItem> items;
+  final Widget Function(FoodItem item) itemBuilder;
+  final Future<void> Function() onRefresh;
+
+  const _PantrySubsetScreen({
+    required this.title,
+    required this.subtitle,
+    required this.badgeLabel,
+    required this.emptyMessage,
+    required this.items,
+    required this.itemBuilder,
+    required this.onRefresh,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: onRefresh,
+          child: ListView.separated(
+            padding: const EdgeInsets.fromLTRB(
+              SafoSpacing.md,
+              SafoSpacing.sm,
+              SafoSpacing.md,
+              SafoSpacing.xxl,
+            ),
+            itemCount: items.isEmpty ? 2 : items.length + 2,
+            separatorBuilder: (_, index) => SizedBox(
+              height: index == 0 ? SafoSpacing.lg : SafoSpacing.sm,
+            ),
+            itemBuilder: (context, index) {
+              if (index == 0) {
+                return SafoPageHeader(
+                  title: title,
+                  subtitle: subtitle,
+                  dark: false,
+                  onBack: () => Navigator.of(context).maybePop(),
+                  badges: [
+                    _PantrySubsetBadge(
+                      label: badgeLabel,
+                      count: items.length,
+                    ),
+                  ],
+                );
+              }
+
+              if (index == 1 && items.isEmpty) {
+                return AppEmptyState(
+                  message: emptyMessage,
+                  onRefresh: onRefresh,
+                );
+              }
+
+              if (index == 1) {
+                return Container(
+                  padding: const EdgeInsets.all(SafoSpacing.lg),
+                  decoration: BoxDecoration(
+                    color: SafoColors.surface,
+                    borderRadius: BorderRadius.circular(SafoRadii.xl),
+                    border: Border.all(color: SafoColors.border),
+                  ),
+                  child: Text(
+                    '${items.length} ${context.tr(en: 'items', sk: 'položiek')}',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                );
+              }
+
+              return itemBuilder(items[index - 2]);
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PantrySubsetBadge extends StatelessWidget {
+  final String label;
+  final int count;
+
+  const _PantrySubsetBadge({required this.label, required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: SafoSpacing.sm,
+        vertical: 10,
+      ),
+      decoration: BoxDecoration(
+        color: SafoColors.surfaceSoft,
+        borderRadius: BorderRadius.circular(SafoRadii.pill),
+        border: Border.all(color: SafoColors.border),
+      ),
+      child: Text(
+        '$label • $count',
+        style: Theme.of(
+          context,
+        ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700),
+      ),
     );
   }
 }
