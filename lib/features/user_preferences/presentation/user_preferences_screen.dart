@@ -7,6 +7,7 @@ import '../../../core/forms/app_input_decoration.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/app_feedback.dart';
 import '../../../core/widgets/safo_logo.dart';
+import '../../../core/widgets/safo_page_header.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/presentation/sign_out_action.dart';
 import '../data/user_preferences_remote_data_source.dart';
@@ -362,22 +363,6 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: widget.isOnboarding
-          ? AppBar(
-              automaticallyImplyLeading: false,
-              title: const SafoLogo(
-                variant: SafoLogoVariant.pill,
-                height: 28,
-              ),
-              actions: [
-                IconButton(
-                  onPressed: _handleSignOut,
-                  icon: const Icon(Icons.logout_rounded),
-                  tooltip: context.tr(en: 'Sign out', sk: 'Odhlásiť sa'),
-                ),
-              ],
-            )
-          : null,
       body: SafeArea(
         child: GestureDetector(
           onHorizontalDragEnd: widget.isOnboarding
@@ -469,6 +454,35 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
                 const SizedBox(height: 18),
               ],
               if (widget.isOnboarding) ...[
+                SafoPageHeader(
+                  title: context.tr(
+                    en: 'Set up your kitchen',
+                    sk: 'Nastav si kuchyňu',
+                  ),
+                  subtitle: context.tr(
+                    en: 'A few choices now help Safo suggest safer recipes, smarter shopping, and a calmer household flow from day one.',
+                    sk: 'Pár volieb teraz pomôže Safo odporúčať bezpečnejšie recepty, múdrejšie nákupy a pokojnejší chod domácnosti od prvého dňa.',
+                  ),
+                  dark: false,
+                  onBack: _handleOnboardingBackToHousehold,
+                  trailing: IconButton(
+                    onPressed: _handleSignOut,
+                    style: IconButton.styleFrom(
+                      foregroundColor: SafoColors.textPrimary,
+                      backgroundColor: SafoColors.surfaceSoft,
+                      side: const BorderSide(color: SafoColors.border),
+                    ),
+                    icon: const Icon(Icons.logout_rounded),
+                    tooltip: context.tr(en: 'Sign out', sk: 'Odhlásiť sa'),
+                  ),
+                  badges: [
+                    _OnboardingHeaderBadge(
+                      icon: Icons.tune_rounded,
+                      label: context.tr(en: 'Kitchen profile', sk: 'Profil kuchyne'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
                 _KitchenSetupHero(
                   imageAsset: _kitchenSetupHeroAsset,
                   title: context.tr(
@@ -1103,6 +1117,41 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
       'alcohol' => context.tr(en: 'Alcohol', sk: 'Alkohol'),
       _ => value,
     };
+  }
+}
+
+class _OnboardingHeaderBadge extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _OnboardingHeaderBadge({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: SafoSpacing.sm,
+        vertical: 10,
+      ),
+      decoration: BoxDecoration(
+        color: SafoColors.surfaceSoft,
+        borderRadius: BorderRadius.circular(SafoRadii.pill),
+        border: Border.all(color: SafoColors.border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: SafoColors.textPrimary),
+          const SizedBox(width: SafoSpacing.xs),
+          Text(
+            label,
+            style: Theme.of(
+              context,
+            ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700),
+          ),
+        ],
+      ),
+    );
   }
 }
 

@@ -64,6 +64,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       _shoppingListRepository.getShoppingListItems(),
       _mealPlanRepository.getEntries(),
     ]);
+    if (!mounted) {
+      return <_AppNotificationItem>[];
+    }
 
     final pantryItems = results[0] as List<FoodItem>;
     final shoppingItems = results[1] as List<ShoppingListItem>;
