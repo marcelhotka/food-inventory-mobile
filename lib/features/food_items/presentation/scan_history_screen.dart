@@ -65,15 +65,6 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
           }
 
           final sessions = snapshot.data ?? [];
-          if (sessions.isEmpty) {
-            return AppEmptyState(
-              message: context.tr(
-                en: 'No fridge scans yet.',
-                sk: 'Zatiaľ nemáš žiadne scany chladničky.',
-              ),
-              onRefresh: _reload,
-            );
-          }
 
           final selectedCount = sessions.fold<int>(
             0,
@@ -81,7 +72,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
                 sum +
                 session.candidates.where((item) => item.isSelected).length,
           );
-          final latestScan = sessions.first.createdAt;
+          final latestScan = sessions.isEmpty ? null : sessions.first.createdAt;
 
           return RefreshIndicator(
             onRefresh: _reload,
@@ -108,6 +99,19 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
                     sessionCount: sessions.length,
                     selectedCount: selectedCount,
                     latestScan: latestScan,
+                  );
+                }
+
+                if (sessions.isEmpty) {
+                  return AppEmptyCard(
+                    title: context.tr(
+                      en: 'No fridge scans yet',
+                      sk: 'Zatiaľ nemáš žiadne scany chladničky',
+                    ),
+                    message: context.tr(
+                      en: 'Your recent fridge scans will show up here once you save the first one.',
+                      sk: 'Tvoje posledné scany chladničky sa tu zobrazia hneď, ako uložíš prvý.',
+                    ),
                   );
                 }
 
@@ -253,12 +257,32 @@ class _ScanSessionDetailScreenState extends State<ScanSessionDetailScreen> {
 
           final session = snapshot.data;
           if (session == null) {
-            return AppEmptyState(
-              message: context.tr(
-                en: 'This scan is no longer available.',
-                sk: 'Tento scan už nie je dostupný.',
-              ),
+            return RefreshIndicator(
               onRefresh: _reload,
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(
+                  SafoSpacing.md,
+                  SafoSpacing.sm,
+                  SafoSpacing.md,
+                  SafoSpacing.xxl,
+                ),
+                children: [
+                  _ScanHistoryDetailHeader(
+                    onBack: () => Navigator.of(context).maybePop(),
+                  ),
+                  const SizedBox(height: SafoSpacing.lg),
+                  AppEmptyCard(
+                    title: context.tr(
+                      en: 'Scan unavailable',
+                      sk: 'Scan nie je dostupný',
+                    ),
+                    message: context.tr(
+                      en: 'This fridge scan is no longer available.',
+                      sk: 'Tento scan chladničky už nie je dostupný.',
+                    ),
+                  ),
+                ],
+              ),
             );
           }
 
@@ -485,7 +509,7 @@ class _ScanHistoryHeader extends StatelessWidget {
 class _ScanHistorySummary extends StatelessWidget {
   final int sessionCount;
   final int selectedCount;
-  final DateTime latestScan;
+  final DateTime? latestScan;
 
   const _ScanHistorySummary({
     required this.sessionCount,
@@ -518,7 +542,9 @@ class _ScanHistorySummary extends StatelessWidget {
         Expanded(
           child: _ScanHistorySummaryCard(
             label: context.tr(en: 'Latest', sk: 'Posledný'),
-            value: _formatShortDate(latestScan),
+            value: latestScan == null
+                ? context.tr(en: 'None yet', sk: 'Zatiaľ nič')
+                : _formatShortDate(latestScan!),
             tone: SafoColors.warningSoft,
             accent: SafoColors.warning,
           ),

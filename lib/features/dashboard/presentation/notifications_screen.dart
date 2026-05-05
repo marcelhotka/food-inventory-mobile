@@ -670,15 +670,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
           final notifications = snapshot.data ?? const <_AppNotificationItem>[];
           final filteredNotifications = _applyNotificationFilter(notifications);
-          if (notifications.isEmpty) {
-            return AppEmptyState(
-              message: context.tr(
-                en: 'No urgent notifications right now.',
-                sk: 'Momentálne nemáš žiadne urgentné upozornenia.',
-              ),
-              onRefresh: _reload,
-            );
-          }
 
           return RefreshIndicator(
             onRefresh: _reload,
@@ -777,35 +768,25 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 ),
                 const SizedBox(height: SafoSpacing.md),
                 if (filteredNotifications.isEmpty)
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(18),
-                      child: Column(
-                        children: [
-                          const Icon(
-                            Icons.notifications_none_rounded,
-                            size: 36,
+                  AppEmptyCard(
+                    title: notifications.isEmpty
+                        ? context.tr(
+                            en: 'Nothing here yet',
+                            sk: 'Zatiaľ tu nič nie je',
+                          )
+                        : context.tr(
+                            en: 'Nothing for this filter',
+                            sk: 'Pre tento filter tu nič nie je',
                           ),
-                          const SizedBox(height: 12),
-                          Text(
-                            context.tr(
-                              en: 'No notifications match this filter right now.',
-                              sk: 'Tomuto filtru teraz nezodpovedajú žiadne upozornenia.',
-                            ),
-                            textAlign: TextAlign.center,
+                    message: notifications.isEmpty
+                        ? context.tr(
+                            en: 'No urgent notifications right now.',
+                            sk: 'Momentálne nemáš žiadne urgentné upozornenia.',
+                          )
+                        : context.tr(
+                            en: 'No notifications match this filter right now.',
+                            sk: 'Tomuto filtru teraz nezodpovedajú žiadne upozornenia.',
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            context.tr(
-                              en: 'Try a different view or pull to refresh.',
-                              sk: 'Skús iný pohľad alebo potiahni na obnovenie.',
-                            ),
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ],
-                      ),
-                    ),
                   )
                 else
                   ...filteredNotifications.asMap().entries.map((entry) {

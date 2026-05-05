@@ -475,24 +475,10 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
                     icon: const Icon(Icons.logout_rounded),
                     tooltip: context.tr(en: 'Sign out', sk: 'Odhlásiť sa'),
                   ),
-                  badges: [
-                    _OnboardingHeaderBadge(
-                      icon: Icons.tune_rounded,
-                      label: context.tr(en: 'Kitchen profile', sk: 'Profil kuchyne'),
-                    ),
-                  ],
                 ),
                 const SizedBox(height: 18),
                 _KitchenSetupHero(
                   imageAsset: _kitchenSetupHeroAsset,
-                  title: context.tr(
-                    en: 'Set up your kitchen',
-                    sk: 'Nastav si kuchyňu',
-                  ),
-                  subtitle: context.tr(
-                    en: 'A few choices now help Safo suggest safer recipes, smarter shopping, and a calmer household flow from day one.',
-                    sk: 'Pár volieb teraz pomôže Safo odporúčať bezpečnejšie recepty, múdrejšie nákupy a pokojnejší chod domácnosti od prvého dňa.',
-                  ),
                 ),
                 const SizedBox(height: 18),
                 _KitchenSetupSummary(
@@ -1120,41 +1106,6 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
   }
 }
 
-class _OnboardingHeaderBadge extends StatelessWidget {
-  final IconData icon;
-  final String label;
-
-  const _OnboardingHeaderBadge({required this.icon, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: SafoSpacing.sm,
-        vertical: 10,
-      ),
-      decoration: BoxDecoration(
-        color: SafoColors.surfaceSoft,
-        borderRadius: BorderRadius.circular(SafoRadii.pill),
-        border: Border.all(color: SafoColors.border),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: SafoColors.textPrimary),
-          const SizedBox(width: SafoSpacing.xs),
-          Text(
-            label,
-            style: Theme.of(
-              context,
-            ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _PreferenceSection extends StatelessWidget {
   final String title;
   final String subtitle;
@@ -1384,13 +1335,9 @@ class _PreferencesOverviewCard extends StatelessWidget {
 
 class _KitchenSetupHero extends StatelessWidget {
   final String imageAsset;
-  final String title;
-  final String subtitle;
 
   const _KitchenSetupHero({
     required this.imageAsset,
-    required this.title,
-    required this.subtitle,
   });
 
   @override
@@ -1443,30 +1390,6 @@ class _KitchenSetupHero extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                 ),
               ),
-            ),
-          ),
-          Positioned(
-            left: 22,
-            right: 22,
-            bottom: 22,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  subtitle,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: SafoColors.textSecondary,
-                    height: 1.45,
-                  ),
-                ),
-              ],
             ),
           ),
         ],

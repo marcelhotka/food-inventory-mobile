@@ -471,15 +471,6 @@ class _StapleFoodsScreenState extends State<StapleFoodsScreen> {
           }
 
           final items = snapshot.data ?? [];
-          if (items.isEmpty) {
-            return AppEmptyState(
-              message: context.tr(
-                en: 'No staple foods yet.',
-                sk: 'Zatiaľ tu nie sú žiadne základné potraviny.',
-              ),
-              onRefresh: _reload,
-            );
-          }
 
           return RefreshIndicator(
             onRefresh: _reload,
@@ -572,25 +563,37 @@ class _StapleFoodsScreenState extends State<StapleFoodsScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                ...items.map(
-                  (item) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Card(
-                      child: ListTile(
-                        onTap: () => _openEditForm(item),
-                        title: Text(item.name),
-                        subtitle: Text(
-                          '${_formatQuantity(item.quantity)} ${item.unit} • ${_categoryLabel(item.category)}',
-                        ),
-                        trailing: IconButton(
-                          onPressed: () => _deleteStaple(item),
-                          icon: const Icon(Icons.delete_outline),
-                          tooltip: context.tr(en: 'Delete', sk: 'Zmazať'),
+                if (items.isEmpty)
+                  AppEmptyCard(
+                    title: context.tr(
+                      en: 'No staple foods yet',
+                      sk: 'Zatiaľ tu nie sú žiadne základné potraviny',
+                    ),
+                    message: context.tr(
+                      en: 'Start with a few basics your household likes to keep at home regularly.',
+                      sk: 'Začni pár základmi, ktoré chce mať vaša domácnosť doma pravidelne.',
+                    ),
+                  )
+                else
+                  ...items.map(
+                    (item) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Card(
+                        child: ListTile(
+                          onTap: () => _openEditForm(item),
+                          title: Text(item.name),
+                          subtitle: Text(
+                            '${_formatQuantity(item.quantity)} ${item.unit} • ${_categoryLabel(item.category)}',
+                          ),
+                          trailing: IconButton(
+                            onPressed: () => _deleteStaple(item),
+                            icon: const Icon(Icons.delete_outline),
+                            tooltip: context.tr(en: 'Delete', sk: 'Zmazať'),
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
               ],
             ),
           );
