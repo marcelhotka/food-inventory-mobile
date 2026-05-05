@@ -325,7 +325,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
           if (snapshot.hasError) {
             return AppErrorState(
-              kind: AppErrorKind.sync,
+              kind: inferAppErrorKind(
+                snapshot.error,
+                fallback: AppErrorKind.sync,
+              ),
               title: context.tr(
                 en: 'Dashboard is unavailable',
                 sk: 'Prehľad nie je k dispozícii',

@@ -252,7 +252,10 @@ class _RecipesScreenState extends State<RecipesScreen> {
 
                 if (snapshot.hasError) {
                   return AppErrorState(
-                    kind: AppErrorKind.sync,
+                    kind: inferAppErrorKind(
+                      snapshot.error,
+                      fallback: AppErrorKind.sync,
+                    ),
                     title: context.tr(
                       en: 'Recipes are unavailable',
                       sk: 'Recepty nie sú k dispozícii',
@@ -280,13 +283,55 @@ class _RecipesScreenState extends State<RecipesScreen> {
                 final recipes = viewData.recipes;
                 final preferences = viewData.preferences;
 
-                if (recipes.isEmpty) {
-                  return AppEmptyState(
-                    message: context.tr(
-                      en: 'No recipes available yet.',
-                      sk: 'Zatiaľ nemáš dostupné žiadne recepty.',
+                Widget buildRecipesEmptyState(String message) {
+                  return SafeArea(
+                    bottom: false,
+                    child: RefreshIndicator(
+                      onRefresh: _reload,
+                      child: ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(20, 12, 20, 120),
+                        children: [
+                          _RecipesHeader(onOpenCreateRecipe: _openCreateRecipe),
+                          const SizedBox(height: 12),
+                          _RecipesSearchAndFilterBar(
+                            controller: _searchController,
+                            focusNode: _searchFocusNode,
+                            selectedFilter: _selectedFilter,
+                            onSearchChanged: (value) {
+                              _searchDebounce?.cancel();
+                              _searchDebounce = Timer(
+                                const Duration(milliseconds: 250),
+                                () {
+                                  if (!mounted) {
+                                    return;
+                                  }
+                                  setState(() {
+                                    _searchQuery = value.trim().toLowerCase();
+                                  });
+                                },
+                              );
+                            },
+                            onFilterChanged: (value) {
+                              setState(() {
+                                _selectedFilter = value;
+                              });
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          AppEmptyCard(message: message),
+                        ],
+                      ),
                     ),
-                    onRefresh: _reload,
+                  );
+                }
+
+                if (recipes.isEmpty) {
+                  return buildRecipesEmptyState(
+                    context.tr(
+                      en: 'Add your first recipe and Safo will start matching it with your pantry.',
+                      sk: 'Pridaj prvý recept a Safo ho začne porovnávať s tvojou špajzou.',
+                    ),
                   );
                 }
 
@@ -296,12 +341,11 @@ class _RecipesScreenState extends State<RecipesScreen> {
                   preferences,
                 );
                 if (filteredRecipes.isEmpty) {
-                  return AppEmptyState(
-                    message: context.tr(
+                  return buildRecipesEmptyState(
+                    context.tr(
                       en: 'No recipes match your search.',
                       sk: 'Tvojmu hľadaniu nezodpovedajú žiadne recepty.',
                     ),
-                    onRefresh: _reload,
                   );
                 }
 

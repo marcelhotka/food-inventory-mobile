@@ -1380,7 +1380,7 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
                   error is FoodItemsConfigException ||
                       error is FoodItemsAuthException
                   ? AppErrorKind.setup
-                  : AppErrorKind.sync,
+                  : inferAppErrorKind(error, fallback: AppErrorKind.sync),
               title:
                   error is FoodItemsConfigException ||
                       error is FoodItemsAuthException
@@ -1410,16 +1410,6 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
 
           final items = snapshot.data?.items ?? [];
           final preferences = snapshot.data?.preferences;
-          if (items.isEmpty) {
-            return AppEmptyState(
-              message: context.tr(
-                en: 'No pantry items yet.',
-                sk: 'Zatiaľ tu nemáš žiadne pantry položky.',
-              ),
-              onRefresh: _reload,
-            );
-          }
-
           final expiringSoonCount = items.where(_isExpiringSoon).length;
           final lowStockCount = items.where(_isLowStock).length;
           final filteredItems = _applyFilters(items);
@@ -1587,12 +1577,19 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
                 }
 
                 if (groupedEntries.isEmpty) {
-                  return AppEmptyState(
-                    message: context.tr(
-                      en: 'No pantry items match your search.',
-                      sk: 'Tvojmu hľadaniu nezodpovedajú žiadne pantry položky.',
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: AppEmptyCard(
+                      message: items.isEmpty
+                          ? context.tr(
+                              en: 'Add your first pantry item to start tracking what you have at home.',
+                              sk: 'Pridaj prvú položku do špajze a začni sledovať, čo máš doma.',
+                            )
+                          : context.tr(
+                              en: 'No pantry items match your search.',
+                              sk: 'Tvojmu hľadaniu nezodpovedajú žiadne pantry položky.',
+                            ),
                     ),
-                    onRefresh: _reload,
                   );
                 }
 

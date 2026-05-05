@@ -1080,7 +1080,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                   error is ShoppingListConfigException ||
                       error is ShoppingListAuthException
                   ? AppErrorKind.setup
-                  : AppErrorKind.sync,
+                  : inferAppErrorKind(error, fallback: AppErrorKind.sync),
               title:
                   error is ShoppingListConfigException ||
                       error is ShoppingListAuthException
@@ -1118,16 +1118,6 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
           final items = viewData.items;
           final preferences = viewData.preferences;
           final members = viewData.members;
-          if (items.isEmpty) {
-            return AppEmptyState(
-              message: context.tr(
-                en: 'No shopping list items yet.',
-                sk: 'Zatiaľ tu nemáš žiadne nákupné položky.',
-              ),
-              onRefresh: _reload,
-            );
-          }
-
           final filteredItems = _applyFilters(items);
           if (filteredItems.isEmpty) {
             return SafeArea(
@@ -1174,12 +1164,15 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                       },
                     ),
                     const SizedBox(height: 16),
-                    AppEmptyState(
+                    AppEmptyCard(
                       message: context.tr(
-                        en: 'No shopping items match your search.',
-                        sk: 'Tvojmu hľadaniu nezodpovedajú žiadne nákupné položky.',
+                        en: items.isEmpty
+                            ? 'Add your first shopping item and Safo will help you keep the list in sync.'
+                            : 'No shopping items match your search.',
+                        sk: items.isEmpty
+                            ? 'Pridaj prvú nákupnú položku a Safo ti pomôže držať zoznam zosynchronizovaný.'
+                            : 'Tvojmu hľadaniu nezodpovedajú žiadne nákupné položky.',
                       ),
-                      onRefresh: _reload,
                     ),
                   ],
                 ),

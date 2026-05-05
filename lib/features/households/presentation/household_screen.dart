@@ -132,6 +132,10 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
 
           if (snapshot.hasError) {
             return AppErrorState(
+              kind: inferAppErrorKind(
+                snapshot.error,
+                fallback: AppErrorKind.sync,
+              ),
               message: context.tr(
                 en: 'Failed to load household members.',
                 sk: 'Nepodarilo sa načítať členov domácnosti.',

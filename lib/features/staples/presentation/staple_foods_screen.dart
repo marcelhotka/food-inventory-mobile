@@ -458,6 +458,10 @@ class _StapleFoodsScreenState extends State<StapleFoodsScreen> {
 
           if (snapshot.hasError) {
             return AppErrorState(
+              kind: inferAppErrorKind(
+                snapshot.error,
+                fallback: AppErrorKind.sync,
+              ),
               message: context.tr(
                 en: 'Failed to load staple foods.',
                 sk: 'Nepodarilo sa načítať základné potraviny.',

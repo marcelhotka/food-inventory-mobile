@@ -44,7 +44,10 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
 
           if (snapshot.hasError) {
             return AppErrorState(
-              kind: AppErrorKind.sync,
+              kind: inferAppErrorKind(
+                snapshot.error,
+                fallback: AppErrorKind.sync,
+              ),
               title: context.tr(
                 en: 'Scan history is unavailable',
                 sk: 'História scanov nie je k dispozícii',
@@ -236,6 +239,10 @@ class _ScanSessionDetailScreenState extends State<ScanSessionDetailScreen> {
 
           if (snapshot.hasError) {
             return AppErrorState(
+              kind: inferAppErrorKind(
+                snapshot.error,
+                fallback: AppErrorKind.sync,
+              ),
               message: context.tr(
                 en: 'Failed to load scan detail.',
                 sk: 'Detail scanu sa nepodarilo načítať.',

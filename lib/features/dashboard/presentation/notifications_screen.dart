@@ -648,7 +648,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
           if (snapshot.hasError) {
             return AppErrorState(
-              kind: AppErrorKind.sync,
+              kind: inferAppErrorKind(
+                snapshot.error,
+                fallback: AppErrorKind.sync,
+              ),
               title: context.tr(
                 en: 'Notifications are unavailable',
                 sk: 'Upozornenia nie sú k dispozícii',

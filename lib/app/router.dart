@@ -158,7 +158,10 @@ class _RootScreenState extends State<_RootScreen> {
 
         if (snapshot.hasError) {
           return AppErrorState(
-            kind: AppErrorKind.sync,
+            kind: inferAppErrorKind(
+              snapshot.error,
+              fallback: AppErrorKind.sync,
+            ),
             title: context.tr(
               en: 'Unable to open your household',
               sk: 'Nepodarilo sa otvoriť tvoju domácnosť',
@@ -219,7 +222,10 @@ class _RootScreenState extends State<_RootScreen> {
               }
 
               return AppErrorState(
-                kind: AppErrorKind.sync,
+                kind: inferAppErrorKind(
+                  preferencesSnapshot.error,
+                  fallback: AppErrorKind.sync,
+                ),
                 title: context.tr(
                   en: 'Unable to open preferences',
                   sk: 'Nepodarilo sa otvoriť preferencie',

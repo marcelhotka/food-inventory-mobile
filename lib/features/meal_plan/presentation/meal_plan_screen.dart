@@ -718,7 +718,10 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
 
           if (snapshot.hasError) {
             return AppErrorState(
-              kind: AppErrorKind.sync,
+              kind: inferAppErrorKind(
+                snapshot.error,
+                fallback: AppErrorKind.sync,
+              ),
               title: context.tr(
                 en: 'Meal plan is unavailable',
                 sk: 'Jedálniček nie je k dispozícii',

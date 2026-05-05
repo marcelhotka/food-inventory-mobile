@@ -6,6 +6,64 @@ import 'safo_logo.dart';
 
 enum AppErrorKind { generic, connection, sync, setup, permission, camera }
 
+AppErrorKind inferAppErrorKind(
+  Object? error, {
+  AppErrorKind fallback = AppErrorKind.generic,
+}) {
+  if (error == null) {
+    return fallback;
+  }
+
+  final message = error.toString().toLowerCase();
+
+  const connectionHints = [
+    'socketexception',
+    'failed host lookup',
+    'network',
+    'connection',
+    'internet',
+    'offline',
+    'timed out',
+    'timeout',
+    'clientexception',
+  ];
+  if (connectionHints.any(message.contains)) {
+    return AppErrorKind.connection;
+  }
+
+  const permissionHints = [
+    'permission',
+    'not allowed',
+    'denied',
+    'forbidden',
+    'unauthorized',
+  ];
+  if (permissionHints.any(message.contains)) {
+    return AppErrorKind.permission;
+  }
+
+  const cameraHints = ['camera', 'photo library', 'gallery', 'image picker'];
+  if (cameraHints.any(message.contains)) {
+    return AppErrorKind.camera;
+  }
+
+  const setupHints = [
+    'config',
+    'configuration',
+    'missing',
+    'not set',
+    'setup',
+    'supabase',
+    'anon key',
+    'url',
+  ];
+  if (setupHints.any(message.contains)) {
+    return AppErrorKind.setup;
+  }
+
+  return fallback;
+}
+
 class AppLoadingState extends StatelessWidget {
   const AppLoadingState({super.key});
 
@@ -103,6 +161,16 @@ class AppErrorState extends StatelessWidget {
     final resolvedActionLabel =
         actionLabel ?? context.tr(en: 'Retry', sk: 'Skúsiť znova');
 
+    if (kind == AppErrorKind.connection) {
+      return AppOfflineState(
+        title: resolvedTitle,
+        message: message,
+        hint: resolvedHint,
+        actionLabel: resolvedActionLabel,
+        onRetry: onRetry,
+      );
+    }
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(SafoSpacing.lg),
@@ -163,6 +231,100 @@ class AppErrorState extends StatelessWidget {
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh_rounded),
                 label: Text(resolvedActionLabel),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class AppOfflineState extends StatelessWidget {
+  final String message;
+  final Future<void> Function() onRetry;
+  final String? title;
+  final String? hint;
+  final String? actionLabel;
+
+  const AppOfflineState({
+    super.key,
+    required this.message,
+    required this.onRetry,
+    this.title,
+    this.hint,
+    this.actionLabel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(SafoSpacing.lg),
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 360),
+          padding: const EdgeInsets.all(SafoSpacing.xl),
+          decoration: BoxDecoration(
+            color: SafoColors.surface,
+            borderRadius: BorderRadius.circular(SafoRadii.xl),
+            border: Border.all(color: SafoColors.border),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x120F172A),
+                blurRadius: 20,
+                offset: Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: SafoColors.primarySoft,
+                  borderRadius: BorderRadius.circular(SafoRadii.xl),
+                ),
+                child: const Icon(
+                  Icons.wifi_off_rounded,
+                  size: 30,
+                  color: SafoColors.primary,
+                ),
+              ),
+              const SizedBox(height: SafoSpacing.md),
+              Text(
+                title ??
+                    context.tr(
+                      en: 'You are offline',
+                      sk: 'Si offline',
+                    ),
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: SafoSpacing.sm),
+              Text(message, textAlign: TextAlign.center),
+              const SizedBox(height: SafoSpacing.sm),
+              Text(
+                hint ??
+                    context.tr(
+                      en: 'Check your internet connection and try again in a moment.',
+                      sk: 'Skontroluj internetové pripojenie a skús to znova o chvíľu.',
+                    ),
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: SafoColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: SafoSpacing.lg),
+              FilledButton.icon(
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh_rounded),
+                label: Text(
+                  actionLabel ?? context.tr(en: 'Try again', sk: 'Skúsiť znova'),
+                ),
               ),
             ],
           ),
@@ -334,6 +496,74 @@ class AppEmptyState extends StatelessWidget {
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: SafoColors.textSecondary,
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class AppEmptyCard extends StatelessWidget {
+  final String message;
+  final String? title;
+
+  const AppEmptyCard({
+    super.key,
+    required this.message,
+    this.title,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 360),
+      padding: const EdgeInsets.all(SafoSpacing.xl),
+      decoration: BoxDecoration(
+        color: SafoColors.surface,
+        borderRadius: BorderRadius.circular(SafoRadii.xl),
+        border: Border.all(color: SafoColors.border),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x120F172A),
+            blurRadius: 20,
+            offset: Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 58,
+            height: 58,
+            decoration: BoxDecoration(
+              color: SafoColors.primarySoft,
+              borderRadius: BorderRadius.circular(SafoRadii.lg),
+            ),
+            child: const Icon(
+              Icons.inventory_2_outlined,
+              size: 28,
+              color: SafoColors.primary,
+            ),
+          ),
+          const SizedBox(height: SafoSpacing.md),
+          Text(
+            title ??
+                context.tr(
+                  en: 'Nothing here yet',
+                  sk: 'Zatiaľ tu nič nie je',
+                ),
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: SafoSpacing.sm),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: SafoColors.textSecondary,
             ),
           ),
         ],

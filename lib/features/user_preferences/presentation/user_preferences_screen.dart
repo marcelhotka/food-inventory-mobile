@@ -389,7 +389,7 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
             return AppErrorState(
               kind: configError != null
                   ? AppErrorKind.setup
-                  : AppErrorKind.sync,
+                  : inferAppErrorKind(error, fallback: AppErrorKind.sync),
               title: configError != null
                   ? context.tr(
                       en: 'Preferences need setup',
