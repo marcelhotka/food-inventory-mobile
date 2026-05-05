@@ -2574,9 +2574,12 @@ class _PantrySubsetScreen extends StatelessWidget {
               }
 
               if (index == 1 && items.isEmpty) {
-                return AppEmptyState(
+                return AppEmptyCard(
+                  title: context.tr(
+                    en: 'Nothing here yet',
+                    sk: 'Zatiaľ tu nič nie je',
+                  ),
                   message: emptyMessage,
-                  onRefresh: onRefresh,
                 );
               }
 

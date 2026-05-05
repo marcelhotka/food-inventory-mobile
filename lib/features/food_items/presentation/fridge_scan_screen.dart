@@ -353,12 +353,47 @@ class _FridgeScanScreenState extends State<FridgeScanScreen> {
 
           final session = snapshot.data;
           if (session == null || session.candidates.isEmpty) {
-            return AppEmptyState(
-              message: context.tr(
-                en: 'No items were detected in this scan.',
-                sk: 'V tomto scane sa nepodarilo rozpoznať žiadne položky.',
+            return SafeArea(
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      SafoSpacing.md,
+                      SafoSpacing.sm,
+                      SafoSpacing.md,
+                      SafoSpacing.md,
+                    ),
+                    child: _ScanScreenHeader(
+                      title: context.tr(
+                        en: 'Scan your fridge',
+                        sk: 'Naskenuj svoju chladničku',
+                      ),
+                      subtitle: context.tr(
+                        en: 'Review what Safo was able to detect from your photo.',
+                        sk: 'Pozri si, čo Safo dokázalo rozpoznať z tvojej fotky.',
+                      ),
+                      onBack: () => Navigator.of(context).maybePop(),
+                    ),
+                  ),
+                  Expanded(
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(SafoSpacing.lg),
+                        child: AppEmptyCard(
+                          title: context.tr(
+                            en: 'Nothing was detected',
+                            sk: 'Nič sa nerozpoznalo',
+                          ),
+                          message: context.tr(
+                            en: 'No items were detected in this scan.',
+                            sk: 'V tomto scane sa nepodarilo rozpoznať žiadne položky.',
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              onRefresh: _reload,
             );
           }
 
