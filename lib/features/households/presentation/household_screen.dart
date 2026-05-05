@@ -243,22 +243,30 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
                   )
                 else
                   ...members.map(
-                    (member) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Card(
-                        child: ListTile(
-                          leading: CircleAvatar(
-                            child: Text(member.role == 'owner' ? 'O' : 'M'),
+                    (member) {
+                      final isCurrentUser = member.userId == _currentUserId;
+                      final roleLabel = member.role == 'owner'
+                          ? context.tr(en: 'Owner', sk: 'Vlastník')
+                          : context.tr(en: 'Member', sk: 'Člen');
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Card(
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              child: Text(member.role == 'owner' ? 'O' : 'M'),
+                            ),
+                            title: Text(_actorLabel(member.userId)),
+                            subtitle: Text(roleLabel),
+                            trailing: isCurrentUser
+                                ? _contextBadge(
+                                    context,
+                                    context.tr(en: 'You', sk: 'Ty'),
+                                  )
+                                : null,
                           ),
-                          title: Text(
-                            member.role == 'owner'
-                                ? context.tr(en: 'Owner', sk: 'Vlastník')
-                                : context.tr(en: 'Member', sk: 'Člen'),
-                          ),
-                          subtitle: Text(member.userId),
                         ),
-                      ),
-                    ),
+                      );
+                    },
                   ),
                 const SizedBox(height: 16),
                 Text(
