@@ -83,7 +83,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
                 SafoSpacing.md,
                 SafoSpacing.xxl,
               ),
-              itemCount: sessions.length + 2,
+              itemCount: sessions.isEmpty ? 3 : sessions.length + 2,
               separatorBuilder: (_, index) => SizedBox(
                 height: index == 0 ? SafoSpacing.lg : SafoSpacing.sm,
               ),

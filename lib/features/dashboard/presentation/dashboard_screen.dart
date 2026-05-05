@@ -347,12 +347,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
           final data = snapshot.data;
           if (data == null) {
-            return AppEmptyState(
-              message: context.tr(
-                en: 'No dashboard data yet.',
-                sk: 'Zatiaľ nie sú k dispozícii žiadne údaje pre prehľad.',
+            return SafeArea(
+              bottom: false,
+              child: RefreshIndicator(
+                onRefresh: _reload,
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 120),
+                  children: [
+                    _DashboardHeader(
+                      householdName: widget.household.name,
+                      greeting: _greetingLabel(context, DateTime.now()),
+                      dateLabel: _longDateLabel(context, DateTime.now()),
+                      notificationCount: 0,
+                      onOpenNotifications: _openNotifications,
+                      onOpenPreferences: _openPreferences,
+                      onSignOut: _handleSignOut,
+                    ),
+                    const SizedBox(height: 18),
+                    AppEmptyCard(
+                      title: context.tr(
+                        en: 'No dashboard data yet',
+                        sk: 'Zatiaľ nie sú k dispozícii žiadne údaje pre prehľad',
+                      ),
+                      message: context.tr(
+                        en: 'Safo does not have enough information to build your kitchen overview yet.',
+                        sk: 'Safo zatiaľ nemá dosť informácií na vytvorenie prehľadu tvojej kuchyne.',
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              onRefresh: _reload,
             );
           }
 
