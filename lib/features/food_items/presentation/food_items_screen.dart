@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/localization/app_locale.dart';
 import '../../../app/theme/safo_tokens.dart';
+import '../../../core/food/food_signal_catalog.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/app_feedback.dart';
 import '../../../core/widgets/safo_logo.dart';
@@ -2023,85 +2024,9 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
   }
 
   Set<String> _foodSignalSet(FoodItem item) {
-    final haystack = '${item.name.toLowerCase()} ${item.category.toLowerCase()}'
-        .trim();
-    final signals = <String>{};
-
-    void addIfMatches(String signal, List<String> keywords) {
-      if (keywords.any((keyword) => haystack.contains(keyword))) {
-        signals.add(signal);
-      }
-    }
-
-    addIfMatches('lactose', [
-      'milk',
-      'cheese',
-      'yogurt',
-      'cream',
-      'butter',
-      'dairy',
-      'mozzarella',
-      'cheddar',
-      'gouda',
-      'parmesan',
-      'syr',
-      'mlieko',
-      'jogurt',
-      'smotana',
-      'maslo',
-    ]);
-    addIfMatches('gluten', [
-      'bread',
-      'pasta',
-      'flour',
-      'wheat',
-      'couscous',
-      'noodle',
-      'toast',
-      'pecivo',
-      'pečivo',
-      'chlieb',
-      'muka',
-      'múka',
-      'cestoviny',
-    ]);
-    addIfMatches('eggs', ['egg', 'eggs', 'vajce', 'vajcia']);
-    addIfMatches('peanuts', ['peanut', 'arasid', 'arašid']);
-    addIfMatches('tree nuts', [
-      'almond',
-      'hazelnut',
-      'walnut',
-      'cashew',
-      'pistachio',
-      'pecan',
-      'mandla',
-      'orech',
-    ]);
-    addIfMatches('soy', ['soy', 'soya', 'tofu']);
-    addIfMatches('fish', [
-      'fish',
-      'salmon',
-      'tuna',
-      'cod',
-      'losos',
-      'tuniak',
-      'ryba',
-    ]);
-    addIfMatches('shellfish', [
-      'shrimp',
-      'prawn',
-      'crab',
-      'lobster',
-      'mussel',
-      'kreveta',
-      'krab',
-      'homar',
-      'slavka',
-      'slávka',
-    ]);
-    addIfMatches('sesame', ['sesame', 'sezam']);
-
-    return signals;
+    // Use the shared food signal catalog based on the actual item name.
+    // Broad categories such as "dairy" caused false lactose warnings for eggs.
+    return deriveFoodSignalInfo(item.name).signals;
   }
 
   List<String> _matchPreferenceSignals(
@@ -2110,48 +2035,12 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
   ) {
     final matches = <String>{};
     for (final preference in preferences) {
-      final canonical = _canonicalFoodSignal(preference.trim().toLowerCase());
-      if (canonical != null && itemSignals.contains(canonical)) {
+      final canonical = canonicalFoodSignal(normalizeFoodValue(preference));
+      if (canonical.isNotEmpty && itemSignals.contains(canonical)) {
         matches.add(canonical);
       }
     }
     return matches.toList()..sort();
-  }
-
-  String? _canonicalFoodSignal(String raw) {
-    const aliases = {
-      'lactose': 'lactose',
-      'dairy': 'lactose',
-      'milk': 'lactose',
-      'mlieko': 'lactose',
-      'gluten': 'gluten',
-      'wheat': 'gluten',
-      'celiac': 'gluten',
-      'celiak': 'gluten',
-      'egg': 'eggs',
-      'eggs': 'eggs',
-      'vajce': 'eggs',
-      'vajcia': 'eggs',
-      'peanut': 'peanuts',
-      'peanuts': 'peanuts',
-      'arasidy': 'peanuts',
-      'arašidy': 'peanuts',
-      'nuts': 'tree nuts',
-      'tree nuts': 'tree nuts',
-      'orechy': 'tree nuts',
-      'orech': 'tree nuts',
-      'soy': 'soy',
-      'soya': 'soy',
-      'fish': 'fish',
-      'ryba': 'fish',
-      'ryby': 'fish',
-      'shellfish': 'shellfish',
-      'seafood': 'shellfish',
-      'krevety': 'shellfish',
-      'sesame': 'sesame',
-      'sezam': 'sesame',
-    };
-    return aliases[raw];
   }
 
   bool _isExpiringSoon(FoodItem item) {

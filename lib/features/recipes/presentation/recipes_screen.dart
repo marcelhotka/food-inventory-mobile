@@ -337,7 +337,7 @@ class _RecipesScreenState extends State<RecipesScreen> {
                       return;
                     }
                     _presentedFocusedRecipeId = selectedRecipe.id;
-                    _showFocusedRecipeSheet(
+                    _openRecipeDetailScreen(
                       selectedRecipe,
                       focusedResult,
                       focusedWarning,
@@ -442,6 +442,7 @@ class _RecipesScreenState extends State<RecipesScreen> {
                       return Card(
                         color: isFocused ? SafoColors.warningSoft : SafoColors.surface,
                         margin: EdgeInsets.zero,
+                        clipBehavior: Clip.antiAlias,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(SafoRadii.xl),
                           side: BorderSide(
@@ -450,11 +451,18 @@ class _RecipesScreenState extends State<RecipesScreen> {
                                 : SafoColors.border,
                           ),
                         ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
+                        child: InkWell(
+                          onTap: () => _openRecipeDetailScreen(
+                            recipe,
+                            result,
+                            warning,
+                            nutrition,
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
                               Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -604,58 +612,43 @@ class _RecipesScreenState extends State<RecipesScreen> {
                                   ),
                                 ),
                               ),
-                              const SizedBox(height: 10),
-                              SizedBox(
-                                width: double.infinity,
-                                child: FilledButton.tonal(
-                                  onPressed:
-                                      (result.missing.isEmpty &&
-                                          result.partial.isEmpty)
-                                      ? null
-                                      : () => _addMissingToShoppingList(result),
-                                  child: Text(
-                                    context.tr(
-                                      en: 'Add missing to shopping list',
-                                      sk: 'Pridať chýbajúce do nákupného zoznamu',
+                                const SizedBox(height: 10),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: FilledButton(
+                                        onPressed:
+                                            (result.available.isEmpty &&
+                                                result.partial.isEmpty)
+                                            ? null
+                                            : () => _cookRecipe(result),
+                                        child: Text(
+                                          context.tr(
+                                            en: 'Cook now',
+                                            sk: 'Variť teraz',
+                                          ),
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              SizedBox(
-                                width: double.infinity,
-                                child: FilledButton(
-                                  onPressed:
-                                      (result.available.isEmpty &&
-                                          result.partial.isEmpty)
-                                      ? null
-                                      : () => _cookRecipe(result),
-                                  child: Text(
-                                    context.tr(
-                                      en: 'Cook now',
-                                      sk: 'Variť teraz',
+                                    const SizedBox(width: 10),
+                                    OutlinedButton(
+                                      onPressed: () => _openRecipeDetailScreen(
+                                        recipe,
+                                        result,
+                                        warning,
+                                        nutrition,
+                                      ),
+                                      child: Text(
+                                        context.tr(
+                                          en: 'Open',
+                                          sk: 'Otvoriť',
+                                        ),
+                                      ),
                                     ),
-                                  ),
+                                  ],
                                 ),
-                              ),
-                              const SizedBox(height: 10),
-                              SizedBox(
-                                width: double.infinity,
-                                child: FilledButton.tonal(
-                                  onPressed:
-                                      (result.available.isEmpty &&
-                                          result.partial.isEmpty)
-                                      ? null
-                                      : () => _useAvailableFromPantry(result),
-                                  child: Text(
-                                    context.tr(
-                                      en: 'Use available from pantry',
-                                      sk: 'Použiť dostupné zo špajze',
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       );
@@ -668,145 +661,69 @@ class _RecipesScreenState extends State<RecipesScreen> {
     );
   }
 
-  Future<void> _showFocusedRecipeSheet(
+  Future<void> _openRecipeDetailScreen(
     Recipe recipe,
     RecipeMatchResult result,
     _FoodSafetyWarning? warning,
     RecipeNutritionEstimate nutrition,
   ) async {
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (context) {
-        return SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  localizedRecipeName(context, recipe),
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    _SummaryChip(
-                      label: '${recipe.totalMinutes} min',
-                      color: const Color(0xFFE8EEF8),
-                    ),
-                    _SummaryChip(
-                      label:
-                          '${context.tr(en: 'Base', sk: 'Základ')}: ${recipe.defaultServings} ${context.tr(en: recipe.defaultServings == 1 ? 'serving' : 'servings', sk: recipe.defaultServings == 1 ? 'porcia' : 'porcie')}',
-                      color: const Color(0xFFEDE8F8),
-                    ),
-                    ActionChip(
-                      label: Text(
-                        '${context.tr(en: 'For', sk: 'Pre')} ${result.selectedServings} ${context.tr(en: result.selectedServings == 1 ? 'serving' : 'servings', sk: result.selectedServings == 1 ? 'porciu' : 'porcie')}',
-                      ),
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        _selectServings(recipe);
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Text(localizedRecipeDescription(context, recipe)),
-                const SizedBox(height: 12),
-                _RecipeNutritionSummary(nutrition: nutrition),
-                const SizedBox(height: 16),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    _SummaryChip(
-                      label:
-                          '${result.available.length} ${context.tr(en: 'available', sk: 'dostupné')}',
-                      color: const Color(0xFFE5F0DF),
-                    ),
-                    _SummaryChip(
-                      label:
-                          '${result.partial.length} ${context.tr(en: 'partial', sk: 'čiastočne')}',
-                      color: const Color(0xFFF4EDC8),
-                    ),
-                    _SummaryChip(
-                      label:
-                          '${result.missing.length} ${context.tr(en: 'missing', sk: 'chýba')}',
-                      color: const Color(0xFFF6E2CC),
-                    ),
-                  ],
-                ),
-                if (warning != null) ...[
-                  const SizedBox(height: 12),
-                  _RecipeSafetyBadge(warning: warning),
-                ],
-                const SizedBox(height: 20),
-                _RecipeIngredientAvailabilitySections(
-                  result: result,
-                  displayIngredientName: _displayIngredientName,
-                  formatQuantity: _formatQuantity,
-                ),
-                const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      _addRecipeToMealPlan(recipe);
-                    },
-                    child: Text(
-                      context.tr(
-                        en: 'Add to meal plan',
-                        sk: 'Pridať do jedálnička',
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed:
-                        (result.available.isEmpty && result.partial.isEmpty)
-                        ? null
-                        : () {
-                            Navigator.of(context).pop();
-                            _cookRecipe(result);
-                          },
-                    child: Text(context.tr(en: 'Cook now', sk: 'Variť teraz')),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.tonal(
-                    onPressed:
-                        (result.missing.isEmpty && result.partial.isEmpty)
-                        ? null
-                        : () {
-                            Navigator.of(context).pop();
-                            _addMissingToShoppingList(result);
-                          },
-                    child: Text(
-                      context.tr(
-                        en: 'Add missing to shopping list',
-                        sk: 'Pridať chýbajúce do nákupného zoznamu',
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (detailContext) => _RecipeDetailScreen(
+          recipe: recipe,
+          result: result,
+          warning: warning,
+          nutrition: nutrition,
+          displayIngredientName: _displayIngredientName,
+          formatQuantity: _formatQuantity,
+          onBack: () => Navigator.of(detailContext).maybePop(),
+          onSelectServings: () async {
+            Navigator.of(detailContext).pop();
+            await _selectServings(recipe);
+          },
+          onToggleFavorite: () async {
+            Navigator.of(detailContext).pop();
+            await _toggleFavorite(recipe);
+          },
+          onEditRecipe: recipe.isPublic
+              ? null
+              : () async {
+                  Navigator.of(detailContext).pop();
+                  await _openEditRecipe(recipe);
+                },
+          onDeleteRecipe: recipe.isPublic
+              ? null
+              : () async {
+                  Navigator.of(detailContext).pop();
+                  await _deleteRecipe(recipe);
+                },
+          onAddToMealPlan: () async {
+            Navigator.of(detailContext).pop();
+            await _addRecipeToMealPlan(recipe);
+          },
+          onAddMissingToShoppingList:
+              (result.missing.isEmpty && result.partial.isEmpty)
+              ? null
+              : () async {
+                  Navigator.of(detailContext).pop();
+                  await _addMissingToShoppingList(result);
+                },
+          onCookNow:
+              (result.available.isEmpty && result.partial.isEmpty)
+              ? null
+              : () async {
+                  Navigator.of(detailContext).pop();
+                  await _cookRecipe(result);
+                },
+          onUseAvailableFromPantry:
+              (result.available.isEmpty && result.partial.isEmpty)
+              ? null
+              : () async {
+                  Navigator.of(detailContext).pop();
+                  await _useAvailableFromPantry(result);
+                },
+        ),
+      ),
     );
   }
 
@@ -2556,6 +2473,245 @@ class _QuickCookingModeCard extends StatelessWidget {
                   color: SafoColors.accentSoft,
                 ),
               ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RecipeDetailScreen extends StatelessWidget {
+  final Recipe recipe;
+  final RecipeMatchResult result;
+  final _FoodSafetyWarning? warning;
+  final RecipeNutritionEstimate nutrition;
+  final String Function(String value) displayIngredientName;
+  final String Function(double value) formatQuantity;
+  final VoidCallback onBack;
+  final Future<void> Function() onSelectServings;
+  final Future<void> Function() onToggleFavorite;
+  final Future<void> Function()? onEditRecipe;
+  final Future<void> Function()? onDeleteRecipe;
+  final Future<void> Function() onAddToMealPlan;
+  final Future<void> Function()? onAddMissingToShoppingList;
+  final Future<void> Function()? onCookNow;
+  final Future<void> Function()? onUseAvailableFromPantry;
+
+  const _RecipeDetailScreen({
+    required this.recipe,
+    required this.result,
+    required this.warning,
+    required this.nutrition,
+    required this.displayIngredientName,
+    required this.formatQuantity,
+    required this.onBack,
+    required this.onSelectServings,
+    required this.onToggleFavorite,
+    required this.onEditRecipe,
+    required this.onDeleteRecipe,
+    required this.onAddToMealPlan,
+    required this.onAddMissingToShoppingList,
+    required this.onCookNow,
+    required this.onUseAvailableFromPantry,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: SafoColors.background,
+      body: SafeArea(
+        bottom: false,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
+          children: [
+            Row(
+              children: [
+                IconButton(
+                  onPressed: onBack,
+                  icon: const Icon(Icons.arrow_back_rounded),
+                ),
+                Expanded(
+                  child: Text(
+                    localizedRecipeName(context, recipe),
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: SafoColors.textPrimary,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: onToggleFavorite,
+                  tooltip: recipe.isFavorite
+                      ? context.tr(
+                          en: 'Remove from favorites',
+                          sk: 'Odstrániť z obľúbených',
+                        )
+                      : context.tr(
+                          en: 'Add to favorites',
+                          sk: 'Pridať do obľúbených',
+                        ),
+                  icon: Icon(
+                    recipe.isFavorite
+                        ? Icons.star_rounded
+                        : Icons.star_border_rounded,
+                  ),
+                ),
+                if (onEditRecipe != null || onDeleteRecipe != null)
+                  PopupMenuButton<String>(
+                    onSelected: (value) async {
+                      if (value == 'edit' && onEditRecipe != null) {
+                        await onEditRecipe!.call();
+                      } else if (value == 'delete' &&
+                          onDeleteRecipe != null) {
+                        await onDeleteRecipe!.call();
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      if (onEditRecipe != null)
+                        PopupMenuItem(
+                          value: 'edit',
+                          child: Text(context.tr(en: 'Edit', sk: 'Upraviť')),
+                        ),
+                      if (onDeleteRecipe != null)
+                        PopupMenuItem(
+                          value: 'delete',
+                          child: Text(context.tr(en: 'Delete', sk: 'Zmazať')),
+                        ),
+                    ],
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: SafoColors.surface,
+                borderRadius: BorderRadius.circular(SafoRadii.xl),
+                border: Border.all(color: SafoColors.border),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x120F172A),
+                    blurRadius: 24,
+                    offset: Offset(0, 12),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _SummaryChip(
+                        label: '${recipe.totalMinutes} min',
+                        color: const Color(0xFFE8EEF8),
+                      ),
+                      _SummaryChip(
+                        label:
+                            '${context.tr(en: 'Base', sk: 'Základ')}: ${recipe.defaultServings} ${context.tr(en: recipe.defaultServings == 1 ? 'serving' : 'servings', sk: recipe.defaultServings == 1 ? 'porcia' : 'porcie')}',
+                        color: const Color(0xFFEDE8F8),
+                      ),
+                      ActionChip(
+                        label: Text(
+                          '${context.tr(en: 'For', sk: 'Pre')} ${result.selectedServings} ${context.tr(en: result.selectedServings == 1 ? 'serving' : 'servings', sk: result.selectedServings == 1 ? 'porciu' : 'porcie')}',
+                        ),
+                        onPressed: onSelectServings,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    localizedRecipeDescription(context, recipe),
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: SafoColors.textSecondary,
+                      height: 1.45,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _RecipeNutritionSummary(nutrition: nutrition),
+                  const SizedBox(height: 16),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _SummaryChip(
+                        label:
+                            '${result.available.length} ${context.tr(en: 'available', sk: 'dostupné')}',
+                        color: const Color(0xFFE5F0DF),
+                      ),
+                      _SummaryChip(
+                        label:
+                            '${result.partial.length} ${context.tr(en: 'partial', sk: 'čiastočne')}',
+                        color: const Color(0xFFF4EDC8),
+                      ),
+                      _SummaryChip(
+                        label:
+                            '${result.missing.length} ${context.tr(en: 'missing', sk: 'chýba')}',
+                        color: const Color(0xFFF6E2CC),
+                      ),
+                    ],
+                  ),
+                  if (warning != null) ...[
+                    const SizedBox(height: 16),
+                    _RecipeSafetyBadge(warning: warning!),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            _RecipeIngredientAvailabilitySections(
+              result: result,
+              displayIngredientName: displayIngredientName,
+              formatQuantity: formatQuantity,
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: onAddToMealPlan,
+                child: Text(
+                  context.tr(
+                    en: 'Add to meal plan',
+                    sk: 'Pridať do jedálnička',
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.tonal(
+                onPressed: onAddMissingToShoppingList,
+                child: Text(
+                  context.tr(
+                    en: 'Add missing to shopping list',
+                    sk: 'Pridať chýbajúce do nákupného zoznamu',
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: onCookNow,
+                child: Text(context.tr(en: 'Cook now', sk: 'Variť teraz')),
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.tonal(
+                onPressed: onUseAvailableFromPantry,
+                child: Text(
+                  context.tr(
+                    en: 'Use available from pantry',
+                    sk: 'Použiť dostupné zo špajze',
+                  ),
+                ),
+              ),
             ),
           ],
         ),
