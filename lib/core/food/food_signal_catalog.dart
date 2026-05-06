@@ -32,8 +32,7 @@ FoodSignalInfo deriveFoodSignalInfo(String rawValue) {
     signals.add('lactose');
   }
 
-  if (!isGlutenFree &&
-      const {'bread', 'pasta', 'flour'}.contains(itemKey)) {
+  if (!isGlutenFree && const {'bread', 'pasta', 'flour'}.contains(itemKey)) {
     signals.add('gluten');
   }
 
@@ -41,7 +40,20 @@ FoodSignalInfo deriveFoodSignalInfo(String rawValue) {
     signals.add('eggs');
   }
 
-  signals.addAll(signals.map(_canonicalFoodSignal).where((e) => e.isNotEmpty));
+  final canonicalSignals = signals
+      .where(
+        (signal) => !_shouldSkipCanonicalSignal(
+          signal,
+          itemKey: itemKey,
+          isLactoseFree: isLactoseFree,
+          isGlutenFree: isGlutenFree,
+          isEggFree: isEggFree,
+        ),
+      )
+      .map(_canonicalFoodSignal)
+      .where((e) => e.isNotEmpty)
+      .toSet();
+  signals.addAll(canonicalSignals);
 
   return FoodSignalInfo(
     normalizedName: normalized,
@@ -53,9 +65,8 @@ FoodSignalInfo deriveFoodSignalInfo(String rawValue) {
   );
 }
 
-String canonicalFoodSignal(String value) => _canonicalFoodSignal(
-  _normalizeFoodValue(value),
-);
+String canonicalFoodSignal(String value) =>
+    _canonicalFoodSignal(_normalizeFoodValue(value));
 
 String normalizeFoodValue(String value) => _normalizeFoodValue(value);
 
@@ -183,6 +194,33 @@ String _canonicalFoodSignal(String value) {
     default:
       return value;
   }
+}
+
+bool _shouldSkipCanonicalSignal(
+  String signal, {
+  required String itemKey,
+  required bool isLactoseFree,
+  required bool isGlutenFree,
+  required bool isEggFree,
+}) {
+  if (signal != itemKey) {
+    return false;
+  }
+
+  if (isLactoseFree &&
+      const {'milk', 'cheese', 'yogurt', 'cream', 'butter'}.contains(itemKey)) {
+    return true;
+  }
+
+  if (isGlutenFree && const {'bread', 'pasta', 'flour'}.contains(itemKey)) {
+    return true;
+  }
+
+  if (isEggFree && itemKey == 'eggs') {
+    return true;
+  }
+
+  return false;
 }
 
 String _normalizeFoodValue(String value) {
