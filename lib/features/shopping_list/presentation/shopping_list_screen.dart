@@ -246,6 +246,14 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     }
   }
 
+  Future<void> _openHousehold() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => HouseholdScreen(household: widget.household),
+      ),
+    );
+  }
+
   Future<_ShoppingSaveResult> _saveShoppingItemWithDuplicateHandling(
     ShoppingListItem incomingItem, {
     required List<ShoppingListItem> existingItems,
@@ -1070,41 +1078,57 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
         future: _shoppingListFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const AppLoadingState();
+            return AppPageStateScaffold(
+              onRefresh: _reload,
+              header: _ShoppingListHeader(
+                householdName: widget.household.name,
+                onOpenHousehold: _openHousehold,
+                onSignOut: _handleSignOut,
+              ),
+              child: const AppLoadingState(),
+            );
           }
 
           if (snapshot.hasError) {
             final error = snapshot.error;
-            return AppErrorState(
-              kind:
-                  error is ShoppingListConfigException ||
-                      error is ShoppingListAuthException
-                  ? AppErrorKind.setup
-                  : inferAppErrorKind(error, fallback: AppErrorKind.sync),
-              title:
-                  error is ShoppingListConfigException ||
-                      error is ShoppingListAuthException
-                  ? context.tr(
-                      en: 'Shopping list needs setup',
-                      sk: 'Nákupný zoznam potrebuje nastavenie',
-                    )
-                  : context.tr(
-                      en: 'Shopping list is unavailable',
-                      sk: 'Nákupný zoznam nie je k dispozícii',
-                    ),
-              message: _errorMessage(error),
-              hint:
-                  error is ShoppingListConfigException ||
-                      error is ShoppingListAuthException
-                  ? context.tr(
-                      en: 'Safo needs account or backend setup before shopping data can load.',
-                      sk: 'Safo potrebuje účet alebo backend nastavenie, aby sa načítali nákupné dáta.',
-                    )
-                  : context.tr(
-                      en: 'Safo could not load the latest shopping items right now.',
-                      sk: 'Safo teraz nedokázalo načítať najnovšie nákupné položky.',
-                    ),
-              onRetry: _reload,
+            return AppPageStateScaffold(
+              onRefresh: _reload,
+              header: _ShoppingListHeader(
+                householdName: widget.household.name,
+                onOpenHousehold: _openHousehold,
+                onSignOut: _handleSignOut,
+              ),
+              child: AppErrorState(
+                kind:
+                    error is ShoppingListConfigException ||
+                        error is ShoppingListAuthException
+                    ? AppErrorKind.setup
+                    : inferAppErrorKind(error, fallback: AppErrorKind.sync),
+                title:
+                    error is ShoppingListConfigException ||
+                        error is ShoppingListAuthException
+                    ? context.tr(
+                        en: 'Shopping list needs setup',
+                        sk: 'Nákupný zoznam potrebuje nastavenie',
+                      )
+                    : context.tr(
+                        en: 'Shopping list is unavailable',
+                        sk: 'Nákupný zoznam nie je k dispozícii',
+                      ),
+                message: _errorMessage(error),
+                hint:
+                    error is ShoppingListConfigException ||
+                        error is ShoppingListAuthException
+                    ? context.tr(
+                        en: 'Safo needs account or backend setup before shopping data can load.',
+                        sk: 'Safo potrebuje účet alebo backend nastavenie, aby sa načítali nákupné dáta.',
+                      )
+                    : context.tr(
+                        en: 'Safo could not load the latest shopping items right now.',
+                        sk: 'Safo teraz nedokázalo načítať najnovšie nákupné položky.',
+                      ),
+                onRetry: _reload,
+              ),
             );
           }
 
@@ -1130,14 +1154,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                   children: [
                     _ShoppingListHeader(
                       householdName: widget.household.name,
-                      onOpenHousehold: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                HouseholdScreen(household: widget.household),
-                          ),
-                        );
-                      },
+                      onOpenHousehold: _openHousehold,
                       onSignOut: () => _handleSignOut(),
                     ),
                     const SizedBox(height: 18),
@@ -1183,74 +1200,67 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
           return SafeArea(
             bottom: false,
             child: RefreshIndicator(
-            onRefresh: _reload,
-            child: ListView.separated(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 120),
-              itemCount: filteredItems.length + 3,
-              separatorBuilder: (_, _) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                if (index == 0) {
-                  return _ShoppingListHeader(
-                    householdName: widget.household.name,
-                    onOpenHousehold: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              HouseholdScreen(household: widget.household),
-                        ),
-                      );
-                    },
-                    onSignOut: () => _handleSignOut(),
-                  );
-                }
+              onRefresh: _reload,
+              child: ListView.separated(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 120),
+                itemCount: filteredItems.length + 3,
+                separatorBuilder: (_, _) => const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  if (index == 0) {
+                    return _ShoppingListHeader(
+                      householdName: widget.household.name,
+                      onOpenHousehold: _openHousehold,
+                      onSignOut: () => _handleSignOut(),
+                    );
+                  }
 
-                if (index == 1) {
-                  return _ShoppingSummary(
-                    totalItems: items.length,
-                    toBuyCount: items.where((item) => !item.isBought).length,
-                    assignedToMeCount: items
-                        .where(
-                          (item) =>
-                              !item.isBought &&
-                              item.assignedToUserId == _currentUserId,
-                        )
-                        .length,
-                  );
-                }
+                  if (index == 1) {
+                    return _ShoppingSummary(
+                      totalItems: items.length,
+                      toBuyCount: items.where((item) => !item.isBought).length,
+                      assignedToMeCount: items
+                          .where(
+                            (item) =>
+                                !item.isBought &&
+                                item.assignedToUserId == _currentUserId,
+                          )
+                          .length,
+                    );
+                  }
 
-                if (index == 2) {
-                  return _ShoppingSearchAndFilterBar(
-                    controller: _searchController,
-                    selectedFilter: _selectedFilter,
-                    onSearchChanged: (_) => setState(() {}),
-                    onFilterChanged: (value) {
-                      setState(() {
-                        _selectedFilter = value;
-                      });
-                    },
-                  );
-                }
+                  if (index == 2) {
+                    return _ShoppingSearchAndFilterBar(
+                      controller: _searchController,
+                      selectedFilter: _selectedFilter,
+                      onSearchChanged: (_) => setState(() {}),
+                      onFilterChanged: (value) {
+                        setState(() {
+                          _selectedFilter = value;
+                        });
+                      },
+                    );
+                  }
 
-                final item = filteredItems[index - 3];
-                return _ShoppingItemCard(
-                  item: item,
-                  title: localizedIngredientDisplayName(context, item.name),
-                  subtitle: _buildSubtitle(item, members),
-                  assignmentLabel: item.assignedToUserId == null
-                      ? null
-                      : item.assignedToUserId == _currentUserId
-                      ? context.tr(en: 'For me', sk: 'Pre mňa')
-                      : _assignedSubtitle(item.assignedToUserId!, members),
-                  quantityLabel:
-                      '${_formatQuantity(item.quantity)} ${item.unit}',
-                  warning: _buildFoodSafetyWarning(item, preferences),
-                  onTap: () => _showItemActions(item),
-                  onMore: () => _showItemActions(item),
-                  onToggleBought: (value) => _toggleBought(item, value),
-                );
-              },
+                  final item = filteredItems[index - 3];
+                  return _ShoppingItemCard(
+                    item: item,
+                    title: localizedIngredientDisplayName(context, item.name),
+                    subtitle: _buildSubtitle(item, members),
+                    assignmentLabel: item.assignedToUserId == null
+                        ? null
+                        : item.assignedToUserId == _currentUserId
+                        ? context.tr(en: 'For me', sk: 'Pre mňa')
+                        : _assignedSubtitle(item.assignedToUserId!, members),
+                    quantityLabel:
+                        '${_formatQuantity(item.quantity)} ${item.unit}',
+                    warning: _buildFoodSafetyWarning(item, preferences),
+                    onTap: () => _showItemActions(item),
+                    onMore: () => _showItemActions(item),
+                    onToggleBought: (value) => _toggleBought(item, value),
+                  );
+                },
+              ),
             ),
-          ),
           );
         },
       ),
@@ -1820,10 +1830,7 @@ class _ShoppingListHeader extends StatelessWidget {
               height: 28,
             ),
             const SizedBox(width: 10),
-            const SafoLogo(
-              variant: SafoLogoVariant.pill,
-              height: 28,
-            ),
+            const SafoLogo(variant: SafoLogoVariant.pill, height: 28),
             const Spacer(),
             _ShoppingHeaderIconButton(
               icon: Icons.groups_2_outlined,
@@ -1852,9 +1859,9 @@ class _ShoppingListHeader extends StatelessWidget {
         const SizedBox(height: 2),
         Text(
           householdName,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: SafoColors.textSecondary,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: SafoColors.textSecondary),
         ),
       ],
     );
@@ -1865,10 +1872,7 @@ class _ShoppingHeaderIconButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
 
-  const _ShoppingHeaderIconButton({
-    required this.icon,
-    required this.onTap,
-  });
+  const _ShoppingHeaderIconButton({required this.icon, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -2003,72 +2007,74 @@ class _ShoppingSearchAndFilterBar extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
-      children: [
-        TextField(
-          controller: controller,
-          onChanged: onSearchChanged,
-          decoration: InputDecoration(
-            hintText: context.tr(
-              en: 'Search shopping items',
-              sk: 'Hľadať nákupné položky',
-            ),
-            prefixIcon: const Icon(
-              Icons.search_rounded,
-              color: SafoColors.textMuted,
-            ),
-            suffixIcon: controller.text.isEmpty
-                ? null
-                : IconButton(
-                    onPressed: () {
-                      controller.clear();
-                      onSearchChanged('');
-                    },
-                    icon: const Icon(Icons.close_rounded),
-                  ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              FilterChip(
-                label: Text(context.tr(en: 'All', sk: 'Všetko')),
-                selected: selectedFilter == ShoppingListFilter.all,
-                onSelected: (_) => onFilterChanged(ShoppingListFilter.all),
-                selectedColor: SafoColors.primary,
-                checkmarkColor: Colors.white,
-              ),
-              FilterChip(
-                label: Text(context.tr(en: 'To buy', sk: 'Kúpiť')),
-                selected: selectedFilter == ShoppingListFilter.toBuy,
-                onSelected: (_) => onFilterChanged(ShoppingListFilter.toBuy),
-                selectedColor: SafoColors.primary,
-                checkmarkColor: Colors.white,
-              ),
-              FilterChip(
-                label: Text(
-                  context.tr(en: 'Assigned to me', sk: 'Priradené mne'),
+          children: [
+            TextField(
+              controller: controller,
+              onChanged: onSearchChanged,
+              decoration: InputDecoration(
+                hintText: context.tr(
+                  en: 'Search shopping items',
+                  sk: 'Hľadať nákupné položky',
                 ),
-                selected: selectedFilter == ShoppingListFilter.assignedToMe,
-                onSelected: (_) =>
-                    onFilterChanged(ShoppingListFilter.assignedToMe),
-                selectedColor: SafoColors.primary,
-                checkmarkColor: Colors.white,
+                prefixIcon: const Icon(
+                  Icons.search_rounded,
+                  color: SafoColors.textMuted,
+                ),
+                suffixIcon: controller.text.isEmpty
+                    ? null
+                    : IconButton(
+                        onPressed: () {
+                          controller.clear();
+                          onSearchChanged('');
+                        },
+                        icon: const Icon(Icons.close_rounded),
+                      ),
               ),
-              FilterChip(
-                label: Text(context.tr(en: 'Bought', sk: 'Kúpené')),
-                selected: selectedFilter == ShoppingListFilter.bought,
-                onSelected: (_) => onFilterChanged(ShoppingListFilter.bought),
-                selectedColor: SafoColors.primary,
-                checkmarkColor: Colors.white,
+            ),
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  FilterChip(
+                    label: Text(context.tr(en: 'All', sk: 'Všetko')),
+                    selected: selectedFilter == ShoppingListFilter.all,
+                    onSelected: (_) => onFilterChanged(ShoppingListFilter.all),
+                    selectedColor: SafoColors.primary,
+                    checkmarkColor: Colors.white,
+                  ),
+                  FilterChip(
+                    label: Text(context.tr(en: 'To buy', sk: 'Kúpiť')),
+                    selected: selectedFilter == ShoppingListFilter.toBuy,
+                    onSelected: (_) =>
+                        onFilterChanged(ShoppingListFilter.toBuy),
+                    selectedColor: SafoColors.primary,
+                    checkmarkColor: Colors.white,
+                  ),
+                  FilterChip(
+                    label: Text(
+                      context.tr(en: 'Assigned to me', sk: 'Priradené mne'),
+                    ),
+                    selected: selectedFilter == ShoppingListFilter.assignedToMe,
+                    onSelected: (_) =>
+                        onFilterChanged(ShoppingListFilter.assignedToMe),
+                    selectedColor: SafoColors.primary,
+                    checkmarkColor: Colors.white,
+                  ),
+                  FilterChip(
+                    label: Text(context.tr(en: 'Bought', sk: 'Kúpené')),
+                    selected: selectedFilter == ShoppingListFilter.bought,
+                    onSelected: (_) =>
+                        onFilterChanged(ShoppingListFilter.bought),
+                    selectedColor: SafoColors.primary,
+                    checkmarkColor: Colors.white,
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
-      ],
+            ),
+          ],
         ),
       ),
     );
@@ -2138,11 +2144,14 @@ class _ShoppingItemCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           title,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: SafoColors.textPrimary,
-                            fontWeight: FontWeight.w700,
-                            decoration: bought ? TextDecoration.lineThrough : null,
-                          ),
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                                color: SafoColors.textPrimary,
+                                fontWeight: FontWeight.w700,
+                                decoration: bought
+                                    ? TextDecoration.lineThrough
+                                    : null,
+                              ),
                         ),
                       ),
                       const SizedBox(width: 10),

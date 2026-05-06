@@ -103,6 +103,22 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
     await confirmAndSignOut(context, widget.authRepository);
   }
 
+  Future<void> _openHousehold() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => HouseholdScreen(household: widget.household),
+      ),
+    );
+  }
+
+  Future<void> _openScanHistory() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ScanHistoryScreen(householdId: widget.household.id),
+      ),
+    );
+  }
+
   void _maybeOpenExpiringSoonFromShell() {
     if (_handledExpiringSoonOpenToken == widget.expiringSoonOpenToken) {
       return;
@@ -1370,41 +1386,63 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
         future: _pantryFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const AppLoadingState();
+            return AppPageStateScaffold(
+              onRefresh: _reload,
+              header: _PantryHeader(
+                householdName: widget.household.name,
+                onOpenHousehold: _openHousehold,
+                onOpenBarcode: _openBarcodeLookup,
+                onOpenFridgeScan: _openFridgeScan,
+                onOpenScanHistory: _openScanHistory,
+                onSignOut: _handleSignOut,
+              ),
+              child: const AppLoadingState(),
+            );
           }
 
           if (snapshot.hasError) {
             final error = snapshot.error;
-            return AppErrorState(
-              kind:
-                  error is FoodItemsConfigException ||
-                      error is FoodItemsAuthException
-                  ? AppErrorKind.setup
-                  : inferAppErrorKind(error, fallback: AppErrorKind.sync),
-              title:
-                  error is FoodItemsConfigException ||
-                      error is FoodItemsAuthException
-                  ? context.tr(
-                      en: 'Pantry needs setup',
-                      sk: 'Špajza potrebuje nastavenie',
-                    )
-                  : context.tr(
-                      en: 'Pantry is unavailable',
-                      sk: 'Špajza nie je k dispozícii',
-                    ),
-              message: _errorMessage(error),
-              hint:
-                  error is FoodItemsConfigException ||
-                      error is FoodItemsAuthException
-                  ? context.tr(
-                      en: 'Safo needs account or backend setup before pantry data can load.',
-                      sk: 'Safo potrebuje účet alebo backend nastavenie, aby sa načítali dáta špajze.',
-                    )
-                  : context.tr(
-                      en: 'Safo could not load pantry items right now.',
-                      sk: 'Safo teraz nedokázalo načítať položky v špajzi.',
-                    ),
-              onRetry: _reload,
+            return AppPageStateScaffold(
+              onRefresh: _reload,
+              header: _PantryHeader(
+                householdName: widget.household.name,
+                onOpenHousehold: _openHousehold,
+                onOpenBarcode: _openBarcodeLookup,
+                onOpenFridgeScan: _openFridgeScan,
+                onOpenScanHistory: _openScanHistory,
+                onSignOut: _handleSignOut,
+              ),
+              child: AppErrorState(
+                kind:
+                    error is FoodItemsConfigException ||
+                        error is FoodItemsAuthException
+                    ? AppErrorKind.setup
+                    : inferAppErrorKind(error, fallback: AppErrorKind.sync),
+                title:
+                    error is FoodItemsConfigException ||
+                        error is FoodItemsAuthException
+                    ? context.tr(
+                        en: 'Pantry needs setup',
+                        sk: 'Špajza potrebuje nastavenie',
+                      )
+                    : context.tr(
+                        en: 'Pantry is unavailable',
+                        sk: 'Špajza nie je k dispozícii',
+                      ),
+                message: _errorMessage(error),
+                hint:
+                    error is FoodItemsConfigException ||
+                        error is FoodItemsAuthException
+                    ? context.tr(
+                        en: 'Safo needs account or backend setup before pantry data can load.',
+                        sk: 'Safo potrebuje účet alebo backend nastavenie, aby sa načítali dáta špajze.',
+                      )
+                    : context.tr(
+                        en: 'Safo could not load pantry items right now.',
+                        sk: 'Safo teraz nedokázalo načítať položky v špajzi.',
+                      ),
+                onRetry: _reload,
+              ),
             );
           }
 
@@ -1428,23 +1466,10 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
           final headerWidgets = <Widget>[
             _PantryHeader(
               householdName: widget.household.name,
-              onOpenHousehold: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => HouseholdScreen(household: widget.household),
-                  ),
-                );
-              },
+              onOpenHousehold: _openHousehold,
               onOpenBarcode: _openBarcodeLookup,
               onOpenFridgeScan: _openFridgeScan,
-              onOpenScanHistory: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        ScanHistoryScreen(householdId: widget.household.id),
-                  ),
-                );
-              },
+              onOpenScanHistory: _openScanHistory,
               onSignOut: () => _handleSignOut(),
             ),
             const SizedBox(height: 18),
@@ -1479,7 +1504,10 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
                 _PantryActionChip(
                   onTap: _openFridgeScan,
                   icon: Icons.photo_camera_back_outlined,
-                  label: context.tr(en: 'Scan fridge', sk: 'Skenovať chladničku'),
+                  label: context.tr(
+                    en: 'Scan fridge',
+                    sk: 'Skenovať chladničku',
+                  ),
                   tint: SafoColors.accentSoft,
                   iconColor: SafoColors.accent,
                 ),
@@ -1566,37 +1594,37 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
             child: RefreshIndicator(
               onRefresh: _reload,
               child: ListView.builder(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-              itemCount:
-                  headerWidgets.length +
-                  (groupedEntries.isEmpty ? 1 : groupedEntries.length),
-              itemBuilder: (context, index) {
-                if (index < headerWidgets.length) {
-                  return headerWidgets[index];
-                }
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+                itemCount:
+                    headerWidgets.length +
+                    (groupedEntries.isEmpty ? 1 : groupedEntries.length),
+                itemBuilder: (context, index) {
+                  if (index < headerWidgets.length) {
+                    return headerWidgets[index];
+                  }
 
-                if (groupedEntries.isEmpty) {
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: AppEmptyCard(
-                      message: items.isEmpty
-                          ? context.tr(
-                              en: 'Add your first pantry item to start tracking what you have at home.',
-                              sk: 'Pridaj prvú položku do špajze a začni sledovať, čo máš doma.',
-                            )
-                          : context.tr(
-                              en: 'No pantry items match your search.',
-                              sk: 'Tvojmu hľadaniu nezodpovedajú žiadne pantry položky.',
-                            ),
-                    ),
-                  );
-                }
+                  if (groupedEntries.isEmpty) {
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: AppEmptyCard(
+                        message: items.isEmpty
+                            ? context.tr(
+                                en: 'Add your first pantry item to start tracking what you have at home.',
+                                sk: 'Pridaj prvú položku do špajze a začni sledovať, čo máš doma.',
+                              )
+                            : context.tr(
+                                en: 'No pantry items match your search.',
+                                sk: 'Tvojmu hľadaniu nezodpovedajú žiadne pantry položky.',
+                              ),
+                      ),
+                    );
+                  }
 
-                final entry = groupedEntries[index - headerWidgets.length];
-                return _buildGroupedEntry(entry, preferences);
-              },
-            ),
+                  final entry = groupedEntries[index - headerWidgets.length];
+                  return _buildGroupedEntry(entry, preferences);
+                },
+              ),
             ),
           );
         },
@@ -1911,7 +1939,10 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
         side: const BorderSide(color: SafoColors.border),
       ),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 10,
+        ),
         onTap: () => _showItemActions(item),
         title: Row(
           children: [
@@ -2282,10 +2313,7 @@ class _PantryHeader extends StatelessWidget {
               height: 28,
             ),
             const SizedBox(width: 10),
-            const SafoLogo(
-              variant: SafoLogoVariant.pill,
-              height: 28,
-            ),
+            const SafoLogo(variant: SafoLogoVariant.pill, height: 28),
             const Spacer(),
             _PantryHeaderIconButton(
               icon: Icons.groups_2_outlined,
@@ -2319,9 +2347,9 @@ class _PantryHeader extends StatelessWidget {
         const SizedBox(height: 2),
         Text(
           householdName,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: SafoColors.textSecondary,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: SafoColors.textSecondary),
         ),
       ],
     );
@@ -2332,10 +2360,7 @@ class _PantryHeaderIconButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
 
-  const _PantryHeaderIconButton({
-    required this.icon,
-    required this.onTap,
-  });
+  const _PantryHeaderIconButton({required this.icon, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -2554,9 +2579,8 @@ class _PantrySubsetScreen extends StatelessWidget {
               SafoSpacing.xxl,
             ),
             itemCount: items.isEmpty ? 2 : items.length + 2,
-            separatorBuilder: (_, index) => SizedBox(
-              height: index == 0 ? SafoSpacing.lg : SafoSpacing.sm,
-            ),
+            separatorBuilder: (_, index) =>
+                SizedBox(height: index == 0 ? SafoSpacing.lg : SafoSpacing.sm),
             itemBuilder: (context, index) {
               if (index == 0) {
                 return SafoPageHeader(
@@ -2565,10 +2589,7 @@ class _PantrySubsetScreen extends StatelessWidget {
                   dark: false,
                   onBack: () => Navigator.of(context).maybePop(),
                   badges: [
-                    _PantrySubsetBadge(
-                      label: badgeLabel,
-                      count: items.length,
-                    ),
+                    _PantrySubsetBadge(label: badgeLabel, count: items.length),
                   ],
                 );
               }

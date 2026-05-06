@@ -713,28 +713,36 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         future: _viewFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const AppLoadingState();
+            return AppPageStateScaffold(
+              onRefresh: _reload,
+              header: _MealPlanHeader(householdName: widget.householdName),
+              child: const AppLoadingState(),
+            );
           }
 
           if (snapshot.hasError) {
-            return AppErrorState(
-              kind: inferAppErrorKind(
-                snapshot.error,
-                fallback: AppErrorKind.sync,
+            return AppPageStateScaffold(
+              onRefresh: _reload,
+              header: _MealPlanHeader(householdName: widget.householdName),
+              child: AppErrorState(
+                kind: inferAppErrorKind(
+                  snapshot.error,
+                  fallback: AppErrorKind.sync,
+                ),
+                title: context.tr(
+                  en: 'Meal plan is unavailable',
+                  sk: 'Jedálniček nie je k dispozícii',
+                ),
+                message: context.tr(
+                  en: 'Failed to load meal plan.',
+                  sk: 'Jedálniček sa nepodarilo načítať.',
+                ),
+                hint: context.tr(
+                  en: 'Safo could not load planned meals right now.',
+                  sk: 'Safo teraz nedokázalo načítať naplánované jedlá.',
+                ),
+                onRetry: _reload,
               ),
-              title: context.tr(
-                en: 'Meal plan is unavailable',
-                sk: 'Jedálniček nie je k dispozícii',
-              ),
-              message: context.tr(
-                en: 'Failed to load meal plan.',
-                sk: 'Jedálniček sa nepodarilo načítať.',
-              ),
-              hint: context.tr(
-                en: 'Safo could not load planned meals right now.',
-                sk: 'Safo teraz nedokázalo načítať naplánované jedlá.',
-              ),
-              onRetry: _reload,
             );
           }
 
@@ -862,7 +870,8 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                     : null,
                                 onAssignCook: () =>
                                     _pickCookAssignment(entry, members),
-                                onClearAssignment: entry.assignedCookUserId != null
+                                onClearAssignment:
+                                    entry.assignedCookUserId != null
                                     ? () => _setCookAssignment(entry, null)
                                     : null,
                                 onDelete: () => _deleteEntry(entry),
@@ -1296,10 +1305,7 @@ class _MealPlanHeader extends StatelessWidget {
               height: 28,
             ),
             SizedBox(width: 10),
-            SafoLogo(
-              variant: SafoLogoVariant.pill,
-              height: 28,
-            ),
+            SafoLogo(variant: SafoLogoVariant.pill, height: 28),
           ],
         ),
         const SizedBox(height: 18),
@@ -1319,9 +1325,9 @@ class _MealPlanHeader extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             householdName!,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: SafoColors.textSecondary,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: SafoColors.textSecondary),
           ),
         ],
       ],
@@ -1442,10 +1448,7 @@ class _MealPlanActions extends StatelessWidget {
               onPressed: onImportMealPlan,
               icon: const Icon(Icons.upload_file_outlined),
               label: Text(
-                context.tr(
-                  en: 'Import meal plan',
-                  sk: 'Importovať jedálniček',
-                ),
+                context.tr(en: 'Import meal plan', sk: 'Importovať jedálniček'),
               ),
             ),
             FilledButton.tonalIcon(
@@ -1544,10 +1547,7 @@ class _MealPlanDaySection extends StatelessWidget {
   final String title;
   final List<Widget> children;
 
-  const _MealPlanDaySection({
-    required this.title,
-    required this.children,
-  });
+  const _MealPlanDaySection({required this.title, required this.children});
 
   @override
   Widget build(BuildContext context) {
@@ -1563,9 +1563,9 @@ class _MealPlanDaySection extends StatelessWidget {
         children: [
           Text(
             title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 12),
           ...children,
@@ -1651,10 +1651,7 @@ class _MealPlanEntryCard extends StatelessWidget {
                     PopupMenuItem(
                       value: 'assign_cook',
                       child: Text(
-                        context.tr(
-                          en: 'Assign cook',
-                          sk: 'Priradiť varenie',
-                        ),
+                        context.tr(en: 'Assign cook', sk: 'Priradiť varenie'),
                       ),
                     ),
                     if (onClearAssignment != null)
@@ -1721,10 +1718,7 @@ class _MealPlanEntryCard extends StatelessWidget {
                   onPressed: onLinkRecipe,
                   icon: const Icon(Icons.link_rounded),
                   label: Text(
-                    context.tr(
-                      en: 'Link recipe',
-                      sk: 'Prepojiť recept',
-                    ),
+                    context.tr(en: 'Link recipe', sk: 'Prepojiť recept'),
                   ),
                 ),
               ),

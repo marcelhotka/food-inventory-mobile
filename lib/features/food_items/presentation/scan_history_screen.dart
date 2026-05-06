@@ -39,28 +39,40 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
         future: _sessionsFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const AppLoadingState();
+            return AppPageStateScaffold(
+              onRefresh: _reload,
+              header: _ScanHistoryHeader(
+                onBack: () => Navigator.of(context).maybePop(),
+              ),
+              child: const AppLoadingState(),
+            );
           }
 
           if (snapshot.hasError) {
-            return AppErrorState(
-              kind: inferAppErrorKind(
-                snapshot.error,
-                fallback: AppErrorKind.sync,
+            return AppPageStateScaffold(
+              onRefresh: _reload,
+              header: _ScanHistoryHeader(
+                onBack: () => Navigator.of(context).maybePop(),
               ),
-              title: context.tr(
-                en: 'Scan history is unavailable',
-                sk: 'História scanov nie je k dispozícii',
+              child: AppErrorState(
+                kind: inferAppErrorKind(
+                  snapshot.error,
+                  fallback: AppErrorKind.sync,
+                ),
+                title: context.tr(
+                  en: 'Scan history is unavailable',
+                  sk: 'História scanov nie je k dispozícii',
+                ),
+                message: context.tr(
+                  en: 'Failed to load scan history.',
+                  sk: 'Históriu scanov sa nepodarilo načítať.',
+                ),
+                hint: context.tr(
+                  en: 'Safo could not load previous fridge scans right now.',
+                  sk: 'Safo teraz nedokázalo načítať predchádzajúce scany chladničky.',
+                ),
+                onRetry: _reload,
               ),
-              message: context.tr(
-                en: 'Failed to load scan history.',
-                sk: 'Históriu scanov sa nepodarilo načítať.',
-              ),
-              hint: context.tr(
-                en: 'Safo could not load previous fridge scans right now.',
-                sk: 'Safo teraz nedokázalo načítať predchádzajúce scany chladničky.',
-              ),
-              onRetry: _reload,
             );
           }
 
@@ -238,20 +250,32 @@ class _ScanSessionDetailScreenState extends State<ScanSessionDetailScreen> {
         future: _sessionFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const AppLoadingState();
+            return AppPageStateScaffold(
+              onRefresh: _reload,
+              header: _ScanHistoryDetailHeader(
+                onBack: () => Navigator.of(context).maybePop(),
+              ),
+              child: const AppLoadingState(),
+            );
           }
 
           if (snapshot.hasError) {
-            return AppErrorState(
-              kind: inferAppErrorKind(
-                snapshot.error,
-                fallback: AppErrorKind.sync,
+            return AppPageStateScaffold(
+              onRefresh: _reload,
+              header: _ScanHistoryDetailHeader(
+                onBack: () => Navigator.of(context).maybePop(),
               ),
-              message: context.tr(
-                en: 'Failed to load scan detail.',
-                sk: 'Detail scanu sa nepodarilo načítať.',
+              child: AppErrorState(
+                kind: inferAppErrorKind(
+                  snapshot.error,
+                  fallback: AppErrorKind.sync,
+                ),
+                message: context.tr(
+                  en: 'Failed to load scan detail.',
+                  sk: 'Detail scanu sa nepodarilo načítať.',
+                ),
+                onRetry: _reload,
               ),
-              onRetry: _reload,
             );
           }
 

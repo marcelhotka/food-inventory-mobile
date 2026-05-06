@@ -643,28 +643,70 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         future: _notificationsFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const AppLoadingState();
+            return AppPageStateScaffold(
+              onRefresh: _reload,
+              header: SafoPageHeader(
+                title: context.tr(en: 'Notifications', sk: 'Upozornenia'),
+                subtitle: context.tr(
+                  en: 'Review what needs attention in pantry, shopping, and cooking today.',
+                  sk: 'Pozri si, čo dnes potrebuje pozornosť v špajzi, nákupe a varení.',
+                ),
+                onBack: () => Navigator.of(context).maybePop(),
+                badges: [
+                  _NotificationHeaderBadge(
+                    icon: Icons.notifications_active_outlined,
+                    label: '0 ${context.tr(en: 'active', sk: 'aktívne')}',
+                  ),
+                  _NotificationHeaderBadge(
+                    icon: Icons.person_outline_rounded,
+                    label: '0 ${context.tr(en: 'for you', sk: 'pre teba')}',
+                  ),
+                ],
+              ),
+              child: const AppLoadingState(),
+            );
           }
 
           if (snapshot.hasError) {
-            return AppErrorState(
-              kind: inferAppErrorKind(
-                snapshot.error,
-                fallback: AppErrorKind.sync,
+            return AppPageStateScaffold(
+              onRefresh: _reload,
+              header: SafoPageHeader(
+                title: context.tr(en: 'Notifications', sk: 'Upozornenia'),
+                subtitle: context.tr(
+                  en: 'Review what needs attention in pantry, shopping, and cooking today.',
+                  sk: 'Pozri si, čo dnes potrebuje pozornosť v špajzi, nákupe a varení.',
+                ),
+                onBack: () => Navigator.of(context).maybePop(),
+                badges: [
+                  _NotificationHeaderBadge(
+                    icon: Icons.notifications_active_outlined,
+                    label: '0 ${context.tr(en: 'active', sk: 'aktívne')}',
+                  ),
+                  _NotificationHeaderBadge(
+                    icon: Icons.person_outline_rounded,
+                    label: '0 ${context.tr(en: 'for you', sk: 'pre teba')}',
+                  ),
+                ],
               ),
-              title: context.tr(
-                en: 'Notifications are unavailable',
-                sk: 'Upozornenia nie sú k dispozícii',
+              child: AppErrorState(
+                kind: inferAppErrorKind(
+                  snapshot.error,
+                  fallback: AppErrorKind.sync,
+                ),
+                title: context.tr(
+                  en: 'Notifications are unavailable',
+                  sk: 'Upozornenia nie sú k dispozícii',
+                ),
+                message: context.tr(
+                  en: 'Failed to load notifications.',
+                  sk: 'Upozornenia sa nepodarilo načítať.',
+                ),
+                hint: context.tr(
+                  en: 'Safo could not refresh your urgent alerts right now.',
+                  sk: 'Safo teraz nedokázalo obnoviť tvoje urgentné upozornenia.',
+                ),
+                onRetry: _reload,
               ),
-              message: context.tr(
-                en: 'Failed to load notifications.',
-                sk: 'Upozornenia sa nepodarilo načítať.',
-              ),
-              hint: context.tr(
-                en: 'Safo could not refresh your urgent alerts right now.',
-                sk: 'Safo teraz nedokázalo obnoviť tvoje urgentné upozornenia.',
-              ),
-              onRetry: _reload,
             );
           }
 

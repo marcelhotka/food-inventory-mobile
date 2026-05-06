@@ -453,20 +453,54 @@ class _StapleFoodsScreenState extends State<StapleFoodsScreen> {
         future: _staplesFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const AppLoadingState();
+            return AppPageStateScaffold(
+              onRefresh: _reload,
+              header: SafoPageHeader(
+                title: context.tr(en: 'Staple foods', sk: 'Základné potraviny'),
+                subtitle: context.tr(
+                  en: 'Keep track of what your household wants to have at home regularly.',
+                  sk: 'Sleduj, čo chce mať tvoja domácnosť doma pravidelne.',
+                ),
+                onBack: () => Navigator.of(context).maybePop(),
+                badges: [
+                  _StapleBadge(
+                    icon: Icons.home_outlined,
+                    label: '0 ${context.tr(en: 'tracked', sk: 'sledované')}',
+                  ),
+                ],
+              ),
+              child: const AppLoadingState(),
+            );
           }
 
           if (snapshot.hasError) {
-            return AppErrorState(
-              kind: inferAppErrorKind(
-                snapshot.error,
-                fallback: AppErrorKind.sync,
+            return AppPageStateScaffold(
+              onRefresh: _reload,
+              header: SafoPageHeader(
+                title: context.tr(en: 'Staple foods', sk: 'Základné potraviny'),
+                subtitle: context.tr(
+                  en: 'Keep track of what your household wants to have at home regularly.',
+                  sk: 'Sleduj, čo chce mať tvoja domácnosť doma pravidelne.',
+                ),
+                onBack: () => Navigator.of(context).maybePop(),
+                badges: [
+                  _StapleBadge(
+                    icon: Icons.home_outlined,
+                    label: '0 ${context.tr(en: 'tracked', sk: 'sledované')}',
+                  ),
+                ],
               ),
-              message: context.tr(
-                en: 'Failed to load staple foods.',
-                sk: 'Nepodarilo sa načítať základné potraviny.',
+              child: AppErrorState(
+                kind: inferAppErrorKind(
+                  snapshot.error,
+                  fallback: AppErrorKind.sync,
+                ),
+                message: context.tr(
+                  en: 'Failed to load staple foods.',
+                  sk: 'Nepodarilo sa načítať základné potraviny.',
+                ),
+                onRetry: _reload,
               ),
-              onRetry: _reload,
             );
           }
 

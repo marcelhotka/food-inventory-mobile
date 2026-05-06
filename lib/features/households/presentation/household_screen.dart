@@ -127,20 +127,34 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
         future: _viewFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const AppLoadingState();
+            return AppPageStateScaffold(
+              onRefresh: _reload,
+              header: _HouseholdHeader(
+                householdName: widget.household.name,
+                onBack: () => Navigator.of(context).maybePop(),
+              ),
+              child: const AppLoadingState(),
+            );
           }
 
           if (snapshot.hasError) {
-            return AppErrorState(
-              kind: inferAppErrorKind(
-                snapshot.error,
-                fallback: AppErrorKind.sync,
+            return AppPageStateScaffold(
+              onRefresh: _reload,
+              header: _HouseholdHeader(
+                householdName: widget.household.name,
+                onBack: () => Navigator.of(context).maybePop(),
               ),
-              message: context.tr(
-                en: 'Failed to load household members.',
-                sk: 'Nepodarilo sa načítať členov domácnosti.',
+              child: AppErrorState(
+                kind: inferAppErrorKind(
+                  snapshot.error,
+                  fallback: AppErrorKind.sync,
+                ),
+                message: context.tr(
+                  en: 'Failed to load household members.',
+                  sk: 'Nepodarilo sa načítať členov domácnosti.',
+                ),
+                onRetry: _reload,
               ),
-              onRetry: _reload,
             );
           }
 
@@ -189,61 +203,60 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
               onRefresh: _reload,
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-              children: [
-                _HouseholdHeader(
-                  householdName: widget.household.name,
-                  onBack: () => Navigator.of(context).maybePop(),
-                ),
-                const SizedBox(height: 18),
-                _HouseholdSummary(
-                  memberCount: members.length,
-                  todayEventsCount: todayEvents.length,
-                  waitingCount: personalTasks.length,
-                ),
-                const SizedBox(height: 14),
-                _HouseholdCodeCard(
-                  householdId: widget.household.id,
-                  onCopyCode: _copyCode,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  context.tr(en: 'Members', sk: 'Členovia'),
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 12),
-                if (members.isEmpty)
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(18),
-                      child: Column(
-                        children: [
-                          const Icon(Icons.group_outlined, size: 36),
-                          const SizedBox(height: 12),
-                          Text(
-                            context.tr(
-                              en: 'No household members visible yet.',
-                              sk: 'Zatiaľ tu nevidno žiadnych členov domácnosti.',
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            context.tr(
-                              en: 'Try pulling to refresh after another user joins with your household code.',
-                              sk: 'Skús potiahnuť na obnovenie po tom, ako sa ďalší používateľ pripojí cez kód tvojej domácnosti.',
-                            ),
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ],
-                      ),
+                children: [
+                  _HouseholdHeader(
+                    householdName: widget.household.name,
+                    onBack: () => Navigator.of(context).maybePop(),
+                  ),
+                  const SizedBox(height: 18),
+                  _HouseholdSummary(
+                    memberCount: members.length,
+                    todayEventsCount: todayEvents.length,
+                    waitingCount: personalTasks.length,
+                  ),
+                  const SizedBox(height: 14),
+                  _HouseholdCodeCard(
+                    householdId: widget.household.id,
+                    onCopyCode: _copyCode,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    context.tr(en: 'Members', sk: 'Členovia'),
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
                     ),
-                  )
-                else
-                  ...members.map(
-                    (member) {
+                  ),
+                  const SizedBox(height: 12),
+                  if (members.isEmpty)
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(18),
+                        child: Column(
+                          children: [
+                            const Icon(Icons.group_outlined, size: 36),
+                            const SizedBox(height: 12),
+                            Text(
+                              context.tr(
+                                en: 'No household members visible yet.',
+                                sk: 'Zatiaľ tu nevidno žiadnych členov domácnosti.',
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              context.tr(
+                                en: 'Try pulling to refresh after another user joins with your household code.',
+                                sk: 'Skús potiahnuť na obnovenie po tom, ako sa ďalší používateľ pripojí cez kód tvojej domácnosti.',
+                              ),
+                              textAlign: TextAlign.center,
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    ...members.map((member) {
                       final isCurrentUser = member.userId == _currentUserId;
                       final roleLabel = member.role == 'owner'
                           ? context.tr(en: 'Owner', sk: 'Vlastník')
@@ -266,65 +279,196 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
                           ),
                         ),
                       );
-                    },
+                    }),
+                  const SizedBox(height: 16),
+                  Text(
+                    context.tr(
+                      en: 'Today in household',
+                      sk: 'Dnes v domácnosti',
+                    ),
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                const SizedBox(height: 16),
-                Text(
-                  context.tr(en: 'Today in household', sk: 'Dnes v domácnosti'),
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 12),
-                if (todayEvents.isEmpty)
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(18),
-                      child: Column(
-                        children: [
-                          const Icon(Icons.groups_2_outlined, size: 36),
-                          const SizedBox(height: 12),
-                          Text(
-                            context.tr(
-                              en: 'Nothing happened in the household yet today.',
-                              sk: 'Dnes sa v domácnosti ešte nič neudialo.',
+                  const SizedBox(height: 12),
+                  if (todayEvents.isEmpty)
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(18),
+                        child: Column(
+                          children: [
+                            const Icon(Icons.groups_2_outlined, size: 36),
+                            const SizedBox(height: 12),
+                            Text(
+                              context.tr(
+                                en: 'Nothing happened in the household yet today.',
+                                sk: 'Dnes sa v domácnosti ešte nič neudialo.',
+                              ),
+                              textAlign: TextAlign.center,
                             ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(18),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: todayContributors
+                                  .map(
+                                    (entry) => Chip(
+                                      label: Text(
+                                        '${_actorLabel(entry.userId)}: ${entry.count}',
+                                      ),
+                                      backgroundColor:
+                                          entry.userId == _currentUserId
+                                          ? const Color(0xFFE8EEF8)
+                                          : null,
+                                      visualDensity: VisualDensity.compact,
+                                    ),
+                                  )
+                                  .toList(),
+                            ),
+                            const SizedBox(height: 14),
+                            ...todayEvents
+                                .take(6)
+                                .map(
+                                  (event) => Padding(
+                                    padding: const EdgeInsets.only(bottom: 12),
+                                    child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Container(
+                                          width: 36,
+                                          height: 36,
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFF3EEE4),
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                          ),
+                                          child: Icon(
+                                            _todayEventIcon(event.eventType),
+                                            size: 20,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                _actorLabel(event.userId),
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .titleSmall
+                                                    ?.copyWith(
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                    ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Wrap(
+                                                spacing: 6,
+                                                runSpacing: 6,
+                                                children: [
+                                                  if (event.userId ==
+                                                      _currentUserId)
+                                                    _contextBadge(
+                                                      context,
+                                                      context.tr(
+                                                        en: 'You',
+                                                        sk: 'Ty',
+                                                      ),
+                                                    ),
+                                                  if (_isForCurrentUser(event))
+                                                    _contextBadge(
+                                                      context,
+                                                      context.tr(
+                                                        en: 'For you',
+                                                        sk: 'Pre teba',
+                                                      ),
+                                                    ),
+                                                ],
+                                              ),
+                                              if (event.userId ==
+                                                      _currentUserId ||
+                                                  _isForCurrentUser(event))
+                                                const SizedBox(height: 4),
+                                              const SizedBox(height: 2),
+                                              Text(_todayEventText(event)),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                _relativeTimeLabel(
+                                                  event.createdAt,
+                                                ),
+                                                style: Theme.of(
+                                                  context,
+                                                ).textTheme.bodySmall,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                          ],
+                        ),
                       ),
                     ),
-                  )
-                else
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(18),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: todayContributors
-                                .map(
-                                  (entry) => Chip(
-                                    label: Text(
-                                      '${_actorLabel(entry.userId)}: ${entry.count}',
-                                    ),
-                                    backgroundColor:
-                                        entry.userId == _currentUserId
-                                        ? const Color(0xFFE8EEF8)
-                                        : null,
-                                    visualDensity: VisualDensity.compact,
-                                  ),
-                                )
-                                .toList(),
-                          ),
-                          const SizedBox(height: 14),
-                          ...todayEvents
-                              .take(6)
+                  const SizedBox(height: 16),
+                  Text(
+                    context.tr(en: 'Waiting for you', sk: 'Na teba čaká'),
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  if (personalTasks.isEmpty)
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(18),
+                        child: Column(
+                          children: [
+                            const Icon(Icons.check_circle_outline, size: 36),
+                            const SizedBox(height: 12),
+                            Text(
+                              context.tr(
+                                en: 'Nothing is waiting for you right now.',
+                                sk: 'Momentálne na teba nič nečaká.',
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              context.tr(
+                                en: 'Assigned shopping, cooking, or opened items to use soon will show up here.',
+                                sk: 'Tu sa zobrazí priradený nákup, varenie alebo otvorené veci na skoré použitie.',
+                              ),
+                              textAlign: TextAlign.center,
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(18),
+                        child: Column(
+                          children: personalTasks
                               .map(
-                                (event) => Padding(
+                                (task) => Padding(
                                   padding: const EdgeInsets.only(bottom: 12),
                                   child: Row(
                                     crossAxisAlignment:
@@ -339,10 +483,7 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
                                             12,
                                           ),
                                         ),
-                                        child: Icon(
-                                          _todayEventIcon(event.eventType),
-                                          size: 20,
-                                        ),
+                                        child: Icon(task.icon, size: 20),
                                       ),
                                       const SizedBox(width: 12),
                                       Expanded(
@@ -350,272 +491,150 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
                                           children: [
-                                            Text(
-                                              _actorLabel(event.userId),
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .titleSmall
-                                                  ?.copyWith(
-                                                    fontWeight: FontWeight.w700,
-                                                  ),
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Wrap(
-                                              spacing: 6,
-                                              runSpacing: 6,
+                                            Row(
                                               children: [
-                                                if (event.userId ==
-                                                    _currentUserId)
-                                                  _contextBadge(
-                                                    context,
-                                                    context.tr(
-                                                      en: 'You',
-                                                      sk: 'Ty',
-                                                    ),
+                                                Expanded(
+                                                  child: Text(
+                                                    task.title,
+                                                    style: Theme.of(context)
+                                                        .textTheme
+                                                        .titleSmall
+                                                        ?.copyWith(
+                                                          fontWeight:
+                                                              FontWeight.w700,
+                                                        ),
                                                   ),
-                                                if (_isForCurrentUser(event))
-                                                  _contextBadge(
-                                                    context,
-                                                    context.tr(
-                                                      en: 'For you',
-                                                      sk: 'Pre teba',
-                                                    ),
+                                                ),
+                                                _contextBadge(
+                                                  context,
+                                                  context.tr(
+                                                    en: 'For you',
+                                                    sk: 'Pre teba',
                                                   ),
+                                                ),
+                                                const SizedBox(width: 6),
+                                                _urgencyBadge(context, task),
                                               ],
                                             ),
-                                            if (event.userId ==
-                                                    _currentUserId ||
-                                                _isForCurrentUser(event))
-                                              const SizedBox(height: 4),
-                                            const SizedBox(height: 2),
-                                            Text(_todayEventText(event)),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              _relativeTimeLabel(
-                                                event.createdAt,
-                                              ),
-                                              style: Theme.of(
-                                                context,
-                                              ).textTheme.bodySmall,
-                                            ),
+                                            const SizedBox(height: 6),
+                                            Text(task.subtitle),
                                           ],
                                         ),
                                       ),
                                     ],
                                   ),
                                 ),
+                              )
+                              .toList(),
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 16),
+                  Text(
+                    context.tr(en: 'Household habits', sk: 'Návyky domácnosti'),
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _HabitSummaryCard(
+                    title: context.tr(en: 'Bought often', sk: 'Často kupované'),
+                    emptyMessage: context.tr(
+                      en: 'No buying patterns yet.',
+                      sk: 'Zatiaľ nemáme nákupné návyky.',
+                    ),
+                    items: topBought,
+                  ),
+                  const SizedBox(height: 12),
+                  _HabitSummaryCard(
+                    title: context.tr(en: 'Used often', sk: 'Často používané'),
+                    emptyMessage: context.tr(
+                      en: 'No usage patterns yet.',
+                      sk: 'Zatiaľ nemáme spotrebné návyky.',
+                    ),
+                    items: topUsed,
+                  ),
+                  const SizedBox(height: 12),
+                  _HabitSummaryCard(
+                    title: context.tr(
+                      en: 'Waste risk now',
+                      sk: 'Riziko odpadu teraz',
+                    ),
+                    emptyMessage: context.tr(
+                      en: 'No risky pantry items right now.',
+                      sk: 'Momentálne tu nie sú rizikové pantry položky.',
+                    ),
+                    items: wasteRisk,
+                  ),
+                  const SizedBox(height: 12),
+                  _HabitSummaryCard(
+                    title: context.tr(
+                      en: 'Worth keeping at home',
+                      sk: 'Oplatí sa držať doma',
+                    ),
+                    emptyMessage: context.tr(
+                      en: 'No regular staples suggested yet.',
+                      sk: 'Zatiaľ nemáme odporúčané pravidelné zásoby.',
+                    ),
+                    items: keepAtHome,
+                    actionLabel: context.tr(
+                      en: 'Add to shopping',
+                      sk: 'Do nákupu',
+                    ),
+                    onAction: _addKeepAtHomeToShopping,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    context.tr(en: 'Recent activity', sk: 'Posledná aktivita'),
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  if (events.isEmpty)
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(18),
+                        child: Column(
+                          children: [
+                            const Icon(Icons.history_outlined, size: 36),
+                            const SizedBox(height: 12),
+                            Text(
+                              context.tr(
+                                en: 'No household activity yet.',
+                                sk: 'Zatiaľ tu nie je žiadna aktivita domácnosti.',
                               ),
-                        ],
-                      ),
-                    ),
-                  ),
-                const SizedBox(height: 16),
-                Text(
-                  context.tr(en: 'Waiting for you', sk: 'Na teba čaká'),
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 12),
-                if (personalTasks.isEmpty)
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(18),
-                      child: Column(
-                        children: [
-                          const Icon(Icons.check_circle_outline, size: 36),
-                          const SizedBox(height: 12),
-                          Text(
-                            context.tr(
-                              en: 'Nothing is waiting for you right now.',
-                              sk: 'Momentálne na teba nič nečaká.',
+                              textAlign: TextAlign.center,
                             ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            context.tr(
-                              en: 'Assigned shopping, cooking, or opened items to use soon will show up here.',
-                              sk: 'Tu sa zobrazí priradený nákup, varenie alebo otvorené veci na skoré použitie.',
-                            ),
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                else
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(18),
-                      child: Column(
-                        children: personalTasks
-                            .map(
-                              (task) => Padding(
-                                padding: const EdgeInsets.only(bottom: 12),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Container(
-                                      width: 36,
-                                      height: 36,
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFF3EEE4),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Icon(task.icon, size: 20),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Row(
-                                            children: [
-                                              Expanded(
-                                                child: Text(
-                                                  task.title,
-                                                  style: Theme.of(context)
-                                                      .textTheme
-                                                      .titleSmall
-                                                      ?.copyWith(
-                                                        fontWeight:
-                                                            FontWeight.w700,
-                                                      ),
-                                                ),
-                                              ),
-                                              _contextBadge(
-                                                context,
-                                                context.tr(
-                                                  en: 'For you',
-                                                  sk: 'Pre teba',
-                                                ),
-                                              ),
-                                              const SizedBox(width: 6),
-                                              _urgencyBadge(context, task),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 6),
-                                          Text(task.subtitle),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                            const SizedBox(height: 8),
+                            Text(
+                              context.tr(
+                                en: 'Activity will appear here when someone adds, updates, opens, uses, or buys items.',
+                                sk: 'Aktivita sa tu zobrazí, keď niekto pridá, upraví, otvorí, použije alebo kúpi položky.',
                               ),
-                            )
-                            .toList(),
-                      ),
-                    ),
-                  ),
-                const SizedBox(height: 16),
-                Text(
-                  context.tr(en: 'Household habits', sk: 'Návyky domácnosti'),
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 12),
-                _HabitSummaryCard(
-                  title: context.tr(en: 'Bought often', sk: 'Často kupované'),
-                  emptyMessage: context.tr(
-                    en: 'No buying patterns yet.',
-                    sk: 'Zatiaľ nemáme nákupné návyky.',
-                  ),
-                  items: topBought,
-                ),
-                const SizedBox(height: 12),
-                _HabitSummaryCard(
-                  title: context.tr(en: 'Used often', sk: 'Často používané'),
-                  emptyMessage: context.tr(
-                    en: 'No usage patterns yet.',
-                    sk: 'Zatiaľ nemáme spotrebné návyky.',
-                  ),
-                  items: topUsed,
-                ),
-                const SizedBox(height: 12),
-                _HabitSummaryCard(
-                  title: context.tr(
-                    en: 'Waste risk now',
-                    sk: 'Riziko odpadu teraz',
-                  ),
-                  emptyMessage: context.tr(
-                    en: 'No risky pantry items right now.',
-                    sk: 'Momentálne tu nie sú rizikové pantry položky.',
-                  ),
-                  items: wasteRisk,
-                ),
-                const SizedBox(height: 12),
-                _HabitSummaryCard(
-                  title: context.tr(
-                    en: 'Worth keeping at home',
-                    sk: 'Oplatí sa držať doma',
-                  ),
-                  emptyMessage: context.tr(
-                    en: 'No regular staples suggested yet.',
-                    sk: 'Zatiaľ nemáme odporúčané pravidelné zásoby.',
-                  ),
-                  items: keepAtHome,
-                  actionLabel: context.tr(
-                    en: 'Add to shopping',
-                    sk: 'Do nákupu',
-                  ),
-                  onAction: _addKeepAtHomeToShopping,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  context.tr(en: 'Recent activity', sk: 'Posledná aktivita'),
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 12),
-                if (events.isEmpty)
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(18),
-                      child: Column(
-                        children: [
-                          const Icon(Icons.history_outlined, size: 36),
-                          const SizedBox(height: 12),
-                          Text(
-                            context.tr(
-                              en: 'No household activity yet.',
-                              sk: 'Zatiaľ tu nie je žiadna aktivita domácnosti.',
+                              textAlign: TextAlign.center,
+                              style: Theme.of(context).textTheme.bodySmall,
                             ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            context.tr(
-                              en: 'Activity will appear here when someone adds, updates, opens, uses, or buys items.',
-                              sk: 'Aktivita sa tu zobrazí, keď niekto pridá, upraví, otvorí, použije alebo kúpi položky.',
-                            ),
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                  )
-                else
-                  ...events
-                      .take(8)
-                      .map(
-                        (event) => Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: Card(
-                            child: ListTile(
-                              leading: const Icon(Icons.bolt_outlined),
-                              title: Text(_eventTitle(event)),
-                              subtitle: Text(_eventSubtitle(event)),
+                    )
+                  else
+                    ...events
+                        .take(8)
+                        .map(
+                          (event) => Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: Card(
+                              child: ListTile(
+                                leading: const Icon(Icons.bolt_outlined),
+                                title: Text(_eventTitle(event)),
+                                subtitle: Text(_eventSubtitle(event)),
+                              ),
                             ),
                           ),
                         ),
-                      ),
-              ],
+                ],
               ),
             ),
           );
@@ -1390,10 +1409,7 @@ class _HouseholdHeader extends StatelessWidget {
   final String householdName;
   final VoidCallback onBack;
 
-  const _HouseholdHeader({
-    required this.householdName,
-    required this.onBack,
-  });
+  const _HouseholdHeader({required this.householdName, required this.onBack});
 
   @override
   Widget build(BuildContext context) {
@@ -1424,10 +1440,7 @@ class _HouseholdHeader extends StatelessWidget {
               ),
             ),
             const Spacer(),
-            const SafoLogo(
-              variant: SafoLogoVariant.pill,
-              height: 28,
-            ),
+            const SafoLogo(variant: SafoLogoVariant.pill, height: 28),
           ],
         ),
         const SizedBox(height: 18),
@@ -1446,9 +1459,9 @@ class _HouseholdHeader extends StatelessWidget {
         const SizedBox(height: 2),
         Text(
           householdName,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: SafoColors.textSecondary,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: SafoColors.textSecondary),
         ),
       ],
     );
@@ -1568,9 +1581,9 @@ class _HouseholdCodeCard extends StatelessWidget {
                 en: 'Invite another member',
                 sk: 'Pozvi ďalšieho člena',
               ),
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 8),
             Text(
@@ -1593,18 +1606,16 @@ class _HouseholdCodeCard extends StatelessWidget {
               ),
               child: SelectableText(
                 householdId,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700),
               ),
             ),
             const SizedBox(height: 12),
             FilledButton.tonalIcon(
               onPressed: onCopyCode,
               icon: const Icon(Icons.copy_outlined),
-              label: Text(
-                context.tr(en: 'Copy code', sk: 'Kopírovať kód'),
-              ),
+              label: Text(context.tr(en: 'Copy code', sk: 'Kopírovať kód')),
             ),
           ],
         ),

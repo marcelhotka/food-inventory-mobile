@@ -114,9 +114,9 @@ class AppLoadingState extends StatelessWidget {
                 sk: 'Načítavam tvoje položky...',
               ),
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: SafoSpacing.xs),
             Text(
@@ -125,9 +125,9 @@ class AppLoadingState extends StatelessWidget {
                 sk: 'Safo pripravuje najnovší pohľad na tvoju kuchyňu.',
               ),
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: SafoColors.textSecondary,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: SafoColors.textSecondary),
             ),
           ],
         ),
@@ -294,15 +294,11 @@ class AppOfflineState extends StatelessWidget {
               ),
               const SizedBox(height: SafoSpacing.md),
               Text(
-                title ??
-                    context.tr(
-                      en: 'You are offline',
-                      sk: 'Si offline',
-                    ),
+                title ?? context.tr(en: 'You are offline', sk: 'Si offline'),
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: SafoSpacing.sm),
               Text(message, textAlign: TextAlign.center),
@@ -323,7 +319,8 @@ class AppOfflineState extends StatelessWidget {
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh_rounded),
                 label: Text(
-                  actionLabel ?? context.tr(en: 'Try again', sk: 'Skúsiť znova'),
+                  actionLabel ??
+                      context.tr(en: 'Try again', sk: 'Skúsiť znova'),
                 ),
               ),
             ],
@@ -471,9 +468,9 @@ class AppEmptyState extends StatelessWidget {
                     sk: 'Zatiaľ tu nič nie je',
                   ),
                   textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: SafoSpacing.sm),
                 Text(
@@ -493,9 +490,9 @@ class AppEmptyState extends StatelessWidget {
                 en: 'Pull down to refresh.',
                 sk: 'Potiahni nadol pre obnovenie.',
               ),
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: SafoColors.textSecondary,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: SafoColors.textSecondary),
             ),
           ),
         ],
@@ -504,15 +501,53 @@ class AppEmptyState extends StatelessWidget {
   }
 }
 
+class AppPageStateScaffold extends StatelessWidget {
+  final Widget header;
+  final Widget child;
+  final Future<void> Function()? onRefresh;
+  final EdgeInsetsGeometry padding;
+  final double spacing;
+
+  const AppPageStateScaffold({
+    super.key,
+    required this.header,
+    required this.child,
+    this.onRefresh,
+    this.padding = const EdgeInsets.fromLTRB(
+      SafoSpacing.md,
+      SafoSpacing.sm,
+      SafoSpacing.md,
+      SafoSpacing.xxl,
+    ),
+    this.spacing = SafoSpacing.lg,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final listView = ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: padding,
+      children: [
+        header,
+        SizedBox(height: spacing),
+        child,
+      ],
+    );
+
+    return SafeArea(
+      bottom: false,
+      child: onRefresh == null
+          ? listView
+          : RefreshIndicator(onRefresh: onRefresh!, child: listView),
+    );
+  }
+}
+
 class AppEmptyCard extends StatelessWidget {
   final String message;
   final String? title;
 
-  const AppEmptyCard({
-    super.key,
-    required this.message,
-    this.title,
-  });
+  const AppEmptyCard({super.key, required this.message, this.title});
 
   @override
   Widget build(BuildContext context) {
@@ -549,22 +584,19 @@ class AppEmptyCard extends StatelessWidget {
           const SizedBox(height: SafoSpacing.md),
           Text(
             title ??
-                context.tr(
-                  en: 'Nothing here yet',
-                  sk: 'Zatiaľ tu nič nie je',
-                ),
+                context.tr(en: 'Nothing here yet', sk: 'Zatiaľ tu nič nie je'),
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w800,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: SafoSpacing.sm),
           Text(
             message,
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: SafoColors.textSecondary,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: SafoColors.textSecondary),
           ),
         ],
       ),
