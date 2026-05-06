@@ -204,9 +204,7 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
     );
     _householdSizeController.text =
         preferences?.householdSize?.toString() ?? '';
-    _selectedDietStyles = {
-      ...(preferences?.dietStyles ?? const <String>[]),
-    };
+    _selectedDietStyles = {...(preferences?.dietStyles ?? const <String>[])};
     _selectedCookingFrequency = preferences?.cookingFrequency;
     _selectedLanguage =
         preferences?.preferredLanguage ??
@@ -375,565 +373,661 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
                 }
               : null,
           child: FutureBuilder<UserPreferences?>(
-          future: _preferencesFuture,
-          builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const AppLoadingState();
-          }
+            future: _preferencesFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return AppPageStateScaffold(
+                  safeArea: false,
+                  onRefresh: _reload,
+                  header: SafoPageHeader(
+                    title: widget.isOnboarding
+                        ? context.tr(
+                            en: 'Set up your kitchen',
+                            sk: 'Nastav svoju kuchyňu',
+                          )
+                        : context.tr(
+                            en: 'Kitchen preferences',
+                            sk: 'Preferencie kuchyne',
+                          ),
+                    subtitle: widget.isOnboarding
+                        ? context.tr(
+                            en: 'Tell Safo about your meals, foods, allergies and diet so the app can feel personal from day one.',
+                            sk: 'Povedz Safo o jedlách, potravinách, alergiách a stravovaní, aby appka pôsobila osobne hneď od začiatku.',
+                          )
+                        : context.tr(
+                            en: 'Update how Safo should adapt recipes, alerts and recommendations to your kitchen.',
+                            sk: 'Uprav, ako má Safo prispôsobiť recepty, upozornenia a odporúčania tvojej kuchyni.',
+                          ),
+                    onBack: widget.isOnboarding
+                        ? _handleOnboardingBackToHousehold
+                        : () => Navigator.of(context).maybePop(),
+                    trailing: widget.isOnboarding
+                        ? IconButton(
+                            onPressed: _handleSignOut,
+                            style: IconButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              backgroundColor: Colors.white.withValues(
+                                alpha: 0.12,
+                              ),
+                            ),
+                            icon: const Icon(Icons.logout_rounded),
+                          )
+                        : null,
+                  ),
+                  child: const AppLoadingState(),
+                );
+              }
 
-          if (snapshot.hasError) {
-            final error = snapshot.error;
-            final configError = error is UserPreferencesConfigException
-                ? error
-                : null;
-            return AppErrorState(
-              kind: configError != null
-                  ? AppErrorKind.setup
-                  : inferAppErrorKind(error, fallback: AppErrorKind.sync),
-              title: configError != null
-                  ? context.tr(
-                      en: 'Preferences need setup',
-                      sk: 'Preferencie potrebujú nastavenie',
-                    )
-                  : context.tr(
-                      en: 'Preferences are unavailable',
-                      sk: 'Preferencie nie sú k dispozícii',
-                    ),
-              message:
-                  configError?.message ??
-                  context.tr(
-                    en: 'Failed to load preferences.',
-                    sk: 'Preferencie sa nepodarilo načítať.',
+              if (snapshot.hasError) {
+                final error = snapshot.error;
+                final configError = error is UserPreferencesConfigException
+                    ? error
+                    : null;
+                return AppPageStateScaffold(
+                  safeArea: false,
+                  onRefresh: _reload,
+                  header: SafoPageHeader(
+                    title: widget.isOnboarding
+                        ? context.tr(
+                            en: 'Set up your kitchen',
+                            sk: 'Nastav svoju kuchyňu',
+                          )
+                        : context.tr(
+                            en: 'Kitchen preferences',
+                            sk: 'Preferencie kuchyne',
+                          ),
+                    subtitle: widget.isOnboarding
+                        ? context.tr(
+                            en: 'Tell Safo about your meals, foods, allergies and diet so the app can feel personal from day one.',
+                            sk: 'Povedz Safo o jedlách, potravinách, alergiách a stravovaní, aby appka pôsobila osobne hneď od začiatku.',
+                          )
+                        : context.tr(
+                            en: 'Update how Safo should adapt recipes, alerts and recommendations to your kitchen.',
+                            sk: 'Uprav, ako má Safo prispôsobiť recepty, upozornenia a odporúčania tvojej kuchyni.',
+                          ),
+                    onBack: widget.isOnboarding
+                        ? _handleOnboardingBackToHousehold
+                        : () => Navigator.of(context).maybePop(),
+                    trailing: widget.isOnboarding
+                        ? IconButton(
+                            onPressed: _handleSignOut,
+                            style: IconButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              backgroundColor: Colors.white.withValues(
+                                alpha: 0.12,
+                              ),
+                            ),
+                            icon: const Icon(Icons.logout_rounded),
+                          )
+                        : null,
                   ),
-              hint: configError != null
-                  ? context.tr(
-                      en: 'Safo still needs backend configuration before preferences can be loaded.',
-                      sk: 'Safo ešte potrebuje backend nastavenie, aby sa dali načítať preferencie.',
-                    )
-                  : context.tr(
-                      en: 'Safo could not refresh saved preferences right now.',
-                      sk: 'Safo teraz nedokázalo obnoviť uložené preferencie.',
-                    ),
-              onRetry: _reload,
-            );
-          }
+                  child: AppErrorState(
+                    kind: configError != null
+                        ? AppErrorKind.setup
+                        : inferAppErrorKind(error, fallback: AppErrorKind.sync),
+                    title: configError != null
+                        ? context.tr(
+                            en: 'Preferences need setup',
+                            sk: 'Preferencie potrebujú nastavenie',
+                          )
+                        : context.tr(
+                            en: 'Preferences are unavailable',
+                            sk: 'Preferencie nie sú k dispozícii',
+                          ),
+                    message:
+                        configError?.message ??
+                        context.tr(
+                          en: 'Failed to load preferences.',
+                          sk: 'Preferencie sa nepodarilo načítať.',
+                        ),
+                    hint: configError != null
+                        ? context.tr(
+                            en: 'Safo still needs backend configuration before preferences can be loaded.',
+                            sk: 'Safo ešte potrebuje backend nastavenie, aby sa dali načítať preferencie.',
+                          )
+                        : context.tr(
+                            en: 'Safo could not refresh saved preferences right now.',
+                            sk: 'Safo teraz nedokázalo obnoviť uložené preferencie.',
+                          ),
+                    onRetry: _reload,
+                  ),
+                );
+              }
 
-          _applyLoadedPreferences(snapshot.data);
-          final favoriteSummaryCount =
-              _selectedFavoriteMeals.length +
-              _selectedFavoriteFoods.length +
-              _splitList(_favoriteMealsController.text).length +
-              _splitList(_favoriteFoodsController.text).length;
-          final dietarySummaryCount =
-              _selectedAllergies.length +
-              _selectedIntolerances.length +
-              _selectedDietStyles.length +
-              _splitList(_allergiesController.text).length +
-              _splitList(_intolerancesController.text).length;
-          final profileSummaryCount = [
-            if ((_selectedLanguage ?? '').isNotEmpty) _selectedLanguage,
-            if ((_selectedCookingFrequency ?? '').isNotEmpty)
-              _selectedCookingFrequency,
-            if ((_householdSizeController.text.trim()).isNotEmpty)
-              _householdSizeController.text,
-          ].length;
+              _applyLoadedPreferences(snapshot.data);
+              final favoriteSummaryCount =
+                  _selectedFavoriteMeals.length +
+                  _selectedFavoriteFoods.length +
+                  _splitList(_favoriteMealsController.text).length +
+                  _splitList(_favoriteFoodsController.text).length;
+              final dietarySummaryCount =
+                  _selectedAllergies.length +
+                  _selectedIntolerances.length +
+                  _selectedDietStyles.length +
+                  _splitList(_allergiesController.text).length +
+                  _splitList(_intolerancesController.text).length;
+              final profileSummaryCount = [
+                if ((_selectedLanguage ?? '').isNotEmpty) _selectedLanguage,
+                if ((_selectedCookingFrequency ?? '').isNotEmpty)
+                  _selectedCookingFrequency,
+                if ((_householdSizeController.text.trim()).isNotEmpty)
+                  _householdSizeController.text,
+              ].length;
 
-          return ListView(
-            padding: const EdgeInsets.all(24),
-            children: [
-              if (!widget.isOnboarding) ...[
-                _PreferencesHeader(
-                  onBack: () => Navigator.of(context).maybePop(),
-                ),
-                const SizedBox(height: 18),
-                _PreferencesOverview(
-                  favoriteCount: favoriteSummaryCount,
-                  dietaryCount: dietarySummaryCount,
-                  profileCount: profileSummaryCount,
-                ),
-                const SizedBox(height: 18),
-              ],
-              if (widget.isOnboarding) ...[
-                SafoPageHeader(
-                  title: context.tr(
-                    en: 'Set up your kitchen',
-                    sk: 'Nastav si kuchyňu',
-                  ),
-                  subtitle: context.tr(
-                    en: 'A few choices now help Safo suggest safer recipes, smarter shopping, and a calmer household flow from day one.',
-                    sk: 'Pár volieb teraz pomôže Safo odporúčať bezpečnejšie recepty, múdrejšie nákupy a pokojnejší chod domácnosti od prvého dňa.',
-                  ),
-                  dark: false,
-                  onBack: _handleOnboardingBackToHousehold,
-                  trailing: IconButton(
-                    onPressed: _handleSignOut,
-                    style: IconButton.styleFrom(
-                      foregroundColor: SafoColors.textPrimary,
-                      backgroundColor: SafoColors.surfaceSoft,
-                      side: const BorderSide(color: SafoColors.border),
-                    ),
-                    icon: const Icon(Icons.logout_rounded),
-                    tooltip: context.tr(en: 'Sign out', sk: 'Odhlásiť sa'),
-                  ),
-                ),
-                const SizedBox(height: 18),
-                _KitchenSetupHero(
-                  imageAsset: _kitchenSetupHeroAsset,
-                ),
-                const SizedBox(height: 18),
-                _KitchenSetupSummary(
-                  title: context.tr(
-                    en: 'What we’ll personalize',
-                    sk: 'Čo si prispôsobíme',
-                  ),
-                  items: [
-                    context.tr(
-                      en: 'Meals and foods you enjoy most',
-                      sk: 'Jedlá a potraviny, ktoré máš najradšej',
-                    ),
-                    context.tr(
-                      en: 'Allergies, intolerances, and diet style',
-                      sk: 'Alergie, intolerancie a štýl stravovania',
-                    ),
-                    context.tr(
-                      en: 'Household habits like language and cooking rhythm',
-                      sk: 'Návyky domácnosti ako jazyk a rytmus varenia',
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 18),
-              ],
-              Container(
+              return ListView(
                 padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFFCF7),
-                  borderRadius: BorderRadius.circular(28),
-                  border: Border.all(color: const Color(0xFFE6DDCF)),
-                ),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.isOnboarding
-                            ? context.tr(
-                                en: 'Tell us about your kitchen',
-                                sk: 'Povedz nám viac o tvojej kuchyni',
-                              )
-                            : context.tr(
-                                en: 'Update your kitchen profile',
-                                sk: 'Uprav profil svojej kuchyne',
-                              ),
-                        style: Theme.of(context).textTheme.headlineSmall
-                            ?.copyWith(fontWeight: FontWeight.w800),
+                children: [
+                  if (!widget.isOnboarding) ...[
+                    _PreferencesHeader(
+                      onBack: () => Navigator.of(context).maybePop(),
+                    ),
+                    const SizedBox(height: 18),
+                    _PreferencesOverview(
+                      favoriteCount: favoriteSummaryCount,
+                      dietaryCount: dietarySummaryCount,
+                      profileCount: profileSummaryCount,
+                    ),
+                    const SizedBox(height: 18),
+                  ],
+                  if (widget.isOnboarding) ...[
+                    SafoPageHeader(
+                      title: context.tr(
+                        en: 'Set up your kitchen',
+                        sk: 'Nastav si kuchyňu',
                       ),
-                      const SizedBox(height: 10),
-                      Text(
-                        widget.isOnboarding
-                            ? context.tr(
-                                en: 'Answer a few questions so we can prepare better recipe suggestions, shopping defaults and household recommendations from the start.',
-                                sk: 'Odpovedz na pár otázok, aby sme od začiatku vedeli pripraviť lepšie odporúčania receptov, nákupov a fungovania domácnosti.',
-                              )
-                            : context.tr(
-                                en: 'Keep favorite meals, food preferences, and dietary limits up to date so Safo can stay useful in everyday planning.',
-                                sk: 'Udržuj obľúbené jedlá, potraviny a stravovacie obmedzenia aktuálne, aby bolo Safo užitočné pri každodennom plánovaní.',
-                              ),
-                        style: Theme.of(context).textTheme.bodyMedium,
+                      subtitle: context.tr(
+                        en: 'A few choices now help Safo suggest safer recipes, smarter shopping, and a calmer household flow from day one.',
+                        sk: 'Pár volieb teraz pomôže Safo odporúčať bezpečnejšie recepty, múdrejšie nákupy a pokojnejší chod domácnosti od prvého dňa.',
                       ),
-                      const SizedBox(height: 20),
-                      _PreferenceSection(
-                        title: context.tr(
-                          en: 'Meals and foods',
-                          sk: 'Jedlá a potraviny',
+                      dark: false,
+                      onBack: _handleOnboardingBackToHousehold,
+                      trailing: IconButton(
+                        onPressed: _handleSignOut,
+                        style: IconButton.styleFrom(
+                          foregroundColor: SafoColors.textPrimary,
+                          backgroundColor: SafoColors.surfaceSoft,
+                          side: const BorderSide(color: SafoColors.border),
                         ),
-                        icon: Icons.restaurant_menu_rounded,
-                        accent: const Color(0xFF4C8C68),
-                        subtitle: context.tr(
-                          en: 'Tell us what you enjoy most so we can later shape recipe suggestions and shopping defaults.',
-                          sk: 'Povedz nám, čo máš rád, aby sme neskôr vedeli lepšie odporúčať recepty a nákupy.',
+                        icon: const Icon(Icons.logout_rounded),
+                        tooltip: context.tr(en: 'Sign out', sk: 'Odhlásiť sa'),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    _KitchenSetupHero(imageAsset: _kitchenSetupHeroAsset),
+                    const SizedBox(height: 18),
+                    _KitchenSetupSummary(
+                      title: context.tr(
+                        en: 'What we’ll personalize',
+                        sk: 'Čo si prispôsobíme',
+                      ),
+                      items: [
+                        context.tr(
+                          en: 'Meals and foods you enjoy most',
+                          sk: 'Jedlá a potraviny, ktoré máš najradšej',
                         ),
+                        context.tr(
+                          en: 'Allergies, intolerances, and diet style',
+                          sk: 'Alergie, intolerancie a štýl stravovania',
+                        ),
+                        context.tr(
+                          en: 'Household habits like language and cooking rhythm',
+                          sk: 'Návyky domácnosti ako jazyk a rytmus varenia',
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+                  ],
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFFCF7),
+                      borderRadius: BorderRadius.circular(28),
+                      border: Border.all(color: const Color(0xFFE6DDCF)),
+                    ),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _PreferenceField(
-                            label: context.tr(
-                              en: 'Favorite meals',
-                              sk: 'Obľúbené jedlá',
+                          Text(
+                            widget.isOnboarding
+                                ? context.tr(
+                                    en: 'Tell us about your kitchen',
+                                    sk: 'Povedz nám viac o tvojej kuchyni',
+                                  )
+                                : context.tr(
+                                    en: 'Update your kitchen profile',
+                                    sk: 'Uprav profil svojej kuchyne',
+                                  ),
+                            style: Theme.of(context).textTheme.headlineSmall
+                                ?.copyWith(fontWeight: FontWeight.w800),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            widget.isOnboarding
+                                ? context.tr(
+                                    en: 'Answer a few questions so we can prepare better recipe suggestions, shopping defaults and household recommendations from the start.',
+                                    sk: 'Odpovedz na pár otázok, aby sme od začiatku vedeli pripraviť lepšie odporúčania receptov, nákupov a fungovania domácnosti.',
+                                  )
+                                : context.tr(
+                                    en: 'Keep favorite meals, food preferences, and dietary limits up to date so Safo can stay useful in everyday planning.',
+                                    sk: 'Udržuj obľúbené jedlá, potraviny a stravovacie obmedzenia aktuálne, aby bolo Safo užitočné pri každodennom plánovaní.',
+                                  ),
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                          const SizedBox(height: 20),
+                          _PreferenceSection(
+                            title: context.tr(
+                              en: 'Meals and foods',
+                              sk: 'Jedlá a potraviny',
                             ),
-                            hint: context.tr(
-                              en: 'Choose common meals and optionally add your own',
-                              sk: 'Vyber bežné jedlá a prípadne dopíš vlastné',
+                            icon: Icons.restaurant_menu_rounded,
+                            accent: const Color(0xFF4C8C68),
+                            subtitle: context.tr(
+                              en: 'Tell us what you enjoy most so we can later shape recipe suggestions and shopping defaults.',
+                              sk: 'Povedz nám, čo máš rád, aby sme neskôr vedeli lepšie odporúčať recepty a nákupy.',
                             ),
-                            child: _PreferenceChipSelector(
-                              options: _favoriteMealOptions,
-                              selectedValues: _selectedFavoriteMeals,
-                              labelBuilder: (value) =>
-                                  _favoriteMealLabel(context, value),
-                              customController: _favoriteMealsController,
-                              featuredCount: 4,
-                              allowCustom: true,
-                              customLabel: context.tr(
-                                en: 'Other favorite meals',
-                                sk: 'Iné obľúbené jedlá',
+                            children: [
+                              _PreferenceField(
+                                label: context.tr(
+                                  en: 'Favorite meals',
+                                  sk: 'Obľúbené jedlá',
+                                ),
+                                hint: context.tr(
+                                  en: 'Choose common meals and optionally add your own',
+                                  sk: 'Vyber bežné jedlá a prípadne dopíš vlastné',
+                                ),
+                                child: _PreferenceChipSelector(
+                                  options: _favoriteMealOptions,
+                                  selectedValues: _selectedFavoriteMeals,
+                                  labelBuilder: (value) =>
+                                      _favoriteMealLabel(context, value),
+                                  customController: _favoriteMealsController,
+                                  featuredCount: 4,
+                                  allowCustom: true,
+                                  customLabel: context.tr(
+                                    en: 'Other favorite meals',
+                                    sk: 'Iné obľúbené jedlá',
+                                  ),
+                                  onChanged: (values) {
+                                    setState(() {
+                                      _selectedFavoriteMeals = values;
+                                    });
+                                  },
+                                ),
                               ),
-                              onChanged: (values) {
-                                setState(() {
-                                  _selectedFavoriteMeals = values;
-                                });
-                              },
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          _PreferenceField(
-                            label: context.tr(
-                              en: 'Favorite foods',
-                              sk: 'Obľúbené potraviny',
-                            ),
-                            hint: context.tr(
-                              en: 'Pick the foods you buy or use most often',
-                              sk: 'Vyber potraviny, ktoré kupuješ alebo používaš najčastejšie',
-                            ),
-                            child: _PreferenceChipSelector(
-                              options: _favoriteFoodOptions,
-                              selectedValues: _selectedFavoriteFoods,
-                              labelBuilder: (value) =>
-                                  _favoriteFoodLabel(context, value),
-                              customController: _favoriteFoodsController,
-                              featuredCount: 4,
-                              allowCustom: true,
-                              customLabel: context.tr(
-                                en: 'Other favorite foods',
-                                sk: 'Iné obľúbené potraviny',
+                              const SizedBox(height: 16),
+                              _PreferenceField(
+                                label: context.tr(
+                                  en: 'Favorite foods',
+                                  sk: 'Obľúbené potraviny',
+                                ),
+                                hint: context.tr(
+                                  en: 'Pick the foods you buy or use most often',
+                                  sk: 'Vyber potraviny, ktoré kupuješ alebo používaš najčastejšie',
+                                ),
+                                child: _PreferenceChipSelector(
+                                  options: _favoriteFoodOptions,
+                                  selectedValues: _selectedFavoriteFoods,
+                                  labelBuilder: (value) =>
+                                      _favoriteFoodLabel(context, value),
+                                  customController: _favoriteFoodsController,
+                                  featuredCount: 4,
+                                  allowCustom: true,
+                                  customLabel: context.tr(
+                                    en: 'Other favorite foods',
+                                    sk: 'Iné obľúbené potraviny',
+                                  ),
+                                  onChanged: (values) {
+                                    setState(() {
+                                      _selectedFavoriteFoods = values;
+                                    });
+                                  },
+                                ),
                               ),
-                              onChanged: (values) {
-                                setState(() {
-                                  _selectedFavoriteFoods = values;
-                                });
-                              },
-                            ),
+                            ],
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 18),
-                      _PreferenceSection(
-                        title: context.tr(
-                          en: 'Dietary needs',
-                          sk: 'Stravovacie potreby',
-                        ),
-                        icon: Icons.health_and_safety_rounded,
-                        accent: const Color(0xFFCE6A52),
-                        subtitle: context.tr(
-                          en: 'Capture allergies, intolerances and diet style so later suggestions stay relevant and safe.',
-                          sk: 'Zadaj alergie, intolerancie a štýl stravovania, aby boli odporúčania bezpečné a relevantné.',
-                        ),
-                        children: [
-                          _PreferenceField(
-                            label: context.tr(en: 'Allergies', sk: 'Alergie'),
-                            hint: context.tr(
-                              en: 'Choose known allergies and optionally add your own',
-                              sk: 'Vyber známe alergie a prípadne dopíš vlastné',
+                          const SizedBox(height: 18),
+                          _PreferenceSection(
+                            title: context.tr(
+                              en: 'Dietary needs',
+                              sk: 'Stravovacie potreby',
                             ),
-                            child: _PreferenceChipSelector(
-                              options: _allergyOptions,
-                              selectedValues: _selectedAllergies,
-                              labelBuilder: (value) =>
-                                  _allergyLabel(context, value),
-                              customController: _allergiesController,
-                              featuredCount: 4,
-                              allowCustom: true,
-                              customLabel: context.tr(
-                                en: 'Other allergies',
-                                sk: 'Iné alergie',
+                            icon: Icons.health_and_safety_rounded,
+                            accent: const Color(0xFFCE6A52),
+                            subtitle: context.tr(
+                              en: 'Capture allergies, intolerances and diet style so later suggestions stay relevant and safe.',
+                              sk: 'Zadaj alergie, intolerancie a štýl stravovania, aby boli odporúčania bezpečné a relevantné.',
+                            ),
+                            children: [
+                              _PreferenceField(
+                                label: context.tr(
+                                  en: 'Allergies',
+                                  sk: 'Alergie',
+                                ),
+                                hint: context.tr(
+                                  en: 'Choose known allergies and optionally add your own',
+                                  sk: 'Vyber známe alergie a prípadne dopíš vlastné',
+                                ),
+                                child: _PreferenceChipSelector(
+                                  options: _allergyOptions,
+                                  selectedValues: _selectedAllergies,
+                                  labelBuilder: (value) =>
+                                      _allergyLabel(context, value),
+                                  customController: _allergiesController,
+                                  featuredCount: 4,
+                                  allowCustom: true,
+                                  customLabel: context.tr(
+                                    en: 'Other allergies',
+                                    sk: 'Iné alergie',
+                                  ),
+                                  onChanged: (values) {
+                                    setState(() {
+                                      _selectedAllergies = values;
+                                    });
+                                  },
+                                ),
                               ),
-                              onChanged: (values) {
-                                setState(() {
-                                  _selectedAllergies = values;
-                                });
-                              },
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          _PreferenceField(
-                            label: context.tr(
-                              en: 'Intolerances',
-                              sk: 'Intolerancie',
-                            ),
-                            hint: context.tr(
-                              en: 'Choose common intolerances and optionally add your own',
-                              sk: 'Vyber bežné intolerancie a prípadne dopíš vlastné',
-                            ),
-                            child: _PreferenceChipSelector(
-                              options: _intoleranceOptions,
-                              selectedValues: _selectedIntolerances,
-                              labelBuilder: (value) =>
-                                  _intoleranceLabel(context, value),
-                              customController: _intolerancesController,
-                              featuredCount: 4,
-                              allowCustom: true,
-                              customLabel: context.tr(
-                                en: 'Other intolerances',
-                                sk: 'Iné intolerancie',
+                              const SizedBox(height: 16),
+                              _PreferenceField(
+                                label: context.tr(
+                                  en: 'Intolerances',
+                                  sk: 'Intolerancie',
+                                ),
+                                hint: context.tr(
+                                  en: 'Choose common intolerances and optionally add your own',
+                                  sk: 'Vyber bežné intolerancie a prípadne dopíš vlastné',
+                                ),
+                                child: _PreferenceChipSelector(
+                                  options: _intoleranceOptions,
+                                  selectedValues: _selectedIntolerances,
+                                  labelBuilder: (value) =>
+                                      _intoleranceLabel(context, value),
+                                  customController: _intolerancesController,
+                                  featuredCount: 4,
+                                  allowCustom: true,
+                                  customLabel: context.tr(
+                                    en: 'Other intolerances',
+                                    sk: 'Iné intolerancie',
+                                  ),
+                                  onChanged: (values) {
+                                    setState(() {
+                                      _selectedIntolerances = values;
+                                    });
+                                  },
+                                ),
                               ),
-                              onChanged: (values) {
-                                setState(() {
-                                  _selectedIntolerances = values;
-                                });
-                              },
-                            ),
+                              const SizedBox(height: 16),
+                              _PreferenceField(
+                                label: context.tr(
+                                  en: 'Diet style',
+                                  sk: 'Štýl stravovania',
+                                ),
+                                hint: context.tr(
+                                  en: 'Choose the closest long-term preference',
+                                  sk: 'Vyber najbližšie dlhodobé nastavenie',
+                                ),
+                                child: _MultiChoiceChipSelector(
+                                  options: _dietStyles,
+                                  selectedValues: _selectedDietStyles,
+                                  featuredCount: 4,
+                                  labelBuilder: (value) =>
+                                      _dietStyleLabel(context, value),
+                                  onChanged: (values) {
+                                    setState(() {
+                                      _selectedDietStyles =
+                                          _normalizeDietStyles(values);
+                                    });
+                                  },
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 16),
-                          _PreferenceField(
-                            label: context.tr(
-                              en: 'Diet style',
-                              sk: 'Štýl stravovania',
+                          const SizedBox(height: 18),
+                          _PreferenceSection(
+                            title: context.tr(en: 'Language', sk: 'Jazyk'),
+                            icon: Icons.translate_rounded,
+                            accent: const Color(0xFF5B74E8),
+                            subtitle: context.tr(
+                              en: 'Choose which language the app should use.',
+                              sk: 'Vyber jazyk, ktorý má aplikácia používať.',
                             ),
-                            hint: context.tr(
-                              en: 'Choose the closest long-term preference',
-                              sk: 'Vyber najbližšie dlhodobé nastavenie',
-                            ),
-                            child: _MultiChoiceChipSelector(
-                              options: _dietStyles,
-                              selectedValues: _selectedDietStyles,
-                              featuredCount: 4,
-                              labelBuilder: (value) =>
-                                  _dietStyleLabel(context, value),
-                              onChanged: (values) {
-                                setState(() {
-                                  _selectedDietStyles =
-                                      _normalizeDietStyles(values);
-                                });
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 18),
-                      _PreferenceSection(
-                        title: context.tr(en: 'Language', sk: 'Jazyk'),
-                        icon: Icons.translate_rounded,
-                        accent: const Color(0xFF5B74E8),
-                        subtitle: context.tr(
-                          en: 'Choose which language the app should use.',
-                          sk: 'Vyber jazyk, ktorý má aplikácia používať.',
-                        ),
-                        children: [
-                          _PreferenceField(
-                            label: context.tr(
-                              en: 'App language',
-                              sk: 'Jazyk aplikácie',
-                            ),
-                            hint: context.tr(
-                              en: 'You can switch any time later',
-                              sk: 'Neskôr ho môžeš kedykoľvek zmeniť',
-                            ),
-                            child: DropdownButtonFormField<String>(
-                              initialValue: _selectedLanguage,
-                              decoration: appInputDecoration(
-                                context.tr(
+                            children: [
+                              _PreferenceField(
+                                label: context.tr(
                                   en: 'App language',
                                   sk: 'Jazyk aplikácie',
                                 ),
+                                hint: context.tr(
+                                  en: 'You can switch any time later',
+                                  sk: 'Neskôr ho môžeš kedykoľvek zmeniť',
+                                ),
+                                child: DropdownButtonFormField<String>(
+                                  initialValue: _selectedLanguage,
+                                  decoration: appInputDecoration(
+                                    context.tr(
+                                      en: 'App language',
+                                      sk: 'Jazyk aplikácie',
+                                    ),
+                                  ),
+                                  items: [
+                                    DropdownMenuItem(
+                                      value: 'en',
+                                      child: Text(
+                                        context.tr(
+                                          en: 'English',
+                                          sk: 'Angličtina',
+                                        ),
+                                      ),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: 'sk',
+                                      child: Text(
+                                        context.tr(
+                                          en: 'Slovak',
+                                          sk: 'Slovenčina',
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _selectedLanguage = value;
+                                    });
+                                  },
+                                ),
                               ),
-                              items: [
-                                DropdownMenuItem(
-                                  value: 'en',
-                                  child: Text(
-                                    context.tr(en: 'English', sk: 'Angličtina'),
-                                  ),
-                                ),
-                                DropdownMenuItem(
-                                  value: 'sk',
-                                  child: Text(
-                                    context.tr(en: 'Slovak', sk: 'Slovenčina'),
-                                  ),
-                                ),
-                              ],
-                              onChanged: (value) {
-                                setState(() {
-                                  _selectedLanguage = value;
-                                });
-                              },
-                            ),
+                            ],
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 18),
-                      _PreferenceSection(
-                        title: context.tr(
-                          en: 'Household habits',
-                          sk: 'Návyky domácnosti',
-                        ),
-                        icon: Icons.home_work_rounded,
-                        accent: const Color(0xFF8B6F45),
-                        subtitle: context.tr(
-                          en: 'These values help us tune meal-planning and pantry expectations later on.',
-                          sk: 'Tieto údaje nám neskôr pomôžu lepšie nastaviť plánovanie jedál a očakávania pre špajzu.',
-                        ),
-                        children: [
-                          _PreferenceField(
-                            label: context.tr(
-                              en: 'Cooking frequency',
-                              sk: 'Frekvencia varenia',
+                          const SizedBox(height: 18),
+                          _PreferenceSection(
+                            title: context.tr(
+                              en: 'Household habits',
+                              sk: 'Návyky domácnosti',
                             ),
-                            hint: context.tr(
-                              en: 'How often this household cooks at home',
-                              sk: 'Ako často táto domácnosť varí doma',
+                            icon: Icons.home_work_rounded,
+                            accent: const Color(0xFF8B6F45),
+                            subtitle: context.tr(
+                              en: 'These values help us tune meal-planning and pantry expectations later on.',
+                              sk: 'Tieto údaje nám neskôr pomôžu lepšie nastaviť plánovanie jedál a očakávania pre špajzu.',
                             ),
-                            child: DropdownButtonFormField<String>(
-                              initialValue: _selectedCookingFrequency,
-                              decoration: appInputDecoration(
-                                context.tr(
+                            children: [
+                              _PreferenceField(
+                                label: context.tr(
                                   en: 'Cooking frequency',
                                   sk: 'Frekvencia varenia',
                                 ),
-                              ),
-                              items: _cookingFrequencies
-                                  .map(
-                                    (value) => DropdownMenuItem(
-                                      value: value,
-                                      child: Text(
-                                        _cookingFrequencyLabel(context, value),
-                                      ),
+                                hint: context.tr(
+                                  en: 'How often this household cooks at home',
+                                  sk: 'Ako často táto domácnosť varí doma',
+                                ),
+                                child: DropdownButtonFormField<String>(
+                                  initialValue: _selectedCookingFrequency,
+                                  decoration: appInputDecoration(
+                                    context.tr(
+                                      en: 'Cooking frequency',
+                                      sk: 'Frekvencia varenia',
                                     ),
-                                  )
-                                  .toList(),
-                              onChanged: (value) {
-                                setState(() {
-                                  _selectedCookingFrequency = value;
-                                });
-                              },
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          _PreferenceField(
-                            label: context.tr(
-                              en: 'Household size',
-                              sk: 'Veľkosť domácnosti',
-                            ),
-                            hint: context.tr(
-                              en: 'How many people usually eat from this kitchen',
-                              sk: 'Koľko ľudí zvyčajne jedáva z tejto kuchyne',
-                            ),
-                            child: TextFormField(
-                              controller: _householdSizeController,
-                              keyboardType: TextInputType.number,
-                              decoration: appInputDecoration(
-                                context.tr(
+                                  ),
+                                  items: _cookingFrequencies
+                                      .map(
+                                        (value) => DropdownMenuItem(
+                                          value: value,
+                                          child: Text(
+                                            _cookingFrequencyLabel(
+                                              context,
+                                              value,
+                                            ),
+                                          ),
+                                        ),
+                                      )
+                                      .toList(),
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _selectedCookingFrequency = value;
+                                    });
+                                  },
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              _PreferenceField(
+                                label: context.tr(
                                   en: 'Household size',
                                   sk: 'Veľkosť domácnosti',
                                 ),
-                              ),
-                              validator: (value) {
-                                if ((value ?? '').trim().isEmpty) {
-                                  return null;
-                                }
-                                final parsed = int.tryParse(value!.trim());
-                                if (parsed == null || parsed <= 0) {
-                                  return context.tr(
-                                    en: 'Enter a valid number',
-                                    sk: 'Zadaj platné číslo',
-                                  );
-                                }
-                                return null;
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (!widget.isOnboarding) ...[
-                        const SizedBox(height: 18),
-                        _PreferenceSection(
-                          title: context.tr(
-                            en: 'Testing tools',
-                            sk: 'Testovacie nástroje',
-                          ),
-                          subtitle: context.tr(
-                            en: 'Use these shortcuts to speed up repeated tester flows.',
-                            sk: 'Tieto skratky urýchlia opakované testerské scenáre.',
-                          ),
-                          children: [
-                            Wrap(
-                              spacing: 12,
-                              runSpacing: 12,
-                              children: [
-                                FilledButton.tonalIcon(
-                                  onPressed: _applySampleProfile,
-                                  icon: const Icon(
-                                    Icons.auto_fix_high_outlined,
-                                  ),
-                                  label: Text(
-                                    context.tr(
-                                      en: 'Fill sample profile',
-                                      sk: 'Vyplniť ukážkový profil',
-                                    ),
-                                  ),
+                                hint: context.tr(
+                                  en: 'How many people usually eat from this kitchen',
+                                  sk: 'Koľko ľudí zvyčajne jedáva z tejto kuchyne',
                                 ),
-                                OutlinedButton.icon(
-                                  onPressed: _resetOnboardingForTesting,
-                                  icon: const Icon(Icons.restart_alt_rounded),
-                                  label: Text(
+                                child: TextFormField(
+                                  controller: _householdSizeController,
+                                  keyboardType: TextInputType.number,
+                                  decoration: appInputDecoration(
                                     context.tr(
-                                      en: 'Reset onboarding flag',
-                                      sk: 'Resetovať onboarding',
+                                      en: 'Household size',
+                                      sk: 'Veľkosť domácnosti',
                                     ),
                                   ),
+                                  validator: (value) {
+                                    if ((value ?? '').trim().isEmpty) {
+                                      return null;
+                                    }
+                                    final parsed = int.tryParse(value!.trim());
+                                    if (parsed == null || parsed <= 0) {
+                                      return context.tr(
+                                        en: 'Enter a valid number',
+                                        sk: 'Zadaj platné číslo',
+                                      );
+                                    }
+                                    return null;
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (!widget.isOnboarding) ...[
+                            const SizedBox(height: 18),
+                            _PreferenceSection(
+                              title: context.tr(
+                                en: 'Testing tools',
+                                sk: 'Testovacie nástroje',
+                              ),
+                              subtitle: context.tr(
+                                en: 'Use these shortcuts to speed up repeated tester flows.',
+                                sk: 'Tieto skratky urýchlia opakované testerské scenáre.',
+                              ),
+                              children: [
+                                Wrap(
+                                  spacing: 12,
+                                  runSpacing: 12,
+                                  children: [
+                                    FilledButton.tonalIcon(
+                                      onPressed: _applySampleProfile,
+                                      icon: const Icon(
+                                        Icons.auto_fix_high_outlined,
+                                      ),
+                                      label: Text(
+                                        context.tr(
+                                          en: 'Fill sample profile',
+                                          sk: 'Vyplniť ukážkový profil',
+                                        ),
+                                      ),
+                                    ),
+                                    OutlinedButton.icon(
+                                      onPressed: _resetOnboardingForTesting,
+                                      icon: const Icon(
+                                        Icons.restart_alt_rounded,
+                                      ),
+                                      label: Text(
+                                        context.tr(
+                                          en: 'Reset onboarding flag',
+                                          sk: 'Resetovať onboarding',
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
                           ],
-                        ),
-                      ],
-                      const SizedBox(height: 8),
-                      if (!widget.isOnboarding) ...[
-                        CheckboxListTile(
-                          value: _onboardingCompleted,
-                          onChanged: (value) {
-                            setState(() {
-                              _onboardingCompleted = value ?? false;
-                            });
-                          },
-                          contentPadding: EdgeInsets.zero,
-                          title: Text(
-                            context.tr(
-                              en: 'Mark onboarding as completed',
-                              sk: 'Označiť onboarding ako dokončený',
+                          const SizedBox(height: 8),
+                          if (!widget.isOnboarding) ...[
+                            CheckboxListTile(
+                              value: _onboardingCompleted,
+                              onChanged: (value) {
+                                setState(() {
+                                  _onboardingCompleted = value ?? false;
+                                });
+                              },
+                              contentPadding: EdgeInsets.zero,
+                              title: Text(
+                                context.tr(
+                                  en: 'Mark onboarding as completed',
+                                  sk: 'Označiť onboarding ako dokončený',
+                                ),
+                              ),
+                              subtitle: Text(
+                                context.tr(
+                                  en: 'This lets us reuse the same record later when we add first-login onboarding.',
+                                  sk: 'Týmto sa ten istý záznam bude dať neskôr použiť pri onboardingu po prvom prihlásení.',
+                                ),
+                              ),
+                              controlAffinity: ListTileControlAffinity.leading,
+                            ),
+                            const SizedBox(height: 20),
+                          ] else
+                            const SizedBox(height: 20),
+                          SizedBox(
+                            width: double.infinity,
+                            child: FilledButton(
+                              onPressed: _isSaving ? null : _save,
+                              child: Text(
+                                _isSaving
+                                    ? context.tr(
+                                        en: 'Saving...',
+                                        sk: 'Ukladám...',
+                                      )
+                                    : widget.isOnboarding
+                                    ? context.tr(
+                                        en: 'Continue',
+                                        sk: 'Pokračovať',
+                                      )
+                                    : context.tr(
+                                        en: 'Save preferences',
+                                        sk: 'Uložiť preferencie',
+                                      ),
+                              ),
                             ),
                           ),
-                          subtitle: Text(
-                            context.tr(
-                              en: 'This lets us reuse the same record later when we add first-login onboarding.',
-                              sk: 'Týmto sa ten istý záznam bude dať neskôr použiť pri onboardingu po prvom prihlásení.',
-                            ),
-                          ),
-                          controlAffinity: ListTileControlAffinity.leading,
-                        ),
-                        const SizedBox(height: 20),
-                      ] else
-                        const SizedBox(height: 20),
-                      SizedBox(
-                        width: double.infinity,
-                        child: FilledButton(
-                          onPressed: _isSaving ? null : _save,
-                          child: Text(
-                            _isSaving
-                                ? context.tr(en: 'Saving...', sk: 'Ukladám...')
-                                : widget.isOnboarding
-                                ? context.tr(en: 'Continue', sk: 'Pokračovať')
-                                : context.tr(
-                                    en: 'Save preferences',
-                                    sk: 'Uložiť preferencie',
-                                  ),
-                          ),
-                        ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
-              ),
-            ],
-          );
-          },
+                ],
+              );
+            },
+          ),
         ),
-      ),
       ),
     );
   }
@@ -1001,10 +1095,7 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
       'omnivore' => context.tr(en: 'Omnivore', sk: 'Všežravec'),
       'flexitarian' => context.tr(en: 'Flexitarian', sk: 'Flexitarián'),
       'pescatarian' => context.tr(en: 'Pescatarian', sk: 'Pescetarián'),
-      'low_carb' => context.tr(
-        en: 'Low-carb',
-        sk: 'Nízkosacharidová strava',
-      ),
+      'low_carb' => context.tr(en: 'Low-carb', sk: 'Nízkosacharidová strava'),
       'mediterranean' => context.tr(
         en: 'Mediterranean',
         sk: 'Stredomorská strava',
@@ -1016,10 +1107,7 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
       ),
       'halal' => context.tr(en: 'Halal', sk: 'Halal'),
       'kosher' => context.tr(en: 'Kosher', sk: 'Kóšer'),
-      'plant_based' => context.tr(
-        en: 'Plant-based',
-        sk: 'Rastlinná strava',
-      ),
+      'plant_based' => context.tr(en: 'Plant-based', sk: 'Rastlinná strava'),
       _ => value,
     };
   }
@@ -1140,7 +1228,9 @@ class _PreferenceSection extends StatelessWidget {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: (accent ?? SafoColors.primary).withValues(alpha: 0.12),
+                    color: (accent ?? SafoColors.primary).withValues(
+                      alpha: 0.12,
+                    ),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
@@ -1205,10 +1295,7 @@ class _PreferencesHeader extends StatelessWidget {
               ),
             ),
             const Spacer(),
-            const SafoLogo(
-              variant: SafoLogoVariant.pill,
-              height: 28,
-            ),
+            const SafoLogo(variant: SafoLogoVariant.pill, height: 28),
           ],
         ),
         const SizedBox(height: 18),
@@ -1336,9 +1423,7 @@ class _PreferencesOverviewCard extends StatelessWidget {
 class _KitchenSetupHero extends StatelessWidget {
   final String imageAsset;
 
-  const _KitchenSetupHero({
-    required this.imageAsset,
-  });
+  const _KitchenSetupHero({required this.imageAsset});
 
   @override
   Widget build(BuildContext context) {
@@ -1386,9 +1471,9 @@ class _KitchenSetupHero extends StatelessWidget {
               ),
               child: Text(
                 context.tr(en: 'Kitchen profile', sk: 'Profil kuchyne'),
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
               ),
             ),
           ),
@@ -1402,10 +1487,7 @@ class _KitchenSetupSummary extends StatelessWidget {
   final String title;
   final List<String> items;
 
-  const _KitchenSetupSummary({
-    required this.title,
-    required this.items,
-  });
+  const _KitchenSetupSummary({required this.title, required this.items});
 
   @override
   Widget build(BuildContext context) {
@@ -1421,9 +1503,9 @@ class _KitchenSetupSummary extends StatelessWidget {
         children: [
           Text(
             title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 14),
           ...items.map(

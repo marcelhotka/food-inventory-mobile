@@ -507,6 +507,7 @@ class AppPageStateScaffold extends StatelessWidget {
   final Future<void> Function()? onRefresh;
   final EdgeInsetsGeometry padding;
   final double spacing;
+  final bool safeArea;
 
   const AppPageStateScaffold({
     super.key,
@@ -520,6 +521,7 @@ class AppPageStateScaffold extends StatelessWidget {
       SafoSpacing.xxl,
     ),
     this.spacing = SafoSpacing.lg,
+    this.safeArea = true,
   });
 
   @override
@@ -534,12 +536,15 @@ class AppPageStateScaffold extends StatelessWidget {
       ],
     );
 
-    return SafeArea(
-      bottom: false,
-      child: onRefresh == null
-          ? listView
-          : RefreshIndicator(onRefresh: onRefresh!, child: listView),
-    );
+    final content = onRefresh == null
+        ? listView
+        : RefreshIndicator(onRefresh: onRefresh!, child: listView);
+
+    if (!safeArea) {
+      return content;
+    }
+
+    return SafeArea(bottom: false, child: content);
   }
 }
 

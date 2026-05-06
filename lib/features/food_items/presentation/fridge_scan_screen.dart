@@ -311,7 +311,20 @@ class _FridgeScanScreenState extends State<FridgeScanScreen> {
         future: scanFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const AppLoadingState();
+            return AppPageStateScaffold(
+              header: _ScanScreenHeader(
+                title: context.tr(
+                  en: 'Scan your fridge',
+                  sk: 'Naskenuj svoju chladničku',
+                ),
+                subtitle: context.tr(
+                  en: 'Safo is preparing your fridge scan and review suggestions.',
+                  sk: 'Safo pripravuje scan chladničky a návrhy na kontrolu.',
+                ),
+                onBack: () => Navigator.of(context).maybePop(),
+              ),
+              child: const AppLoadingState(),
+            );
           }
 
           if (snapshot.hasError) {
