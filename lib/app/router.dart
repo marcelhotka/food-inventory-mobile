@@ -153,24 +153,47 @@ class _RootScreenState extends State<_RootScreen> {
       future: _householdFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const AppLoadingState();
+          return _RouterBootstrapStateScreen(
+            title: context.tr(
+              en: 'Opening your household',
+              sk: 'Otváram tvoju domácnosť',
+            ),
+            subtitle: context.tr(
+              en: 'Safo is preparing your shared kitchen space.',
+              sk: 'Safo pripravuje tvoj spoločný kuchynský priestor.',
+            ),
+            badgeLabel: context.tr(en: 'Household', sk: 'Domácnosť'),
+            child: const AppLoadingState(),
+          );
         }
 
         if (snapshot.hasError) {
-          return AppErrorState(
-            kind: inferAppErrorKind(
-              snapshot.error,
-              fallback: AppErrorKind.sync,
-            ),
+          return _RouterBootstrapStateScreen(
             title: context.tr(
-              en: 'Unable to open your household',
-              sk: 'Nepodarilo sa otvoriť tvoju domácnosť',
+              en: 'Opening your household',
+              sk: 'Otváram tvoju domácnosť',
             ),
-            message: context.tr(
-              en: 'Failed to load household.',
-              sk: 'Nepodarilo sa načítať domácnosť.',
+            subtitle: context.tr(
+              en: 'Safo is preparing your shared kitchen space.',
+              sk: 'Safo pripravuje tvoj spoločný kuchynský priestor.',
             ),
-            onRetry: _loadHousehold,
+            badgeLabel: context.tr(en: 'Household', sk: 'Domácnosť'),
+            onRefresh: _loadHousehold,
+            child: AppErrorState(
+              kind: inferAppErrorKind(
+                snapshot.error,
+                fallback: AppErrorKind.sync,
+              ),
+              title: context.tr(
+                en: 'Unable to open your household',
+                sk: 'Nepodarilo sa otvoriť tvoju domácnosť',
+              ),
+              message: context.tr(
+                en: 'Failed to load household.',
+                sk: 'Nepodarilo sa načítať domácnosť.',
+              ),
+              onRetry: _loadHousehold,
+            ),
           );
         }
 
@@ -209,7 +232,18 @@ class _RootScreenState extends State<_RootScreen> {
           builder: (context, preferencesSnapshot) {
             if (preferencesSnapshot.connectionState ==
                 ConnectionState.waiting) {
-              return const AppLoadingState();
+              return _RouterBootstrapStateScreen(
+                title: context.tr(
+                  en: 'Preparing your preferences',
+                  sk: 'Pripravujem tvoje preferencie',
+                ),
+                subtitle: context.tr(
+                  en: 'Safo is checking how recipes, alerts and recommendations should adapt to you.',
+                  sk: 'Safo kontroluje, ako má prispôsobiť recepty, upozornenia a odporúčania práve tebe.',
+                ),
+                badgeLabel: context.tr(en: 'Preferences', sk: 'Preferencie'),
+                child: const AppLoadingState(),
+              );
             }
 
             if (preferencesSnapshot.hasError) {
@@ -221,20 +255,32 @@ class _RootScreenState extends State<_RootScreen> {
                 );
               }
 
-              return AppErrorState(
-                kind: inferAppErrorKind(
-                  preferencesSnapshot.error,
-                  fallback: AppErrorKind.sync,
-                ),
+              return _RouterBootstrapStateScreen(
                 title: context.tr(
-                  en: 'Unable to open preferences',
-                  sk: 'Nepodarilo sa otvoriť preferencie',
+                  en: 'Preparing your preferences',
+                  sk: 'Pripravujem tvoje preferencie',
                 ),
-                message: context.tr(
-                  en: 'Failed to load preferences.',
-                  sk: 'Nepodarilo sa načítať preferencie.',
+                subtitle: context.tr(
+                  en: 'Safo is checking how recipes, alerts and recommendations should adapt to you.',
+                  sk: 'Safo kontroluje, ako má prispôsobiť recepty, upozornenia a odporúčania práve tebe.',
                 ),
-                onRetry: _loadPreferences,
+                badgeLabel: context.tr(en: 'Preferences', sk: 'Preferencie'),
+                onRefresh: _loadPreferences,
+                child: AppErrorState(
+                  kind: inferAppErrorKind(
+                    preferencesSnapshot.error,
+                    fallback: AppErrorKind.sync,
+                  ),
+                  title: context.tr(
+                    en: 'Unable to open preferences',
+                    sk: 'Nepodarilo sa otvoriť preferencie',
+                  ),
+                  message: context.tr(
+                    en: 'Failed to load preferences.',
+                    sk: 'Nepodarilo sa načítať preferencie.',
+                  ),
+                  onRetry: _loadPreferences,
+                ),
               );
             }
 
@@ -255,6 +301,40 @@ class _RootScreenState extends State<_RootScreen> {
           },
         );
       },
+    );
+  }
+}
+
+class _RouterBootstrapStateScreen extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final String badgeLabel;
+  final Widget child;
+  final Future<void> Function()? onRefresh;
+
+  const _RouterBootstrapStateScreen({
+    required this.title,
+    required this.subtitle,
+    required this.badgeLabel,
+    required this.child,
+    this.onRefresh,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: AppPageStateScaffold(
+        onRefresh: onRefresh,
+        header: SafoPageHeader(
+          title: title,
+          subtitle: subtitle,
+          dark: false,
+          badges: [
+            _RouterInfoBadge(icon: Icons.sync_rounded, label: badgeLabel),
+          ],
+        ),
+        child: child,
+      ),
     );
   }
 }
@@ -377,9 +457,9 @@ class _RouterInfoBadge extends StatelessWidget {
           const SizedBox(width: SafoSpacing.xs),
           Text(
             label,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700),
           ),
         ],
       ),
@@ -403,10 +483,7 @@ class _UnknownRouteScreen extends StatelessWidget {
           ),
           children: [
             SafoPageHeader(
-              title: context.tr(
-                en: 'Page not found',
-                sk: 'Stránka sa nenašla',
-              ),
+              title: context.tr(en: 'Page not found', sk: 'Stránka sa nenašla'),
               subtitle: context.tr(
                 en: 'That part of Safo is not available from this route.',
                 sk: 'Táto časť Safo nie je cez túto cestu dostupná.',
