@@ -5,6 +5,7 @@ import '../../../app/theme/safo_tokens.dart';
 import '../../../core/food/food_signal_catalog.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/app_feedback.dart';
+import '../../../core/widgets/safo_alert_dialog.dart';
 import '../../../core/widgets/safo_logo.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/presentation/sign_out_action.dart';
@@ -720,15 +721,18 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
   Future<void> _deleteItem(ShoppingListItem item) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          context.tr(en: 'Delete shopping item', sk: 'Zmazať nákupnú položku'),
+      builder: (context) => SafoAlertDialog(
+        badge: context.tr(en: 'Shopping list', sk: 'Nákupný zoznam'),
+        icon: Icons.delete_outline_rounded,
+        iconColor: SafoColors.danger,
+        iconBackgroundColor: SafoColors.dangerSoft,
+        title: context.tr(
+          en: 'Delete shopping item',
+          sk: 'Zmazať nákupnú položku',
         ),
-        content: Text(
-          context.tr(
-            en: 'Do you want to delete "${item.name}"?',
-            sk: 'Chceš zmazať položku "${item.name}"?',
-          ),
+        subtitle: context.tr(
+          en: 'Do you want to delete "${item.name}"?',
+          sk: 'Chceš zmazať položku "${item.name}"?',
         ),
         actions: [
           TextButton(
@@ -1455,8 +1459,18 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
+      builder: (context) => SafoAlertDialog(
+        badge: isAllergy
+            ? context.tr(en: 'Safety warning', sk: 'Bezpečnostné upozornenie')
+            : context.tr(en: 'Intolerance', sk: 'Intolerancia'),
+        icon: isAllergy
+            ? Icons.warning_amber_rounded
+            : Icons.info_outline_rounded,
+        iconColor: isAllergy ? SafoColors.danger : SafoColors.warning,
+        iconBackgroundColor: isAllergy
+            ? SafoColors.dangerSoft
+            : SafoColors.warningSoft,
+        title: title,
         content: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

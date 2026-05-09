@@ -5,6 +5,7 @@ import '../../../app/theme/safo_tokens.dart';
 import '../../../core/food/food_signal_catalog.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/app_feedback.dart';
+import '../../../core/widgets/safo_alert_dialog.dart';
 import '../../../core/widgets/safo_logo.dart';
 import '../../../core/widgets/safo_page_header.dart';
 import '../../auth/data/auth_repository.dart';
@@ -356,18 +357,18 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
     if (promptForMerge) {
       final decision = await showDialog<bool>(
         context: context,
-        builder: (context) => AlertDialog(
-          title: Text(
-            context.tr(
-              en: 'Similar pantry item found',
-              sk: 'Našla sa podobná pantry položka',
-            ),
+        builder: (context) => SafoAlertDialog(
+          badge: context.tr(en: 'Pantry', sk: 'Špajza'),
+          icon: Icons.merge_type_rounded,
+          iconColor: SafoColors.accent,
+          iconBackgroundColor: SafoColors.accentSoft,
+          title: context.tr(
+            en: 'Similar pantry item found',
+            sk: 'Našla sa podobná pantry položka',
           ),
-          content: Text(
-            context.tr(
-              en: 'You already have "${match.name}" in pantry. Do you want to increase the existing quantity instead of creating a duplicate item?',
-              sk: 'Položku "${match.name}" už v špajzi máš. Chceš navýšiť existujúce množstvo namiesto vytvorenia duplicity?',
-            ),
+          subtitle: context.tr(
+            en: 'You already have "${match.name}" in pantry. Do you want to increase the existing quantity instead of creating a duplicate item?',
+            sk: 'Položku "${match.name}" už v špajzi máš. Chceš navýšiť existujúce množstvo namiesto vytvorenia duplicity?',
           ),
           actions: [
             TextButton(
@@ -597,13 +598,15 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
   Future<void> _deleteItem(FoodItem item) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(context.tr(en: 'Delete food item', sk: 'Zmazať položku')),
-        content: Text(
-          context.tr(
-            en: 'Do you want to delete "${item.name}"?',
-            sk: 'Chceš zmazať položku "${item.name}"?',
-          ),
+      builder: (context) => SafoAlertDialog(
+        badge: context.tr(en: 'Pantry', sk: 'Špajza'),
+        icon: Icons.delete_outline_rounded,
+        iconColor: SafoColors.danger,
+        iconBackgroundColor: SafoColors.dangerSoft,
+        title: context.tr(en: 'Delete food item', sk: 'Zmazať položku'),
+        subtitle: context.tr(
+          en: 'Do you want to delete "${item.name}"?',
+          sk: 'Chceš zmazať položku "${item.name}"?',
         ),
         actions: [
           TextButton(
@@ -1689,25 +1692,26 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          context.tr(
-            en: 'Merge duplicate pantry items',
-            sk: 'Zlúčiť duplicitné pantry položky',
-          ),
+      builder: (context) => SafoAlertDialog(
+        badge: context.tr(en: 'Pantry', sk: 'Špajza'),
+        icon: Icons.layers_clear_rounded,
+        iconColor: SafoColors.accent,
+        iconBackgroundColor: SafoColors.accentSoft,
+        title: context.tr(
+          en: 'Merge duplicate pantry items',
+          sk: 'Zlúčiť duplicitné pantry položky',
         ),
-        content: Text(
-          context.tr(
-                en: 'This will merge $duplicateCount duplicate item${duplicateCount == 1 ? '' : 's'} and sum their quantities.',
-                sk: 'Týmto zlúčiš $duplicateCount duplicitn${duplicateCount == 1 ? 'ú položku' : 'é položky'} a spočítajú sa ich množstvá.',
-              ) +
-              (previewNames.isEmpty
-                  ? ''
-                  : context.tr(
-                      en: '\n\nExamples: $previewNames',
-                      sk: '\n\nPríklady: $previewNames',
-                    )),
-        ),
+        subtitle:
+            context.tr(
+              en: 'This will merge $duplicateCount duplicate item${duplicateCount == 1 ? '' : 's'} and sum their quantities.',
+              sk: 'Týmto zlúčiš $duplicateCount duplicitn${duplicateCount == 1 ? 'ú položku' : 'é položky'} a spočítajú sa ich množstvá.',
+            ) +
+            (previewNames.isEmpty
+                ? ''
+                : context.tr(
+                    en: '\n\nExamples: $previewNames',
+                    sk: '\n\nPríklady: $previewNames',
+                  )),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
