@@ -958,13 +958,15 @@ class _RecipesScreenState extends State<RecipesScreen> {
   Future<void> _deleteRecipe(Recipe recipe) async {
     final useConfirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(context.tr(en: 'Delete recipe', sk: 'Zmazať recept')),
-        content: Text(
-          context.tr(
-            en: 'Do you want to delete "${localizedRecipeName(context, recipe)}"?',
-            sk: 'Chceš zmazať recept "${localizedRecipeName(context, recipe)}"?',
-          ),
+      builder: (context) => SafoAlertDialog(
+        badge: context.tr(en: 'Recipes', sk: 'Recepty'),
+        icon: Icons.delete_outline_rounded,
+        iconColor: SafoColors.danger,
+        iconBackgroundColor: SafoColors.dangerSoft,
+        title: context.tr(en: 'Delete recipe', sk: 'Zmazať recept'),
+        subtitle: context.tr(
+          en: 'Do you want to delete "${localizedRecipeName(context, recipe)}"?',
+          sk: 'Chceš zmazať recept "${localizedRecipeName(context, recipe)}"?',
         ),
         actions: [
           TextButton(
@@ -1459,24 +1461,24 @@ class _RecipesScreenState extends State<RecipesScreen> {
 
     final useConfirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          context.tr(
-            en: 'Use ingredients from recipe',
-            sk: 'Použiť suroviny z receptu',
-          ),
+      builder: (context) => SafoAlertDialog(
+        badge: context.tr(en: 'Recipes', sk: 'Recepty'),
+        icon: Icons.kitchen_outlined,
+        iconColor: SafoColors.primary,
+        iconBackgroundColor: SafoColors.primarySoft,
+        title: context.tr(
+          en: 'Use ingredients from recipe',
+          sk: 'Použiť suroviny z receptu',
         ),
-        content: Text(
-          freshResult.partial.isEmpty
-              ? context.tr(
-                  en: 'This will deduct the recipe ingredients from your pantry.',
-                  sk: 'Týmto sa odrátajú suroviny receptu z tvojej špajze.',
-                )
-              : context.tr(
-                  en: 'This will deduct only the available pantry ingredients. Missing parts stay unchanged.',
-                  sk: 'Týmto sa odrátajú len dostupné suroviny zo špajze. Chýbajúce časti ostanú nezmenené.',
-                ),
-        ),
+        subtitle: freshResult.partial.isEmpty
+            ? context.tr(
+                en: 'This will deduct the recipe ingredients from your pantry.',
+                sk: 'Týmto sa odrátajú suroviny receptu z tvojej špajze.',
+              )
+            : context.tr(
+                en: 'This will deduct only the available pantry ingredients. Missing parts stay unchanged.',
+                sk: 'Týmto sa odrátajú len dostupné suroviny zo špajze. Chýbajúce časti ostanú nezmenené.',
+              ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),

@@ -343,8 +343,16 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
   ) async {
     final selectedUserId = await showDialog<String?>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(context.tr(en: 'Assign cook', sk: 'Priradiť varenie')),
+      builder: (context) => SafoAlertDialog(
+        badge: context.tr(en: 'Meal plan', sk: 'Jedálniček'),
+        icon: Icons.person_add_alt_1_rounded,
+        iconColor: SafoColors.accent,
+        iconBackgroundColor: SafoColors.accentSoft,
+        title: context.tr(en: 'Assign cook', sk: 'Priradiť varenie'),
+        subtitle: context.tr(
+          en: 'Choose who should cook this planned meal.',
+          sk: 'Vyber, kto má variť toto plánované jedlo.',
+        ),
         content: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 380),
           child: SingleChildScrollView(
@@ -683,13 +691,21 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Text(
-          context.tr(
-            en: 'Some planned meals may conflict with your preferences because they contain ${warning.matchedSignals.join(', ')}.\n\nAffected meals: $affectedMealsText.\n\nDo you still want to $actionLabel?',
-            sk: 'Niektoré plánované jedlá môžu kolidovať s tvojimi preferenciami, pretože obsahujú ${warning.matchedSignals.join(', ')}.\n\nOvplyvnené jedlá: $affectedMealsText.\n\nStále chceš $actionLabel?',
-          ),
+      builder: (context) => SafoAlertDialog(
+        badge: isAllergy
+            ? context.tr(en: 'Safety warning', sk: 'Bezpečnostné upozornenie')
+            : context.tr(en: 'Intolerance', sk: 'Intolerancia'),
+        icon: isAllergy
+            ? Icons.warning_amber_rounded
+            : Icons.info_outline_rounded,
+        iconColor: isAllergy ? SafoColors.danger : SafoColors.warning,
+        iconBackgroundColor: isAllergy
+            ? SafoColors.dangerSoft
+            : SafoColors.warningSoft,
+        title: title,
+        subtitle: context.tr(
+          en: 'Some planned meals may conflict with your preferences because they contain ${warning.matchedSignals.join(', ')}.\n\nAffected meals: $affectedMealsText.\n\nDo you still want to $actionLabel?',
+          sk: 'Niektoré plánované jedlá môžu kolidovať s tvojimi preferenciami, pretože obsahujú ${warning.matchedSignals.join(', ')}.\n\nOvplyvnené jedlá: $affectedMealsText.\n\nStále chceš $actionLabel?',
         ),
         actions: [
           TextButton(
