@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/localization/app_locale.dart';
+import '../../../app/theme/safo_tokens.dart';
 import '../../../core/widgets/app_feedback.dart';
+import '../../../core/widgets/safo_alert_dialog.dart';
 import '../data/auth_repository.dart';
 
 Future<void> confirmAndSignOut(
@@ -11,18 +13,18 @@ Future<void> confirmAndSignOut(
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (dialogContext) {
-      return AlertDialog(
-        title: Text(
-          dialogContext.tr(
-            en: 'Sign out and start over?',
-            sk: 'Odhlásiť sa a začať odznova?',
-          ),
+      return SafoAlertDialog(
+        badge: dialogContext.tr(en: 'Account', sk: 'Účet'),
+        icon: Icons.logout_rounded,
+        iconColor: SafoColors.danger,
+        iconBackgroundColor: SafoColors.dangerSoft,
+        title: dialogContext.tr(
+          en: 'Sign out and start over?',
+          sk: 'Odhlásiť sa a začať odznova?',
         ),
-        content: Text(
-          dialogContext.tr(
-            en: 'Safo will return to the first welcome screen so you can go through the full setup again.',
-            sk: 'Safo ťa vráti na prvú úvodnú obrazovku, aby si mohol prejsť celý setup znova.',
-          ),
+        subtitle: dialogContext.tr(
+          en: 'Safo will return to the first welcome screen so you can go through the full setup again.',
+          sk: 'Safo ťa vráti na prvú úvodnú obrazovku, aby si mohol prejsť celý setup znova.',
         ),
         actions: [
           TextButton(
@@ -54,10 +56,7 @@ Future<void> confirmAndSignOut(
         en: 'Safo could not sign you out right now.',
         sk: 'Safo ťa teraz nedokázalo odhlásiť.',
       ),
-      title: context.tr(
-        en: 'Sign-out failed',
-        sk: 'Odhlásenie zlyhalo',
-      ),
+      title: context.tr(en: 'Sign-out failed', sk: 'Odhlásenie zlyhalo'),
     );
   }
 }

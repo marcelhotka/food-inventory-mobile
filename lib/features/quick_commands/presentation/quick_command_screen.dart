@@ -4,6 +4,7 @@ import '../../../app/localization/app_locale.dart';
 import '../../../app/theme/safo_tokens.dart';
 import '../../../core/forms/app_input_decoration.dart';
 import '../../../core/widgets/app_feedback.dart';
+import '../../../core/widgets/safo_alert_dialog.dart';
 import '../../../core/widgets/safo_page_header.dart';
 import '../data/quick_command_service.dart';
 import '../domain/quick_command_models.dart';
@@ -123,12 +124,16 @@ class _QuickCommandScreenState extends State<QuickCommandScreen> {
     return showDialog<bool>(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: Text(
-            context.tr(
-              en: 'Confirm quick command',
-              sk: 'Potvrdiť rýchly príkaz',
-            ),
+        return SafoAlertDialog(
+          badge: context.tr(en: 'Quick command', sk: 'Rýchly príkaz'),
+          icon: Icons.bolt_rounded,
+          title: context.tr(
+            en: 'Confirm quick command',
+            sk: 'Potvrdiť rýchly príkaz',
+          ),
+          subtitle: context.tr(
+            en: 'Safo will apply these pantry and shopping updates after you confirm.',
+            sk: 'Safo po potvrdení vykoná tieto zmeny v špajzi a nákupe.',
           ),
           content: SingleChildScrollView(
             child: Column(

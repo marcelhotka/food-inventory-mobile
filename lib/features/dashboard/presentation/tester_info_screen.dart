@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../../app/localization/app_locale.dart';
 import '../../../app/theme/safo_tokens.dart';
 import '../../../core/widgets/app_feedback.dart';
+import '../../../core/widgets/safo_alert_dialog.dart';
 import '../../../core/widgets/safo_page_header.dart';
 import '../../food_items/data/food_items_repository.dart';
 import '../../households/domain/household.dart';
@@ -101,15 +102,15 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
   Future<void> _clearSampleData() async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          context.tr(en: 'Clear sample data', sk: 'Vymazať ukážkové dáta'),
-        ),
-        content: Text(
-          context.tr(
-            en: 'This removes only the sample Pantry, Shopping List, and Meal plan items added from Tester info.',
-            sk: 'Týmto sa odstránia len ukážkové položky zo špajze, nákupného zoznamu a jedálnička pridané z Tester info.',
-          ),
+      builder: (context) => SafoAlertDialog(
+        badge: context.tr(en: 'Tester mode', sk: 'Tester režim'),
+        icon: Icons.cleaning_services_outlined,
+        iconColor: SafoColors.warning,
+        iconBackgroundColor: SafoColors.warningSoft,
+        title: context.tr(en: 'Clear sample data', sk: 'Vymazať ukážkové dáta'),
+        subtitle: context.tr(
+          en: 'This removes only the sample Pantry, Shopping List, and Meal plan items added from Tester info.',
+          sk: 'Týmto sa odstránia len ukážkové položky zo špajze, nákupného zoznamu a jedálnička pridané z Tester info.',
         ),
         actions: [
           TextButton(
