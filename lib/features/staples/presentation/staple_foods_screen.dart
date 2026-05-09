@@ -5,6 +5,7 @@ import '../../../app/localization/app_locale.dart';
 import '../../../app/theme/safo_tokens.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/app_feedback.dart';
+import '../../../core/widgets/safo_alert_dialog.dart';
 import '../../../core/widgets/safo_page_header.dart';
 import '../../food_items/data/food_items_repository.dart';
 import '../../food_items/domain/food_item.dart';
@@ -194,15 +195,18 @@ class _StapleFoodsScreenState extends State<StapleFoodsScreen> {
   Future<void> _deleteStaple(StapleFood item) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          context.tr(en: 'Delete staple food', sk: 'Zmazať základnú potravinu'),
+      builder: (context) => SafoAlertDialog(
+        badge: context.tr(en: 'Staple foods', sk: 'Základné potraviny'),
+        icon: Icons.delete_outline_rounded,
+        iconColor: SafoColors.danger,
+        iconBackgroundColor: SafoColors.dangerSoft,
+        title: context.tr(
+          en: 'Delete staple food',
+          sk: 'Zmazať základnú potravinu',
         ),
-        content: Text(
-          context.tr(
-            en: 'Do you want to delete "${item.name}"?',
-            sk: 'Chceš zmazať "${item.name}"?',
-          ),
+        subtitle: context.tr(
+          en: 'Do you want to delete "${item.name}"?',
+          sk: 'Chceš zmazať "${item.name}"?',
         ),
         actions: [
           TextButton(

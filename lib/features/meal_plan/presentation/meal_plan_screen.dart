@@ -5,6 +5,7 @@ import '../../../app/localization/app_locale.dart';
 import '../../../app/theme/safo_tokens.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/app_feedback.dart';
+import '../../../core/widgets/safo_alert_dialog.dart';
 import '../../../core/widgets/safo_logo.dart';
 import '../../food_items/data/food_items_repository.dart';
 import '../../food_items/domain/food_item.dart';
@@ -283,18 +284,18 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
   Future<void> _deleteEntry(MealPlanEntry entry) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          context.tr(
-            en: 'Delete meal plan entry',
-            sk: 'Odstrániť položku jedálnička',
-          ),
+      builder: (context) => SafoAlertDialog(
+        badge: context.tr(en: 'Meal plan', sk: 'Jedálniček'),
+        icon: Icons.delete_outline_rounded,
+        iconColor: SafoColors.danger,
+        iconBackgroundColor: SafoColors.dangerSoft,
+        title: context.tr(
+          en: 'Delete meal plan entry',
+          sk: 'Odstrániť položku jedálnička',
         ),
-        content: Text(
-          context.tr(
-            en: 'Do you want to delete "${entry.recipeName}"?',
-            sk: 'Chceš odstrániť „${entry.recipeName}“?',
-          ),
+        subtitle: context.tr(
+          en: 'Do you want to delete "${entry.recipeName}"?',
+          sk: 'Chceš odstrániť „${entry.recipeName}“?',
         ),
         actions: [
           TextButton(

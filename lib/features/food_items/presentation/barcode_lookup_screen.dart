@@ -4,6 +4,7 @@ import '../../../app/localization/app_locale.dart';
 import '../../../app/theme/safo_tokens.dart';
 import '../../../core/forms/app_input_decoration.dart';
 import '../../../core/widgets/app_feedback.dart';
+import '../../../core/widgets/safo_alert_dialog.dart';
 import '../../../core/widgets/safo_page_header.dart';
 import '../data/barcode_lookup_service.dart';
 import '../domain/barcode_lookup_result.dart';
@@ -52,15 +53,15 @@ class _BarcodeLookupScreenState extends State<BarcodeLookupScreen> {
     if (result == null) {
       final fallback = await showDialog<bool>(
         context: context,
-        builder: (context) => AlertDialog(
-          title: Text(
-            context.tr(en: 'Product not found', sk: 'Produkt sa nenašiel'),
-          ),
-          content: Text(
-            context.tr(
-              en: 'We could not find barcode "$barcode". Do you want to continue with a basic prefilled item and edit it manually?',
-              sk: 'Čiarový kód „$barcode“ sa nepodarilo nájsť. Chceš pokračovať so základne predvyplnenou položkou a upraviť ju ručne?',
-            ),
+        builder: (context) => SafoAlertDialog(
+          badge: context.tr(en: 'Barcode scan', sk: 'Sken čiarového kódu'),
+          icon: Icons.qr_code_scanner_rounded,
+          iconColor: SafoColors.accent,
+          iconBackgroundColor: SafoColors.accentSoft,
+          title: context.tr(en: 'Product not found', sk: 'Produkt sa nenašiel'),
+          subtitle: context.tr(
+            en: 'We could not find barcode "$barcode". Do you want to continue with a basic prefilled item and edit it manually?',
+            sk: 'Čiarový kód „$barcode“ sa nepodarilo nájsť. Chceš pokračovať so základne predvyplnenou položkou a upraviť ju ručne?',
           ),
           actions: [
             TextButton(

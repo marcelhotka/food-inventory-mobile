@@ -7,6 +7,7 @@ import '../../../app/localization/app_locale.dart';
 import '../../../app/theme/safo_tokens.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/app_feedback.dart';
+import '../../../core/widgets/safo_alert_dialog.dart';
 import '../../../core/widgets/safo_logo.dart';
 import '../../food_items/data/food_items_repository.dart';
 import '../../food_items/domain/food_item.dart';
@@ -1761,8 +1762,18 @@ class _RecipesScreenState extends State<RecipesScreen> {
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
+      builder: (context) => SafoAlertDialog(
+        badge: isAllergy
+            ? context.tr(en: 'Safety warning', sk: 'Bezpečnostné upozornenie')
+            : context.tr(en: 'Intolerance', sk: 'Intolerancia'),
+        icon: isAllergy
+            ? Icons.warning_amber_rounded
+            : Icons.info_outline_rounded,
+        iconColor: isAllergy ? SafoColors.danger : SafoColors.warning,
+        iconBackgroundColor: isAllergy
+            ? SafoColors.dangerSoft
+            : SafoColors.warningSoft,
+        title: title,
         content: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
