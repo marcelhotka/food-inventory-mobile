@@ -205,10 +205,17 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
     _householdSizeController.text =
         preferences?.householdSize?.toString() ?? '';
     _selectedDietStyles = {...(preferences?.dietStyles ?? const <String>[])};
-    _selectedCookingFrequency = preferences?.cookingFrequency;
-    _selectedLanguage =
-        preferences?.preferredLanguage ??
-        context.localeController.locale.languageCode;
+    _selectedCookingFrequency =
+        _cookingFrequencies.contains(preferences?.cookingFrequency)
+        ? preferences?.cookingFrequency
+        : null;
+    final preferredLanguage = preferences?.preferredLanguage;
+    final currentLanguageCode = context.localeController.locale.languageCode;
+    _selectedLanguage = preferredLanguage == 'en' || preferredLanguage == 'sk'
+        ? preferredLanguage
+        : currentLanguageCode == 'sk'
+        ? 'sk'
+        : 'en';
     _onboardingCompleted = preferences?.onboardingCompleted ?? false;
   }
 
