@@ -55,6 +55,22 @@ class FoodItemsScreen extends StatefulWidget {
 }
 
 class _FoodItemsScreenState extends State<FoodItemsScreen> {
+  static const Set<String> _knownPantryCategories = {
+    'produce',
+    'dairy',
+    'meat',
+    'grains',
+    'canned',
+    'frozen',
+    'beverages',
+    'other',
+  };
+  static const Set<String> _knownStorageLocations = {
+    'fridge',
+    'freezer',
+    'pantry',
+  };
+
   late final FoodItemsRepository repository = FoodItemsRepository(
     householdId: widget.household.id,
   );
@@ -268,8 +284,8 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
           householdId: widget.household.id,
           name: prefill.name,
           barcode: prefill.barcode,
-          category: prefill.category,
-          storageLocation: prefill.storageLocation,
+          category: _normalizedPantryCategory(prefill.category),
+          storageLocation: _normalizedStorageLocation(prefill.storageLocation),
           quantity: prefill.quantity,
           lowStockThreshold: prefill.lowStockThreshold,
           unit: prefill.unit,
@@ -335,6 +351,14 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
         ),
       );
     }
+  }
+
+  String _normalizedPantryCategory(String value) {
+    return _knownPantryCategories.contains(value) ? value : 'other';
+  }
+
+  String _normalizedStorageLocation(String value) {
+    return _knownStorageLocations.contains(value) ? value : 'pantry';
   }
 
   Future<_PantrySaveResult> _savePantryItemWithDuplicateHandling(

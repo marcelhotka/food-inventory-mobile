@@ -511,6 +511,21 @@ class _FridgeScanReview extends StatefulWidget {
 }
 
 class _FridgeScanReviewState extends State<_FridgeScanReview> {
+  static const Set<String> _knownPantryCategories = {
+    'produce',
+    'dairy',
+    'meat',
+    'grains',
+    'canned',
+    'frozen',
+    'beverages',
+    'other',
+  };
+  static const Set<String> _knownStorageLocations = {
+    'fridge',
+    'freezer',
+    'pantry',
+  };
   late List<ScanCandidate> _candidates = widget.session.candidates
       .map(_applySuggestedDefaults)
       .toList();
@@ -527,14 +542,11 @@ class _FridgeScanReviewState extends State<_FridgeScanReview> {
       prefill: FoodItemPrefill(
         name: prefill.name,
         barcode: prefill.barcode,
-        category: prefill.category == 'other'
-            ? suggestion.category
-            : prefill.category,
-        storageLocation:
-            prefill.storageLocation == 'pantry' &&
-                suggestion.storageLocation != 'pantry'
-            ? suggestion.storageLocation
-            : prefill.storageLocation,
+        category: _normalizeCategory(prefill.category, suggestion.category),
+        storageLocation: _normalizeStorageLocation(
+          prefill.storageLocation,
+          suggestion.storageLocation,
+        ),
         quantity: prefill.quantity,
         unit: prefill.unit == 'pcs' && suggestion.unit != 'pcs'
             ? suggestion.unit
@@ -544,6 +556,20 @@ class _FridgeScanReviewState extends State<_FridgeScanReview> {
             prefill.lowStockThreshold ?? suggestion.lowStockThreshold,
       ),
     );
+  }
+
+  String _normalizeCategory(String value, String fallback) {
+    if (value == 'other') {
+      return fallback;
+    }
+    return _knownPantryCategories.contains(value) ? value : fallback;
+  }
+
+  String _normalizeStorageLocation(String value, String fallback) {
+    if (value == 'pantry' && fallback != 'pantry') {
+      return fallback;
+    }
+    return _knownStorageLocations.contains(value) ? value : fallback;
   }
 
   Future<void> _editCandidate(ScanCandidate candidate) async {
