@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../app/localization/app_locale.dart';
 import '../../../app/theme/safo_tokens.dart';
 import '../../../core/forms/app_input_decoration.dart';
+import '../../../core/widgets/safo_flow_hint_card.dart';
 import '../../../core/widgets/safo_page_header.dart';
 import '../domain/recipe.dart';
 import '../domain/recipe_ingredient.dart';
@@ -149,6 +150,24 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
               ),
               onBack: () => Navigator.of(context).maybePop(),
             ),
+          ),
+          const SizedBox(height: SafoSpacing.lg),
+          SafoFlowHintCard(
+            icon: Icons.restaurant_menu_outlined,
+            eyebrow: context.tr(en: 'Recipe builder', sk: 'Tvorba receptu'),
+            title: context.tr(
+              en: 'Create a recipe once and reuse it across planning, cooking, and shopping.',
+              sk: 'Vytvor recept raz a používaj ho pri plánovaní, varení aj nákupoch.',
+            ),
+            description: context.tr(
+              en: 'Keep the name, time, servings, and ingredients clear so Safo can scale portions and spot what is missing at home.',
+              sk: 'Udrž názov, čas, porcie a ingrediencie prehľadné, aby Safo vedelo prepočítať porcie a zistiť, čo doma chýba.',
+            ),
+            highlights: [
+              context.tr(en: 'Time', sk: 'Čas'),
+              context.tr(en: 'Servings', sk: 'Porcie'),
+              context.tr(en: 'Ingredients', sk: 'Ingrediencie'),
+            ],
           ),
           const SizedBox(height: SafoSpacing.lg),
           Container(

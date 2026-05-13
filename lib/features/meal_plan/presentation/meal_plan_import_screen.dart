@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../app/localization/app_locale.dart';
 import '../../../app/theme/safo_tokens.dart';
 import '../../../core/forms/app_input_decoration.dart';
+import '../../../core/widgets/safo_flow_hint_card.dart';
 import '../../../core/widgets/safo_page_header.dart';
 import '../../recipes/domain/recipe.dart';
 import '../../recipes/presentation/recipe_display_text.dart';
@@ -289,6 +290,24 @@ class _MealPlanImportScreenState extends State<MealPlanImportScreen> {
               ),
               onBack: () => Navigator.of(context).maybePop(),
             ),
+          ),
+          const SizedBox(height: SafoSpacing.lg),
+          SafoFlowHintCard(
+            icon: Icons.playlist_add_check_circle_outlined,
+            eyebrow: context.tr(en: 'Bulk import', sk: 'Hromadný import'),
+            title: context.tr(
+              en: 'Turn a pasted weekly plan into structured meals in one pass.',
+              sk: 'Premeň vložený týždenný plán na štruktúrované jedlá jedným krokom.',
+            ),
+            description: context.tr(
+              en: 'Safo will preview each line, match recipes when it can, and let you import only the valid meals.',
+              sk: 'Safo skontroluje každý riadok, priradí recepty tam, kde sa dajú rozpoznať, a umožní importovať len platné jedlá.',
+            ),
+            highlights: [
+              context.tr(en: 'Paste text', sk: 'Vloženie textu'),
+              context.tr(en: 'Preview lines', sk: 'Náhľad riadkov'),
+              context.tr(en: 'Import valid meals', sk: 'Import platných jedál'),
+            ],
           ),
           const SizedBox(height: SafoSpacing.lg),
           Container(

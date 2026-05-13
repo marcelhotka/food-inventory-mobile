@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../app/localization/app_locale.dart';
 import '../../../app/theme/safo_tokens.dart';
 import '../../../core/forms/app_input_decoration.dart';
+import '../../../core/widgets/safo_flow_hint_card.dart';
 import '../../../core/widgets/safo_page_header.dart';
 import '../domain/shopping_list_item.dart';
 
@@ -107,6 +108,24 @@ class _ShoppingListFormScreenState extends State<ShoppingListFormScreen> {
               ),
               onBack: () => Navigator.of(context).maybePop(),
             ),
+          ),
+          const SizedBox(height: SafoSpacing.lg),
+          SafoFlowHintCard(
+            icon: Icons.shopping_bag_outlined,
+            eyebrow: context.tr(en: 'Shopping flow', sk: 'Nákupný flow'),
+            title: context.tr(
+              en: 'Capture what you still need before the next shop.',
+              sk: 'Zaznač, čo ešte potrebuješ pred ďalším nákupom.',
+            ),
+            description: context.tr(
+              en: 'Keep quantity and unit clear so Safo can merge similar items, assign them, and move them to pantry once bought.',
+              sk: 'Maj jasné množstvo a jednotku, aby Safo vedelo položky zlučovať, priraďovať a po kúpe ich presunúť do špajze.',
+            ),
+            highlights: [
+              context.tr(en: 'Quantity', sk: 'Množstvo'),
+              context.tr(en: 'Unit', sk: 'Jednotka'),
+              context.tr(en: 'Household ready', sk: 'Pre domácnosť'),
+            ],
           ),
           const SizedBox(height: SafoSpacing.lg),
           Container(

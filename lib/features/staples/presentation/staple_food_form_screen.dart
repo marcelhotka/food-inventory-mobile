@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../app/localization/app_locale.dart';
 import '../../../app/theme/safo_tokens.dart';
 import '../../../core/forms/app_input_decoration.dart';
+import '../../../core/widgets/safo_flow_hint_card.dart';
 import '../../../core/widgets/safo_page_header.dart';
 import '../domain/staple_food.dart';
 import '../domain/staple_food_presets.dart';
@@ -142,6 +143,24 @@ class _StapleFoodFormScreenState extends State<StapleFoodFormScreen> {
               ),
               onBack: () => Navigator.of(context).maybePop(),
             ),
+          ),
+          const SizedBox(height: SafoSpacing.lg),
+          SafoFlowHintCard(
+            icon: Icons.shelves_outlined,
+            eyebrow: context.tr(en: 'Staple foods', sk: 'Základné potraviny'),
+            title: context.tr(
+              en: 'Tell Safo what should stay regularly stocked at home.',
+              sk: 'Povedz Safo, čo má byť doma pravidelne na sklade.',
+            ),
+            description: context.tr(
+              en: 'These target quantities help the app notice low stock early and make shopping suggestions feel more automatic.',
+              sk: 'Tieto cieľové množstvá pomáhajú appke skôr zachytiť nízky stav a robia nákupné odporúčania prirodzenejšie.',
+            ),
+            highlights: [
+              context.tr(en: 'Target quantity', sk: 'Cieľové množstvo'),
+              context.tr(en: 'Category', sk: 'Kategória'),
+              context.tr(en: 'Quick presets', sk: 'Rýchle predvoľby'),
+            ],
           ),
           const SizedBox(height: SafoSpacing.lg),
           Container(

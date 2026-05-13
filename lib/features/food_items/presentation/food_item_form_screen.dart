@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../app/localization/app_locale.dart';
 import '../../../app/theme/safo_tokens.dart';
 import '../../../core/forms/app_input_decoration.dart';
+import '../../../core/widgets/safo_flow_hint_card.dart';
 import '../../../core/widgets/safo_page_header.dart';
 import '../domain/food_item.dart';
 import '../domain/food_item_prefill.dart';
@@ -168,6 +169,24 @@ class _FoodItemFormScreenState extends State<FoodItemFormScreen> {
               ),
               onBack: () => Navigator.of(context).maybePop(),
             ),
+          ),
+          const SizedBox(height: SafoSpacing.lg),
+          SafoFlowHintCard(
+            icon: Icons.inventory_2_outlined,
+            eyebrow: context.tr(en: 'Pantry setup', sk: 'Nastavenie špajze'),
+            title: context.tr(
+              en: 'Save a pantry item with the details that matter later.',
+              sk: 'Ulož položku so všetkými detailmi, ktoré sa zídu aj neskôr.',
+            ),
+            description: context.tr(
+              en: 'Category, storage, quantity, and expiry all help Safo decide what to show on your dashboard and what to use soon.',
+              sk: 'Kategória, uloženie, množstvo aj dátum spotreby pomáhajú Safo rozhodnúť, čo ukázať na dashboarde a čo treba minúť čoskoro.',
+            ),
+            highlights: [
+              context.tr(en: 'Category', sk: 'Kategória'),
+              context.tr(en: 'Storage', sk: 'Uloženie'),
+              context.tr(en: 'Expiry', sk: 'Spotreba'),
+            ],
           ),
           const SizedBox(height: SafoSpacing.lg),
           Container(

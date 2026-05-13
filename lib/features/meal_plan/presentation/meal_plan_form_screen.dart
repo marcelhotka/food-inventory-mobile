@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../app/localization/app_locale.dart';
 import '../../../app/theme/safo_tokens.dart';
 import '../../../core/forms/app_input_decoration.dart';
+import '../../../core/widgets/safo_flow_hint_card.dart';
 import '../../../core/widgets/safo_page_header.dart';
 import '../../recipes/domain/recipe.dart';
 import '../../recipes/presentation/recipe_display_text.dart';
@@ -145,6 +146,27 @@ class _MealPlanFormScreenState extends State<MealPlanFormScreen> {
               ),
               onBack: () => Navigator.of(context).maybePop(),
             ),
+          ),
+          const SizedBox(height: SafoSpacing.lg),
+          SafoFlowHintCard(
+            icon: Icons.event_note_outlined,
+            eyebrow: context.tr(en: 'Meal plan', sk: 'Jedálniček'),
+            title: context.tr(
+              en: 'Plan one meal clearly before it lands on the calendar.',
+              sk: 'Naplánuj jedno jedlo jasne ešte predtým, než sa objaví v kalendári.',
+            ),
+            description: context.tr(
+              en: 'Pick a recipe or create a custom meal, choose the day, and keep servings visible for the whole household.',
+              sk: 'Vyber recept alebo vytvor vlastné jedlo, nastav deň a drž porcie viditeľné pre celú domácnosť.',
+            ),
+            highlights: [
+              context.tr(
+                en: 'Recipe or custom meal',
+                sk: 'Recept alebo vlastné jedlo',
+              ),
+              context.tr(en: 'Day', sk: 'Deň'),
+              context.tr(en: 'Servings', sk: 'Porcie'),
+            ],
           ),
           const SizedBox(height: SafoSpacing.lg),
           Container(
