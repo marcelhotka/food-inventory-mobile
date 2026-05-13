@@ -337,9 +337,8 @@ class _AuthScreenState extends State<AuthScreen> {
               icon: Icons.inventory_2_outlined,
               accent: SafoColors.primary,
               background: const Color(0xFFE8F7EE),
-              onSkip: () => _goToRegister(
-                backStep: _AuthFlowStep.onboardingInventory,
-              ),
+              onSkip: () =>
+                  _goToRegister(backStep: _AuthFlowStep.onboardingInventory),
               onBack: () => _goTo(_AuthFlowStep.welcome),
               onNext: () => _goTo(_AuthFlowStep.onboardingExpiry),
             ),
@@ -358,9 +357,8 @@ class _AuthScreenState extends State<AuthScreen> {
               icon: Icons.timer_outlined,
               accent: SafoColors.danger,
               background: const Color(0xFFFFF0EB),
-              onSkip: () => _goToRegister(
-                backStep: _AuthFlowStep.onboardingExpiry,
-              ),
+              onSkip: () =>
+                  _goToRegister(backStep: _AuthFlowStep.onboardingExpiry),
               onBack: () => _goTo(_AuthFlowStep.onboardingInventory),
               onNext: () => _goTo(_AuthFlowStep.onboardingPlanning),
             ),
@@ -379,13 +377,11 @@ class _AuthScreenState extends State<AuthScreen> {
               icon: Icons.calendar_month_outlined,
               accent: SafoColors.accent,
               background: const Color(0xFFEEF0FF),
-              onSkip: () => _goToRegister(
-                backStep: _AuthFlowStep.onboardingPlanning,
-              ),
+              onSkip: () =>
+                  _goToRegister(backStep: _AuthFlowStep.onboardingPlanning),
               onBack: () => _goTo(_AuthFlowStep.onboardingExpiry),
-              onNext: () => _goToRegister(
-                backStep: _AuthFlowStep.onboardingPlanning,
-              ),
+              onNext: () =>
+                  _goToRegister(backStep: _AuthFlowStep.onboardingPlanning),
               isLast: true,
             ),
             _AuthFlowStep.signIn => _AuthEntryStep(
@@ -443,10 +439,7 @@ class _AuthScreenState extends State<AuthScreen> {
 class _SplashStep extends StatelessWidget {
   final VoidCallback onContinue;
 
-  const _SplashStep({
-    super.key,
-    required this.onContinue,
-  });
+  const _SplashStep({super.key, required this.onContinue});
 
   @override
   Widget build(BuildContext context) {
@@ -531,10 +524,7 @@ class _SplashStep extends StatelessWidget {
               right: 24,
               bottom: 28,
               child: Text(
-                context.tr(
-                  en: 'Tap to continue',
-                  sk: 'Ťukni pre pokračovanie',
-                ),
+                context.tr(en: 'Tap to continue', sk: 'Ťukni pre pokračovanie'),
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Colors.white.withValues(alpha: 0.35),
@@ -580,10 +570,7 @@ class _AuthOnboardingSummaryStep extends StatelessWidget {
                 height: 28,
               ),
               SizedBox(width: 10),
-              SafoLogo(
-                variant: SafoLogoVariant.pill,
-                height: 28,
-              ),
+              SafoLogo(variant: SafoLogoVariant.pill, height: 28),
             ],
           ),
           const SizedBox(height: 24),
@@ -653,10 +640,7 @@ class _AuthOnboardingSummaryStep extends StatelessWidget {
           ),
           const SizedBox(height: 18),
           _AuthSummaryCard(
-            title: context.tr(
-              en: 'What you’ll get',
-              sk: 'Čo získaš',
-            ),
+            title: context.tr(en: 'What you’ll get', sk: 'Čo získaš'),
             items: [
               context.tr(
                 en: 'A clear place for pantry, shopping, and recipes',
@@ -677,12 +661,7 @@ class _AuthOnboardingSummaryStep extends StatelessWidget {
             width: double.infinity,
             child: FilledButton(
               onPressed: onContinue,
-              child: Text(
-                context.tr(
-                  en: 'Continue',
-                  sk: 'Pokračovať',
-                ),
-              ),
+              child: Text(context.tr(en: 'Continue', sk: 'Pokračovať')),
             ),
           ),
         ],
@@ -695,10 +674,7 @@ class _AuthSummaryCard extends StatelessWidget {
   final String title;
   final List<String> items;
 
-  const _AuthSummaryCard({
-    required this.title,
-    required this.items,
-  });
+  const _AuthSummaryCard({required this.title, required this.items});
 
   @override
   Widget build(BuildContext context) {
@@ -714,9 +690,9 @@ class _AuthSummaryCard extends StatelessWidget {
         children: [
           Text(
             title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 14),
           ...items.map(
@@ -778,170 +754,174 @@ class _WelcomeStep extends StatelessWidget {
         }
       },
       child: Column(
-      children: [
-        Expanded(
-          flex: 11,
-          child: ClipRRect(
-            borderRadius: const BorderRadius.only(
-              bottomLeft: Radius.circular(34),
-              bottomRight: Radius.circular(34),
-            ),
-            child: Container(
-              width: double.infinity,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFFDDEBDD), Color(0xFFF0E3D2), Color(0xFFF6F2EA)],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
+        children: [
+          Expanded(
+            flex: 11,
+            child: ClipRRect(
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(34),
+                bottomRight: Radius.circular(34),
               ),
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: Image.network(
-                    imageUrl,
+              child: Container(
+                width: double.infinity,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Color(0xFFDDEBDD),
+                      Color(0xFFF0E3D2),
+                      Color(0xFFF6F2EA),
+                    ],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                ),
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                  child: _AuthNetworkImage(
+                    imageUrl: imageUrl,
                     fit: BoxFit.cover,
                     alignment: Alignment.topCenter,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) {
-                        return child;
-                      }
-                      return const SizedBox.shrink();
-                    },
-                    errorBuilder: (context, error, stackTrace) {
-                      return const SizedBox.shrink();
-                    },
-                  ),
-                ),
-                Positioned.fill(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          const Color(0xFFF7F3EB).withValues(alpha: 0.12),
-                          const Color(0xFFF7F3EB).withValues(alpha: 0.22),
-                          SafoColors.background.withValues(alpha: 0.82),
-                          SafoColors.background,
-                        ],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        stops: const [0.0, 0.35, 0.78, 1.0],
-                      ),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  top: -18,
-                  left: -24,
-                  child: Container(
-                    width: 180,
-                    height: 180,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.22),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
-                Positioned(
-                  top: 54,
-                  right: -30,
-                  child: Container(
-                    width: 190,
-                    height: 190,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE7F1D9).withValues(alpha: 0.65),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  height: 160,
-                  child: IgnorePointer(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            SafoColors.background.withValues(alpha: 0),
-                            SafoColors.background.withValues(alpha: 0.42),
-                            SafoColors.background,
-                          ],
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
+                    fallback: const _AuthImageFallback(
+                      icon: Icons.kitchen_rounded,
+                      accent: Color(0xFF4C8C68),
+                          background: Color(0xFFF4EFE5),
                         ),
                       ),
                     ),
-                  ),
+                    Positioned.fill(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              const Color(0xFFF7F3EB).withValues(alpha: 0.12),
+                              const Color(0xFFF7F3EB).withValues(alpha: 0.22),
+                              SafoColors.background.withValues(alpha: 0.82),
+                              SafoColors.background,
+                            ],
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            stops: const [0.0, 0.35, 0.78, 1.0],
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      top: -18,
+                      left: -24,
+                      child: Container(
+                        width: 180,
+                        height: 180,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.22),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      top: 54,
+                      right: -30,
+                      child: Container(
+                        width: 190,
+                        height: 190,
+                        decoration: BoxDecoration(
+                          color: const Color(
+                            0xFFE7F1D9,
+                          ).withValues(alpha: 0.65),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      height: 160,
+                      child: IgnorePointer(
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                SafoColors.background.withValues(alpha: 0),
+                                SafoColors.background.withValues(alpha: 0.42),
+                                SafoColors.background,
+                              ],
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
-          ),
-        ),
-        Expanded(
-          flex: 9,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 10, 24, 18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  context.tr(
-                    en: 'Less waste.\nLess stress.\nMore control.',
-                    sk: 'Menej odpadu.\nMenej stresu.\nViac kontroly.',
+          Expanded(
+            flex: 9,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 10, 24, 18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    context.tr(
+                      en: 'Less waste.\nLess stress.\nMore control.',
+                      sk: 'Menej odpadu.\nMenej stresu.\nViac kontroly.',
+                    ),
+                    style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                      color: SafoColors.textPrimary,
+                      fontWeight: FontWeight.w800,
+                      height: 0.98,
+                    ),
                   ),
-                  style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                    color: SafoColors.textPrimary,
-                    fontWeight: FontWeight.w800,
-                    height: 0.98,
+                  const SizedBox(height: 14),
+                  Text(
+                    context.tr(
+                      en: 'Track your pantry, plan meals, and manage your household shopping all in one place.',
+                      sk: 'Sleduj špajzu, plánuj jedlá a spravuj nákup domácnosti na jednom mieste.',
+                    ),
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: SafoColors.textSecondary,
+                      height: 1.45,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 14),
-                Text(
-                  context.tr(
-                    en: 'Track your pantry, plan meals, and manage your household shopping all in one place.',
-                    sk: 'Sleduj špajzu, plánuj jedlá a spravuj nákup domácnosti na jednom mieste.',
+                  const SizedBox(height: 10),
+                  Text(
+                    context.tr(
+                      en: 'Eat safe. Waste less. Live more.',
+                      sk: 'Jedz bezpečne. Plytvaj menej. Ži viac.',
+                    ),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: SafoColors.primary,
+                      fontWeight: FontWeight.w700,
+                      fontStyle: FontStyle.italic,
+                    ),
                   ),
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: SafoColors.textSecondary,
-                    height: 1.45,
+                  const Spacer(),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: onGetStarted,
+                      child: Text(context.tr(en: 'Get Started', sk: 'Začať')),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  context.tr(
-                    en: 'Eat safe. Waste less. Live more.',
-                    sk: 'Jedz bezpečne. Plytvaj menej. Ži viac.',
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: onSignIn,
+                      child: Text(
+                        context.tr(en: 'Sign In', sk: 'Prihlásiť sa'),
+                      ),
+                    ),
                   ),
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: SafoColors.primary,
-                    fontWeight: FontWeight.w700,
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-                const Spacer(),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: onGetStarted,
-                    child: Text(context.tr(en: 'Get Started', sk: 'Začať')),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: onSignIn,
-                    child: Text(context.tr(en: 'Sign In', sk: 'Prihlásiť sa')),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
-      ],
+        ],
       ),
     );
   }
@@ -986,172 +966,237 @@ class _OnboardingStep extends StatelessWidget {
         }
       },
       child: Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(24, 18, 24, 0),
-          child: Align(
-            alignment: Alignment.centerRight,
-            child: TextButton(
-              onPressed: onSkip,
-              child: Text(context.tr(en: 'Skip', sk: 'Preskočiť')),
-            ),
-          ),
-        ),
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 28),
-            child: Column(
-              children: [
-                const Spacer(),
-                Container(
-                  width: 276,
-                  height: 276,
-                  decoration: BoxDecoration(
-                    color: background,
-                    borderRadius: BorderRadius.circular(40),
-                    border: Border.all(color: SafoColors.border),
-                  ),
-                  child: Stack(
-                    children: [
-                      if (imageUrl != null)
-                        Positioned.fill(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(40),
-                            child: Image.network(
-                              imageUrl!,
-                              fit: BoxFit.cover,
-                              loadingBuilder: (
-                                context,
-                                child,
-                                loadingProgress,
-                              ) {
-                                if (loadingProgress == null) {
-                                  return child;
-                                }
-                                return DecoratedBox(
-                                  decoration: BoxDecoration(
-                                    color: background,
-                                    borderRadius: BorderRadius.circular(40),
-                                  ),
-                                  child: Center(
-                                    child: Icon(
-                                      icon,
-                                      size: 116,
-                                      color: accent,
-                                    ),
-                                  ),
-                                );
-                              },
-                              errorBuilder: (context, error, stackTrace) {
-                                return DecoratedBox(
-                                  decoration: BoxDecoration(
-                                    color: background,
-                                    borderRadius: BorderRadius.circular(40),
-                                  ),
-                                  child: Center(
-                                    child: Icon(
-                                      icon,
-                                      size: 116,
-                                      color: accent,
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        )
-                      else
-                        Positioned.fill(
-                          child: Center(
-                            child: Icon(
-                              icon,
-                              size: 116,
-                              color: accent,
-                            ),
-                          ),
-                        ),
-                      Positioned(
-                        right: 18,
-                        bottom: 18,
-                        child: Container(
-                          width: 58,
-                          height: 58,
-                          decoration: BoxDecoration(
-                            color: accent,
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: accent.withValues(alpha: 0.22),
-                                blurRadius: 16,
-                                offset: const Offset(0, 8),
-                              ),
-                            ],
-                          ),
-                          child: Icon(
-                            icon,
-                            color: Colors.white,
-                            size: 28,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 34),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(
-                    3,
-                    (index) => AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      width: index == stepIndex ? 26 : 8,
-                      height: 8,
-                      margin: const EdgeInsets.symmetric(horizontal: 3),
-                      decoration: BoxDecoration(
-                        color: index == stepIndex ? SafoColors.primary : SafoColors.border,
-                        borderRadius: BorderRadius.circular(99),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 28),
-                Text(
-                  title,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: SafoColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Text(
-                  subtitle,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: SafoColors.textSecondary,
-                    height: 1.45,
-                  ),
-                ),
-                const Spacer(),
-              ],
-            ),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(24, 0, 24, 28),
-          child: SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: onNext,
-              child: Text(
-                isLast
-                    ? context.tr(en: 'Get Started', sk: 'Začať')
-                    : context.tr(en: 'Continue', sk: 'Pokračovať'),
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 18, 24, 0),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: onSkip,
+                child: Text(context.tr(en: 'Skip', sk: 'Preskočiť')),
               ),
             ),
           ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 28),
+              child: Column(
+                children: [
+                  const Spacer(),
+                  Container(
+                    width: 276,
+                    height: 276,
+                    decoration: BoxDecoration(
+                      color: background,
+                      borderRadius: BorderRadius.circular(40),
+                      border: Border.all(color: SafoColors.border),
+                    ),
+                    child: Stack(
+                      children: [
+                        if (imageUrl != null)
+                          Positioned.fill(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(40),
+                            child: _AuthNetworkImage(
+                              imageUrl: imageUrl!,
+                              fit: BoxFit.cover,
+                              alignment: Alignment.center,
+                              fallback: _AuthImageFallback(
+                                icon: icon,
+                                accent: accent,
+                                  background: background,
+                                ),
+                              ),
+                            ),
+                          )
+                        else
+                          Positioned.fill(
+                            child: Center(
+                              child: Icon(icon, size: 116, color: accent),
+                            ),
+                          ),
+                        Positioned(
+                          right: 18,
+                          bottom: 18,
+                          child: Container(
+                            width: 58,
+                            height: 58,
+                            decoration: BoxDecoration(
+                              color: accent,
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: accent.withValues(alpha: 0.22),
+                                  blurRadius: 16,
+                                  offset: const Offset(0, 8),
+                                ),
+                              ],
+                            ),
+                            child: Icon(icon, color: Colors.white, size: 28),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 34),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(
+                      3,
+                      (index) => AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        width: index == stepIndex ? 26 : 8,
+                        height: 8,
+                        margin: const EdgeInsets.symmetric(horizontal: 3),
+                        decoration: BoxDecoration(
+                          color: index == stepIndex
+                              ? SafoColors.primary
+                              : SafoColors.border,
+                          borderRadius: BorderRadius.circular(99),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: SafoColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    subtitle,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: SafoColors.textSecondary,
+                      height: 1.45,
+                    ),
+                  ),
+                  const Spacer(),
+                ],
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 28),
+            child: SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: onNext,
+                child: Text(
+                  isLast
+                      ? context.tr(en: 'Get Started', sk: 'Začať')
+                      : context.tr(en: 'Continue', sk: 'Pokračovať'),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AuthNetworkImage extends StatelessWidget {
+  final String imageUrl;
+  final BoxFit fit;
+  final Alignment alignment;
+  final Widget fallback;
+
+  const _AuthNetworkImage({
+    required this.imageUrl,
+    required this.fit,
+    required this.alignment,
+    required this.fallback,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Image.network(
+      imageUrl,
+      fit: fit,
+      alignment: alignment,
+      frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+        if (wasSynchronouslyLoaded || frame != null) {
+          return child;
+        }
+        return fallback;
+      },
+      errorBuilder: (context, error, stackTrace) => fallback,
+      loadingBuilder: (context, child, progress) {
+        if (progress == null) {
+          return child;
+        }
+        return fallback;
+      },
+    );
+  }
+}
+
+class _AuthImageFallback extends StatelessWidget {
+  final IconData icon;
+  final Color accent;
+  final Color background;
+
+  const _AuthImageFallback({
+    required this.icon,
+    required this.accent,
+    required this.background,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(40),
+        gradient: LinearGradient(
+          colors: [background, background.withValues(alpha: 0.9), Colors.white],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-      ],
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            top: -18,
+            left: -12,
+            child: Container(
+              width: 110,
+              height: 110,
+              decoration: BoxDecoration(
+                color: accent.withValues(alpha: 0.14),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: -24,
+            right: -10,
+            child: Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.42),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          Center(
+            child: Container(
+              width: 124,
+              height: 124,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.8),
+                borderRadius: BorderRadius.circular(34),
+                border: Border.all(color: accent.withValues(alpha: 0.18)),
+              ),
+              child: Icon(icon, size: 64, color: accent),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1207,15 +1252,9 @@ class _AuthEntryStep extends StatelessWidget {
         children: [
           Row(
             children: [
-              _HeaderIconButton(
-                icon: Icons.arrow_back_rounded,
-                onTap: onBack,
-              ),
+              _HeaderIconButton(icon: Icons.arrow_back_rounded, onTap: onBack),
               const Spacer(),
-              const SafoLogo(
-                variant: SafoLogoVariant.pill,
-                height: 28,
-              ),
+              const SafoLogo(variant: SafoLogoVariant.pill, height: 28),
             ],
           ),
           const SizedBox(height: 24),
@@ -1281,246 +1320,94 @@ class _AuthEntryStep extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                Text(
-                  _isRegister
-                      ? context.tr(
-                          en: 'Create account with email',
-                          sk: 'Vytvoriť účet e-mailom',
-                        )
-                      : context.tr(
-                          en: 'Continue with email',
-                          sk: 'Pokračovať e-mailom',
-                        ),
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  context.tr(
-                    en: _isRegister
-                        ? 'We will send you a magic link so you can create your account without remembering a password.'
-                        : 'We will send you a magic link so you can safely continue without a password.',
-                    sk: _isRegister
-                        ? 'Pošleme ti magic link, aby si si mohol vytvoriť účet bez potreby pamätať si heslo.'
-                        : 'Pošleme ti magic link, aby si mohol bezpečne pokračovať bez hesla.',
-                  ),
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: SafoColors.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 18),
-                TextFormField(
-                  controller: emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: appInputDecoration(
-                    context.tr(en: 'Email address', sk: 'E-mailová adresa'),
-                  ),
-                  validator: (value) {
-                    final email = value?.trim() ?? '';
-                    if (email.isEmpty) {
-                      return context.tr(
-                        en: 'Enter your email',
-                        sk: 'Zadaj svoj e-mail',
-                      );
-                    }
-                    if (!email.contains('@')) {
-                      return context.tr(
-                        en: 'Enter a valid email',
-                        sk: 'Zadaj platný e-mail',
-                      );
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: isSubmitting ? null : onSubmit,
-                    child: Text(
-                      isSubmitting
-                          ? context.tr(en: 'Sending...', sk: 'Odosielam...')
-                          : _isRegister
-                          ? context.tr(
-                              en: 'Create account',
-                              sk: 'Vytvoriť účet',
-                            )
-                          : context.tr(
-                              en: 'Send magic link',
-                              sk: 'Poslať magic link',
-                            ),
+                  Text(
+                    _isRegister
+                        ? context.tr(
+                            en: 'Create account with email',
+                            sk: 'Vytvoriť účet e-mailom',
+                          )
+                        : context.tr(
+                            en: 'Continue with email',
+                            sk: 'Pokračovať e-mailom',
+                          ),
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
-                ),
-                if (!_isRegister) ...[
                   const SizedBox(height: 8),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: isSubmitting ? null : onForgotPassword,
-                      child: Text(
-                        context.tr(
-                          en: 'Forgot password?',
-                          sk: 'Zabudnuté heslo?',
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 14),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF3EEE4),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Text(
+                  Text(
                     context.tr(
                       en: _isRegister
-                          ? 'Creating an account now makes it easier to keep your household, planning, and pantry synced later.'
-                          : 'Email sign-in keeps the same account, household, and data after reopening the app.',
+                          ? 'We will send you a magic link so you can create your account without remembering a password.'
+                          : 'We will send you a magic link so you can safely continue without a password.',
                       sk: _isRegister
-                          ? 'Vytvorenie účtu teraz uľahčí, aby ti domácnosť, plánovanie a špajza ostali synchronizované aj neskôr.'
-                          : 'Prihlásenie e-mailom zachová rovnaký účet, domácnosť a dáta aj po znovuotvorení aplikácie.',
+                          ? 'Pošleme ti magic link, aby si si mohol vytvoriť účet bez potreby pamätať si heslo.'
+                          : 'Pošleme ti magic link, aby si mohol bezpečne pokračovať bez hesla.',
                     ),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: SafoColors.textSecondary,
                     ),
                   ),
-                ),
-                const SizedBox(height: 18),
-                Row(
-                  children: [
-                    const Expanded(child: Divider(color: SafoColors.border)),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: Text(
-                        context.tr(
-                          en: 'or continue with',
-                          sk: 'alebo pokračuj cez',
-                        ),
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: SafoColors.textSecondary,
-                        ),
-                      ),
+                  const SizedBox(height: 18),
+                  TextFormField(
+                    controller: emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: appInputDecoration(
+                      context.tr(en: 'Email address', sk: 'E-mailová adresa'),
                     ),
-                    const Expanded(child: Divider(color: SafoColors.border)),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _SocialSignInButton(
-                        label: 'Google',
-                        onTap: isSubmitting ? null : onContinueWithGoogle,
-                        leading: Container(
-                          width: 22,
-                          height: 22,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          alignment: Alignment.center,
-                          child: const Text(
-                            'G',
-                            style: TextStyle(
-                              color: SafoColors.textPrimary,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _SocialSignInButton(
-                        label: 'Apple',
-                        onTap: isSubmitting ? null : onContinueWithApple,
-                        leading: const Icon(
-                          Icons.apple_rounded,
-                          color: SafoColors.textPrimary,
-                          size: 22,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                _SwitchAuthModeCard(
-                  prompt: _isRegister
-                      ? context.tr(
-                          en: 'Already have an account?',
-                          sk: 'Už máš účet?',
-                        )
-                      : context.tr(
-                          en: 'New to Safo?',
-                          sk: 'Si v Safo nový?',
-                        ),
-                  actionLabel: _isRegister
-                      ? context.tr(en: 'Sign in', sk: 'Prihlásiť sa')
-                      : context.tr(en: 'Create account', sk: 'Vytvoriť účet'),
-                  onTap: onSwitchMode,
-                ),
-                if (!_isRegister) ...[
-                  const SizedBox(height: 14),
-                  Container(
+                    validator: (value) {
+                      final email = value?.trim() ?? '';
+                      if (email.isEmpty) {
+                        return context.tr(
+                          en: 'Enter your email',
+                          sk: 'Zadaj svoj e-mail',
+                        );
+                      }
+                      if (!email.contains('@')) {
+                        return context.tr(
+                          en: 'Enter a valid email',
+                          sk: 'Zadaj platný e-mail',
+                        );
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF7F3EB),
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: SafoColors.border),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          context.tr(
-                            en: 'Just testing?',
-                            sk: 'Len testuješ?',
-                          ),
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          context.tr(
-                            en: 'Guest mode is best for quick testing. You can still go through the full household and onboarding flow.',
-                            sk: 'Hosť je najlepší na rýchle testovanie. Stále si vieš prejsť celý household a onboarding flow.',
-                          ),
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: SafoColors.textMuted,
-                            height: 1.45,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton(
-                            onPressed: isSubmitting ? null : onContinueAsGuest,
-                            child: Text(
-                              isSubmitting
-                                  ? context.tr(
-                                      en: 'Please wait...',
-                                      sk: 'Počkaj chvíľu...',
-                                    )
-                                  : context.tr(
-                                      en: 'Continue as guest',
-                                      sk: 'Pokračovať ako hosť',
-                                    ),
-                            ),
-                          ),
-                        ),
-                      ],
+                    child: FilledButton(
+                      onPressed: isSubmitting ? null : onSubmit,
+                      child: Text(
+                        isSubmitting
+                            ? context.tr(en: 'Sending...', sk: 'Odosielam...')
+                            : _isRegister
+                            ? context.tr(
+                                en: 'Create account',
+                                sk: 'Vytvoriť účet',
+                              )
+                            : context.tr(
+                                en: 'Send magic link',
+                                sk: 'Poslať magic link',
+                              ),
+                      ),
                     ),
                   ),
-                ],
-                if (message != null) ...[
-                  const SizedBox(height: 16),
+                  if (!_isRegister) ...[
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: isSubmitting ? null : onForgotPassword,
+                        child: Text(
+                          context.tr(
+                            en: 'Forgot password?',
+                            sk: 'Zabudnuté heslo?',
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 14),
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(14),
@@ -1529,13 +1416,163 @@ class _AuthEntryStep extends StatelessWidget {
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Text(
-                      message!,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: SafoColors.textPrimary,
+                      context.tr(
+                        en: _isRegister
+                            ? 'Creating an account now makes it easier to keep your household, planning, and pantry synced later.'
+                            : 'Email sign-in keeps the same account, household, and data after reopening the app.',
+                        sk: _isRegister
+                            ? 'Vytvorenie účtu teraz uľahčí, aby ti domácnosť, plánovanie a špajza ostali synchronizované aj neskôr.'
+                            : 'Prihlásenie e-mailom zachová rovnaký účet, domácnosť a dáta aj po znovuotvorení aplikácie.',
+                      ),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: SafoColors.textSecondary,
                       ),
                     ),
                   ),
-                ],
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      const Expanded(child: Divider(color: SafoColors.border)),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Text(
+                          context.tr(
+                            en: 'or continue with',
+                            sk: 'alebo pokračuj cez',
+                          ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: SafoColors.textSecondary),
+                        ),
+                      ),
+                      const Expanded(child: Divider(color: SafoColors.border)),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _SocialSignInButton(
+                          label: 'Google',
+                          onTap: isSubmitting ? null : onContinueWithGoogle,
+                          leading: Container(
+                            width: 22,
+                            height: 22,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            alignment: Alignment.center,
+                            child: const Text(
+                              'G',
+                              style: TextStyle(
+                                color: SafoColors.textPrimary,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _SocialSignInButton(
+                          label: 'Apple',
+                          onTap: isSubmitting ? null : onContinueWithApple,
+                          leading: const Icon(
+                            Icons.apple_rounded,
+                            color: SafoColors.textPrimary,
+                            size: 22,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  _SwitchAuthModeCard(
+                    prompt: _isRegister
+                        ? context.tr(
+                            en: 'Already have an account?',
+                            sk: 'Už máš účet?',
+                          )
+                        : context.tr(en: 'New to Safo?', sk: 'Si v Safo nový?'),
+                    actionLabel: _isRegister
+                        ? context.tr(en: 'Sign in', sk: 'Prihlásiť sa')
+                        : context.tr(en: 'Create account', sk: 'Vytvoriť účet'),
+                    onTap: onSwitchMode,
+                  ),
+                  if (!_isRegister) ...[
+                    const SizedBox(height: 14),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF7F3EB),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: SafoColors.border),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            context.tr(
+                              en: 'Just testing?',
+                              sk: 'Len testuješ?',
+                            ),
+                            style: Theme.of(context).textTheme.titleSmall
+                                ?.copyWith(fontWeight: FontWeight.w700),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            context.tr(
+                              en: 'Guest mode is best for quick testing. You can still go through the full household and onboarding flow.',
+                              sk: 'Hosť je najlepší na rýchle testovanie. Stále si vieš prejsť celý household a onboarding flow.',
+                            ),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: SafoColors.textMuted,
+                                  height: 1.45,
+                                ),
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton(
+                              onPressed: isSubmitting
+                                  ? null
+                                  : onContinueAsGuest,
+                              child: Text(
+                                isSubmitting
+                                    ? context.tr(
+                                        en: 'Please wait...',
+                                        sk: 'Počkaj chvíľu...',
+                                      )
+                                    : context.tr(
+                                        en: 'Continue as guest',
+                                        sk: 'Pokračovať ako hosť',
+                                      ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  if (message != null) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF3EEE4),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Text(
+                        message!,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: SafoColors.textPrimary,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -1572,15 +1609,12 @@ class _SwitchAuthModeCard extends StatelessWidget {
           Expanded(
             child: Text(
               prompt,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: SafoColors.textSecondary,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: SafoColors.textSecondary),
             ),
           ),
-          TextButton(
-            onPressed: onTap,
-            child: Text(actionLabel),
-          ),
+          TextButton(onPressed: onTap, child: Text(actionLabel)),
         ],
       ),
     );
@@ -1616,23 +1650,14 @@ class _ForgotPasswordStep extends StatelessWidget {
         children: [
           Row(
             children: [
-              _HeaderIconButton(
-                icon: Icons.arrow_back_rounded,
-                onTap: onBack,
-              ),
+              _HeaderIconButton(icon: Icons.arrow_back_rounded, onTap: onBack),
               const Spacer(),
-              const SafoLogo(
-                variant: SafoLogoVariant.pill,
-                height: 28,
-              ),
+              const SafoLogo(variant: SafoLogoVariant.pill, height: 28),
             ],
           ),
           const SizedBox(height: 24),
           _AccountHeroCard(
-            title: context.tr(
-              en: 'Reset your password',
-              sk: 'Obnov si heslo',
-            ),
+            title: context.tr(en: 'Reset your password', sk: 'Obnov si heslo'),
             subtitle: context.tr(
               en: 'Enter the email connected to your Safo account and we’ll send you a reset link.',
               sk: 'Zadaj e-mail pripojený k tvojmu Safo účtu a pošleme ti odkaz na obnovu hesla.',
@@ -1640,10 +1665,7 @@ class _ForgotPasswordStep extends StatelessWidget {
           ),
           const SizedBox(height: 18),
           _AccountSummaryCard(
-            title: context.tr(
-              en: 'What happens next',
-              sk: 'Čo sa stane ďalej',
-            ),
+            title: context.tr(en: 'What happens next', sk: 'Čo sa stane ďalej'),
             items: [
               context.tr(
                 en: 'We send a reset link to your email',
@@ -1666,65 +1688,62 @@ class _ForgotPasswordStep extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-              Text(
-                context.tr(
-                  en: 'Account email',
-                  sk: 'E-mail účtu',
+                Text(
+                  context.tr(en: 'Account email', sk: 'E-mail účtu'),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
                 ),
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                context.tr(
-                  en: 'Use the same email you use for signing in.',
-                  sk: 'Použi ten istý e-mail, ktorým sa prihlasuješ.',
-                ),
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: SafoColors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 18),
-              TextField(
-                controller: emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: appInputDecoration(
-                  context.tr(en: 'Email address', sk: 'E-mailová adresa'),
-                ),
-              ),
-              const SizedBox(height: 18),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: isSubmitting ? null : onSubmit,
-                  child: Text(
-                    isSubmitting
-                        ? context.tr(en: 'Sending...', sk: 'Odosielam...')
-                        : context.tr(
-                            en: 'Send reset link',
-                            sk: 'Poslať odkaz na obnovu',
-                          ),
+                const SizedBox(height: 8),
+                Text(
+                  context.tr(
+                    en: 'Use the same email you use for signing in.',
+                    sk: 'Použi ten istý e-mail, ktorým sa prihlasuješ.',
+                  ),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: SafoColors.textSecondary,
                   ),
                 ),
-              ),
-              if (message != null) ...[
-                const SizedBox(height: 16),
-                Container(
+                const SizedBox(height: 18),
+                TextField(
+                  controller: emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: appInputDecoration(
+                    context.tr(en: 'Email address', sk: 'E-mailová adresa'),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                SizedBox(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF3EEE4),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Text(
-                    message!,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: SafoColors.textPrimary,
+                  child: FilledButton(
+                    onPressed: isSubmitting ? null : onSubmit,
+                    child: Text(
+                      isSubmitting
+                          ? context.tr(en: 'Sending...', sk: 'Odosielam...')
+                          : context.tr(
+                              en: 'Send reset link',
+                              sk: 'Poslať odkaz na obnovu',
+                            ),
                     ),
                   ),
                 ),
-              ],
+                if (message != null) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF3EEE4),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Text(
+                      message!,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: SafoColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -1766,15 +1785,9 @@ class _LinkSentStep extends StatelessWidget {
         children: [
           Row(
             children: [
-              _HeaderIconButton(
-                icon: Icons.arrow_back_rounded,
-                onTap: onBack,
-              ),
+              _HeaderIconButton(icon: Icons.arrow_back_rounded, onTap: onBack),
               const Spacer(),
-              const SafoLogo(
-                variant: SafoLogoVariant.pill,
-                height: 28,
-              ),
+              const SafoLogo(variant: SafoLogoVariant.pill, height: 28),
             ],
           ),
           const SizedBox(height: 24),
@@ -1788,72 +1801,69 @@ class _LinkSentStep extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-              Container(
-                width: 62,
-                height: 62,
-                decoration: BoxDecoration(
-                  color: SafoColors.primarySoft,
-                  borderRadius: BorderRadius.circular(22),
-                ),
-                child: const Icon(
-                  Icons.mark_email_read_rounded,
-                  color: SafoColors.primary,
-                  size: 30,
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                _isRegister
-                    ? context.tr(
-                        en: 'Finish creating your account',
-                        sk: 'Dokonči vytvorenie účtu',
-                      )
-                    : context.tr(
-                        en: 'Check your email',
-                        sk: 'Skontroluj si e-mail',
-                      ),
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                _isRegister
-                    ? context.tr(
-                        en: 'We sent a magic link to $email. Open it to finish creating your Safo account.',
-                        sk: 'Na $email sme poslali magic link. Otvor ho a dokonči vytvorenie svojho Safo účtu.',
-                      )
-                    : context.tr(
-                        en: 'We sent a sign-in link to $email. Open it and you’ll continue right where you left off.',
-                        sk: 'Na $email sme poslali prihlasovací odkaz. Otvor ho a budeš pokračovať presne tam, kde si skončil.',
-                      ),
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: SafoColors.textSecondary,
-                  height: 1.45,
-                ),
-              ),
-              const SizedBox(height: 20),
-              _AccountSummaryCard(
-                title: context.tr(
-                  en: 'Next steps',
-                  sk: 'Ďalší krok',
-                ),
-                items: [
-                  context.tr(
-                    en: 'Open your email inbox',
-                    sk: 'Otvor si e-mailovú schránku',
+                Container(
+                  width: 62,
+                  height: 62,
+                  decoration: BoxDecoration(
+                    color: SafoColors.primarySoft,
+                    borderRadius: BorderRadius.circular(22),
                   ),
-                  context.tr(
-                    en: 'Tap the Safo link',
-                    sk: 'Ťukni na odkaz od Safo',
+                  child: const Icon(
+                    Icons.mark_email_read_rounded,
+                    color: SafoColors.primary,
+                    size: 30,
                   ),
-                  context.tr(
-                    en: 'Return to the app and continue',
-                    sk: 'Vráť sa do aplikácie a pokračuj',
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  _isRegister
+                      ? context.tr(
+                          en: 'Finish creating your account',
+                          sk: 'Dokonči vytvorenie účtu',
+                        )
+                      : context.tr(
+                          en: 'Check your email',
+                          sk: 'Skontroluj si e-mail',
+                        ),
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
                   ),
-                ],
-              ),
-              const SizedBox(height: 20),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  _isRegister
+                      ? context.tr(
+                          en: 'We sent a magic link to $email. Open it to finish creating your Safo account.',
+                          sk: 'Na $email sme poslali magic link. Otvor ho a dokonči vytvorenie svojho Safo účtu.',
+                        )
+                      : context.tr(
+                          en: 'We sent a sign-in link to $email. Open it and you’ll continue right where you left off.',
+                          sk: 'Na $email sme poslali prihlasovací odkaz. Otvor ho a budeš pokračovať presne tam, kde si skončil.',
+                        ),
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: SafoColors.textSecondary,
+                    height: 1.45,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                _AccountSummaryCard(
+                  title: context.tr(en: 'Next steps', sk: 'Ďalší krok'),
+                  items: [
+                    context.tr(
+                      en: 'Open your email inbox',
+                      sk: 'Otvor si e-mailovú schránku',
+                    ),
+                    context.tr(
+                      en: 'Tap the Safo link',
+                      sk: 'Ťukni na odkaz od Safo',
+                    ),
+                    context.tr(
+                      en: 'Return to the app and continue',
+                      sk: 'Vráť sa do aplikácie a pokračuj',
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
                 Row(
                   children: [
                     Expanded(
@@ -1894,10 +1904,7 @@ class _AccountHeroCard extends StatelessWidget {
   final String title;
   final String subtitle;
 
-  const _AccountHeroCard({
-    required this.title,
-    required this.subtitle,
-  });
+  const _AccountHeroCard({required this.title, required this.subtitle});
 
   @override
   Widget build(BuildContext context) {
@@ -1973,10 +1980,7 @@ class _AccountSummaryCard extends StatelessWidget {
   final String title;
   final List<String> items;
 
-  const _AccountSummaryCard({
-    required this.title,
-    required this.items,
-  });
+  const _AccountSummaryCard({required this.title, required this.items});
 
   @override
   Widget build(BuildContext context) {
@@ -1992,9 +1996,9 @@ class _AccountSummaryCard extends StatelessWidget {
         children: [
           Text(
             title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 14),
           ...items.map(
@@ -2052,11 +2056,7 @@ class _SocialSignInButton extends StatelessWidget {
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          leading,
-          const SizedBox(width: 10),
-          Text(label),
-        ],
+        children: [leading, const SizedBox(width: 10), Text(label)],
       ),
     );
   }
@@ -2066,10 +2066,7 @@ class _HeaderIconButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
 
-  const _HeaderIconButton({
-    required this.icon,
-    required this.onTap,
-  });
+  const _HeaderIconButton({required this.icon, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
