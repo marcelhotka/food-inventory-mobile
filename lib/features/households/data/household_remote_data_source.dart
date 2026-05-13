@@ -76,6 +76,18 @@ class HouseholdRemoteDataSource {
       'role': 'member',
     });
 
+    await client
+        .from('food_items')
+        .update({'household_id': resolvedHouseholdId})
+        .eq('user_id', user.id)
+        .isFilter('household_id', null);
+
+    await client
+        .from('shopping_list_items')
+        .update({'household_id': resolvedHouseholdId})
+        .eq('user_id', user.id)
+        .isFilter('household_id', null);
+
     final householdResponse = await client
         .from('households')
         .select()
