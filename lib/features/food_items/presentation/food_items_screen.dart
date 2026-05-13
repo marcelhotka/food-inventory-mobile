@@ -2824,14 +2824,10 @@ class _SearchAndFilterBar extends StatelessWidget {
         TextField(
           controller: controller,
           onChanged: onSearchChanged,
-          decoration: InputDecoration(
+          decoration: appSearchInputDecoration(
             hintText: context.tr(
               en: 'Search pantry items',
               sk: 'Hľadať položky v špajzi',
-            ),
-            hintStyle: const TextStyle(
-              color: SafoColors.textMuted,
-              fontWeight: FontWeight.w500,
             ),
             prefixIcon: const Icon(
               Icons.search_rounded,

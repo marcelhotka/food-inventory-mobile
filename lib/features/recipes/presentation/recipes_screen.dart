@@ -3080,7 +3080,7 @@ class _RecipesSearchAndFilterBar extends StatelessWidget {
               controller: controller,
               focusNode: focusNode,
               onChanged: onSearchChanged,
-              decoration: InputDecoration(
+              decoration: appSearchInputDecoration(
                 hintText: context.tr(
                   en: 'Search recipes',
                   sk: 'Hľadať recepty',

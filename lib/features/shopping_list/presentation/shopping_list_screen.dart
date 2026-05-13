@@ -2032,7 +2032,7 @@ class _ShoppingSearchAndFilterBar extends StatelessWidget {
             TextField(
               controller: controller,
               onChanged: onSearchChanged,
-              decoration: InputDecoration(
+              decoration: appSearchInputDecoration(
                 hintText: context.tr(
                   en: 'Search shopping items',
                   sk: 'Hľadať nákupné položky',

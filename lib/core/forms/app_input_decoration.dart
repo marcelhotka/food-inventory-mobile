@@ -28,3 +28,16 @@ InputDecoration appInputDecoration(String label) {
     ),
   );
 }
+
+InputDecoration appSearchInputDecoration({
+  required String hintText,
+  Widget? prefixIcon,
+  Widget? suffixIcon,
+}) {
+  return appInputDecoration('').copyWith(
+    labelText: null,
+    hintText: hintText,
+    prefixIcon: prefixIcon,
+    suffixIcon: suffixIcon,
+  );
+}
