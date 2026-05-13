@@ -489,24 +489,24 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return showDialog<({String storageLocation, DateTime? expirationDate})>(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text(
-            context.tr(
-              en: 'Move bought item to pantry',
-              sk: 'Presunúť kúpenú položku do špajze',
-            ),
+        builder: (context, setDialogState) => SafoAlertDialog(
+          badge: context.tr(en: 'Notifications', sk: 'Upozornenia'),
+          icon: Icons.move_down_rounded,
+          iconColor: SafoColors.primary,
+          iconBackgroundColor: SafoColors.primarySoft,
+          title: context.tr(
+            en: 'Move bought item to pantry',
+            sk: 'Presunúť kúpenú položku do špajze',
+          ),
+          subtitle: context.tr(
+            en: 'Choose where to store ${localizedIngredientDisplayName(context, item.name)}.',
+            sk: 'Vyber, kam uložiť ${localizedIngredientDisplayName(context, item.name)}.',
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                context.tr(
-                  en: 'Choose where to store ${localizedIngredientDisplayName(context, item.name)}.',
-                  sk: 'Vyber, kam uložiť ${localizedIngredientDisplayName(context, item.name)}.',
-                ),
-              ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 4),
               DropdownButtonFormField<String>(
                 initialValue: selectedStorage,
                 decoration: InputDecoration(

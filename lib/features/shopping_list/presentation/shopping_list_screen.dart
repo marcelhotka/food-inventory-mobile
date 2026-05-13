@@ -369,12 +369,18 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
 
     final additionalItem = await showDialog<ShoppingListItem>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          context.tr(
-            en: 'Add more ${item.name}',
-            sk: 'Pridať viac ${item.name}',
-          ),
+      builder: (context) => SafoAlertDialog(
+        badge: context.tr(en: 'Shopping list', sk: 'Nákupný zoznam'),
+        icon: Icons.add_shopping_cart_rounded,
+        iconColor: SafoColors.accent,
+        iconBackgroundColor: SafoColors.accentSoft,
+        title: context.tr(
+          en: 'Add more ${item.name}',
+          sk: 'Pridať viac ${item.name}',
+        ),
+        subtitle: context.tr(
+          en: 'Add another quantity to this shopping item.',
+          sk: 'Pridaj ďalšie množstvo k tejto nákupnej položke.',
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -846,24 +852,24 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     return showDialog<({String storageLocation, DateTime? expirationDate})>(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text(
-            context.tr(
-              en: 'Move bought item to pantry',
-              sk: 'Presunúť kúpenú položku do špajze',
-            ),
+        builder: (context, setDialogState) => SafoAlertDialog(
+          badge: context.tr(en: 'Shopping list', sk: 'Nákupný zoznam'),
+          icon: Icons.move_down_rounded,
+          iconColor: SafoColors.primary,
+          iconBackgroundColor: SafoColors.primarySoft,
+          title: context.tr(
+            en: 'Move bought item to pantry',
+            sk: 'Presunúť kúpenú položku do špajze',
+          ),
+          subtitle: context.tr(
+            en: 'Choose where to store ${localizedIngredientDisplayName(context, item.name)}.',
+            sk: 'Vyber, kam uložiť ${localizedIngredientDisplayName(context, item.name)}.',
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                context.tr(
-                  en: 'Choose where to store ${localizedIngredientDisplayName(context, item.name)}.',
-                  sk: 'Vyber, kam uložiť ${localizedIngredientDisplayName(context, item.name)}.',
-                ),
-              ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 4),
               DropdownButtonFormField<String>(
                 initialValue: selectedStorage,
                 decoration: InputDecoration(

@@ -164,12 +164,18 @@ class _RecipesScreenState extends State<RecipesScreen> {
       builder: (context) {
         String? errorText;
         return StatefulBuilder(
-          builder: (context, setDialogState) => AlertDialog(
-            title: Text(
-              context.tr(
-                en: 'Servings for ${localizedRecipeName(context, recipe)}',
-                sk: 'Porcie pre ${localizedRecipeName(context, recipe)}',
-              ),
+          builder: (context, setDialogState) => SafoAlertDialog(
+            badge: context.tr(en: 'Recipes', sk: 'Recepty'),
+            icon: Icons.groups_2_outlined,
+            iconColor: SafoColors.accent,
+            iconBackgroundColor: SafoColors.accentSoft,
+            title: context.tr(
+              en: 'Servings for ${localizedRecipeName(context, recipe)}',
+              sk: 'Porcie pre ${localizedRecipeName(context, recipe)}',
+            ),
+            subtitle: context.tr(
+              en: 'Choose how many servings you want Safo to calculate.',
+              sk: 'Vyber, pre koľko porcií má Safo všetko prepočítať.',
             ),
             content: TextField(
               controller: controller,
@@ -1567,25 +1573,25 @@ class _RecipesScreenState extends State<RecipesScreen> {
     final cookConfirmed = await showDialog<bool>(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: Text(
-            context.tr(
-              en: 'Cook ${localizedRecipeName(context, freshResult.recipe)}',
-              sk: 'Variť ${localizedRecipeName(context, freshResult.recipe)}',
-            ),
+        builder: (context, setState) => SafoAlertDialog(
+          badge: context.tr(en: 'Recipes', sk: 'Recepty'),
+          icon: Icons.restaurant_menu_rounded,
+          iconColor: SafoColors.primary,
+          iconBackgroundColor: SafoColors.primarySoft,
+          title: context.tr(
+            en: 'Cook ${localizedRecipeName(context, freshResult.recipe)}',
+            sk: 'Variť ${localizedRecipeName(context, freshResult.recipe)}',
+          ),
+          subtitle: context.tr(
+            en: 'This will deduct the available ingredients from your pantry.',
+            sk: 'Týmto sa odrátajú dostupné suroviny z tvojej špajze.',
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                context.tr(
-                  en: 'This will deduct the available ingredients from your pantry.',
-                  sk: 'Týmto sa odrátajú dostupné suroviny z tvojej špajze.',
-                ),
-              ),
               if (canAddMissing) ...[
-                const SizedBox(height: 12),
+                const SizedBox(height: 4),
                 CheckboxListTile(
                   value: addMissingToShopping,
                   onChanged: (value) {
