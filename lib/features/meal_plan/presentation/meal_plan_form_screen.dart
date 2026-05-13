@@ -50,8 +50,12 @@ class _MealPlanFormScreenState extends State<MealPlanFormScreen> {
       (entry?.scheduledFor ?? DateTime.now()).month,
       (entry?.scheduledFor ?? DateTime.now()).day,
     );
-    _mealType = entry?.mealType ?? 'dinner';
-    _selectedRecipeId = entry?.recipeId ?? widget.prefilledRecipe?.id;
+    final initialMealType = entry?.mealType ?? 'dinner';
+    _mealType = _mealTypes.contains(initialMealType)
+        ? initialMealType
+        : 'dinner';
+    final initialRecipeId = entry?.recipeId ?? widget.prefilledRecipe?.id;
+    _selectedRecipeId = _findRecipeById(initialRecipeId)?.id;
     _recipeNameController.text =
         entry?.recipeName ?? widget.prefilledRecipe?.name ?? '';
     _servingsController.text =

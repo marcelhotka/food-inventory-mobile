@@ -60,7 +60,10 @@ class _StapleFoodFormScreenState extends State<StapleFoodFormScreen> {
     _nameController.text = item?.name ?? '';
     _quantityController.text = item?.quantity.toString() ?? '1';
     _unitController.text = item?.unit ?? 'pcs';
-    _selectedCategory = item?.category ?? 'other';
+    final initialCategory = item?.category ?? 'other';
+    _selectedCategory = _categoryOptions.contains(initialCategory)
+        ? initialCategory
+        : 'other';
     _selectedUnit = _unitOptions.contains(_unitController.text.trim())
         ? _unitController.text.trim()
         : 'custom';

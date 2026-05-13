@@ -69,9 +69,15 @@ class _FoodItemFormScreenState extends State<FoodItemFormScreen> {
     _unitController.text = item?.unit ?? prefill?.unit ?? 'pcs';
     _expirationDate = item?.expirationDate ?? prefill?.expirationDate;
     _openedAt = item?.openedAt;
-    _selectedCategory = item?.category ?? prefill?.category ?? 'other';
-    _selectedStorageLocation =
+    final initialCategory = item?.category ?? prefill?.category ?? 'other';
+    final initialStorage =
         item?.storageLocation ?? prefill?.storageLocation ?? 'pantry';
+    _selectedCategory = _categoryOptions.contains(initialCategory)
+        ? initialCategory
+        : 'other';
+    _selectedStorageLocation = _storageOptions.contains(initialStorage)
+        ? initialStorage
+        : 'pantry';
   }
 
   @override
