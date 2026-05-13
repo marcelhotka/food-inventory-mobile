@@ -22,4 +22,12 @@ class Household {
       updatedAt: DateTime.parse(map['updated_at'] as String),
     );
   }
+
+  String get inviteCode {
+    final compact = id.replaceAll('-', '');
+    if (compact.length <= 8) {
+      return compact.toUpperCase();
+    }
+    return compact.substring(0, 8).toUpperCase();
+  }
 }

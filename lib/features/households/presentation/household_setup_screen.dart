@@ -7,6 +7,7 @@ import '../../../core/widgets/app_feedback.dart';
 import '../../../core/widgets/safo_logo.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/presentation/sign_out_action.dart';
+import '../data/household_remote_data_source.dart';
 import '../data/household_repository.dart';
 import '../domain/household.dart';
 
@@ -123,7 +124,7 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen> {
     if ((_joinCodeController.text).trim().isEmpty) {
       showErrorFeedback(
         context,
-        context.tr(en: 'Enter a household code.', sk: 'Zadaj kód domácnosti.'),
+        context.tr(en: 'Enter an invite code.', sk: 'Zadaj pozývací kód.'),
       );
       return;
     }
@@ -143,6 +144,9 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen> {
           sk: 'Pripojenie do domácnosti bolo úspešné.',
         ),
       );
+    } on HouseholdJoinCodeException catch (error) {
+      if (!mounted) return;
+      showErrorFeedback(context, _joinCodeErrorMessage(context, error));
     } catch (_) {
       if (!mounted) return;
       showErrorFeedback(
@@ -159,6 +163,30 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen> {
         });
       }
     }
+  }
+
+  String _joinCodeErrorMessage(
+    BuildContext context,
+    HouseholdJoinCodeException error,
+  ) {
+    return switch (error.message) {
+      'Household code is empty.' => context.tr(
+        en: 'Enter an invite code.',
+        sk: 'Zadaj pozývací kód.',
+      ),
+      'Household code was not found.' => context.tr(
+        en: 'Invite code was not found.',
+        sk: 'Pozývací kód sa nenašiel.',
+      ),
+      'Household code matched more than one household.' => context.tr(
+        en: 'Invite code matched more than one household. Ask for a newer code.',
+        sk: 'Pozývací kód sedí na viac domácností. Vyžiadaj si novší kód.',
+      ),
+      _ => context.tr(
+        en: 'Failed to join household.',
+        sk: 'Do domácnosti sa nepodarilo pripojiť.',
+      ),
+    };
   }
 
   void _goTo(_HouseholdSetupStep step) {
@@ -207,10 +235,7 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen> {
                     height: 28,
                   ),
                   const SizedBox(width: 10),
-                  const SafoLogo(
-                    variant: SafoLogoVariant.pill,
-                    height: 28,
-                  ),
+                  const SafoLogo(variant: SafoLogoVariant.pill, height: 28),
                   const Spacer(),
                   _HouseholdHeaderButton(
                     icon: Icons.logout_rounded,
@@ -221,7 +246,8 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen> {
               const SizedBox(height: 20),
               _HouseholdHero(step: _step),
               const SizedBox(height: 20),
-              if (_step == _HouseholdSetupStep.choose && !_isEditingExistingHousehold) ...[
+              if (_step == _HouseholdSetupStep.choose &&
+                  !_isEditingExistingHousehold) ...[
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
@@ -240,9 +266,8 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen> {
                           en: 'Choose how you want to start',
                           sk: 'Vyber si, ako chceš začať',
                         ),
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w800),
                       ),
                       const SizedBox(height: 6),
                       Text(
@@ -320,19 +345,13 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen> {
                         ],
                         _HouseholdSectionBadge(
                           label: _step == _HouseholdSetupStep.join
-                              ? context.tr(
-                                  en: 'Step 2 of 2',
-                                  sk: 'Krok 2 z 2',
-                                )
+                              ? context.tr(en: 'Step 2 of 2', sk: 'Krok 2 z 2')
                               : _isEditingExistingHousehold
                               ? context.tr(
                                   en: 'Update your household',
                                   sk: 'Uprav svoju domácnosť',
                                 )
-                              : context.tr(
-                                  en: 'Step 2 of 2',
-                                  sk: 'Krok 2 z 2',
-                                ),
+                              : context.tr(en: 'Step 2 of 2', sk: 'Krok 2 z 2'),
                         ),
                         const SizedBox(height: 14),
                         Text(
@@ -350,16 +369,15 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen> {
                                   en: 'Name your household',
                                   sk: 'Pomenuj domácnosť',
                                 ),
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.w700),
                         ),
                         const SizedBox(height: 8),
                         Text(
                           _step == _HouseholdSetupStep.join
                               ? context.tr(
-                                  en: 'Ask your household admin for the 6-character code.',
-                                  sk: 'Požiadaj správcu domácnosti o 6-miestny kód.',
+                                  en: 'Ask your household admin for the short invite code.',
+                                  sk: 'Požiadaj správcu domácnosti o krátky pozývací kód.',
                                 )
                               : _isEditingExistingHousehold
                               ? context.tr(
@@ -370,9 +388,8 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen> {
                                   en: 'Choose a name everyone at home will recognize.',
                                   sk: 'Vyber názov, ktorý bude doma každému jasný.',
                                 ),
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: SafoColors.textSecondary,
-                          ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: SafoColors.textSecondary),
                         ),
                         const SizedBox(height: 20),
                         if (_step == _HouseholdSetupStep.join)
@@ -380,10 +397,7 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen> {
                             controller: _joinCodeController,
                             textCapitalization: TextCapitalization.characters,
                             decoration: appInputDecoration(
-                              context.tr(
-                                en: 'Household code',
-                                sk: 'Kód domácnosti',
-                              ),
+                              context.tr(en: 'Invite code', sk: 'Pozývací kód'),
                             ),
                           )
                         else
@@ -410,8 +424,8 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen> {
                           items: _step == _HouseholdSetupStep.join
                               ? [
                                   context.tr(
-                                    en: 'Ask for the invite code from someone already in the household.',
-                                    sk: 'Vyžiadaj si pozývací kód od niekoho, kto už v domácnosti je.',
+                                    en: 'Ask for the short invite code from someone already in the household.',
+                                    sk: 'Vyžiadaj si krátky pozývací kód od niekoho, kto už v domácnosti je.',
                                   ),
                                   context.tr(
                                     en: 'After joining, you will instantly see the shared pantry and shopping list.',
@@ -546,10 +560,7 @@ class _HouseholdHeaderButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
 
-  const _HouseholdHeaderButton({
-    required this.icon,
-    required this.onTap,
-  });
+  const _HouseholdHeaderButton({required this.icon, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -596,10 +607,7 @@ class _HouseholdModeSwitcher extends StatelessWidget {
         children: [
           Expanded(
             child: _HouseholdModeButton(
-              label: context.tr(
-                en: 'Create',
-                sk: 'Vytvoriť',
-              ),
+              label: context.tr(en: 'Create', sk: 'Vytvoriť'),
               selected: selectedStep == _HouseholdSetupStep.create,
               onTap: () => onSelected(_HouseholdSetupStep.create),
             ),
@@ -607,10 +615,7 @@ class _HouseholdModeSwitcher extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: _HouseholdModeButton(
-              label: context.tr(
-                en: 'Join',
-                sk: 'Pripojiť sa',
-              ),
+              label: context.tr(en: 'Join', sk: 'Pripojiť sa'),
               selected: selectedStep == _HouseholdSetupStep.join,
               onTap: () => onSelected(_HouseholdSetupStep.join),
             ),
@@ -669,7 +674,8 @@ class _HouseholdHero extends StatelessWidget {
       _HouseholdSetupStep.create => Icons.add_home_rounded,
       _HouseholdSetupStep.join => Icons.link_rounded,
     };
-    final heroImage = step == _HouseholdSetupStep.create ||
+    final heroImage =
+        step == _HouseholdSetupStep.create ||
             step == _HouseholdSetupStep.choose ||
             step == _HouseholdSetupStep.join
         ? Image.asset(
@@ -677,9 +683,7 @@ class _HouseholdHero extends StatelessWidget {
             fit: BoxFit.cover,
             alignment: Alignment.center,
           )
-        : Container(
-            color: const Color(0xFFE8F7EE),
-          );
+        : Container(color: const Color(0xFFE8F7EE));
 
     return Container(
       decoration: BoxDecoration(
@@ -689,10 +693,7 @@ class _HouseholdHero extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: Stack(
         children: [
-          AspectRatio(
-            aspectRatio: 1.15,
-            child: heroImage,
-          ),
+          AspectRatio(aspectRatio: 1.15, child: heroImage),
           Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
@@ -720,11 +721,7 @@ class _HouseholdHero extends StatelessWidget {
                 color: Colors.white.withValues(alpha: 0.92),
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: Icon(
-                icon,
-                color: SafoColors.primary,
-                size: 30,
-              ),
+              child: Icon(icon, color: SafoColors.primary, size: 30),
             ),
           ),
           Positioned(
@@ -765,8 +762,8 @@ class _HouseholdHero extends StatelessWidget {
                       sk: 'Začni odznova a vytvor jedno spoločné miesto pre špajzu, nákup aj plánovanie.',
                     ),
                     _HouseholdSetupStep.join => context.tr(
-                      en: 'Enter the invite code from another member to join the shared kitchen.',
-                      sk: 'Zadaj pozývací kód od ďalšieho člena a pripoj sa do spoločnej kuchyne.',
+                      en: 'Enter the short invite code from another member to join the shared kitchen.',
+                      sk: 'Zadaj krátky pozývací kód od ďalšieho člena a pripoj sa do spoločnej kuchyne.',
                     ),
                   },
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -870,9 +867,9 @@ class _HouseholdInfoCard extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 4),
                 Text(

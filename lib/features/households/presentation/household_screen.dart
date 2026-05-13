@@ -75,13 +75,13 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
   }
 
   Future<void> _copyCode() async {
-    await Clipboard.setData(ClipboardData(text: widget.household.id));
+    await Clipboard.setData(ClipboardData(text: widget.household.inviteCode));
     if (!mounted) return;
     showSuccessFeedback(
       context,
       context.tr(
-        en: 'Household code copied.',
-        sk: 'Kód domácnosti bol skopírovaný.',
+        en: 'Invite code copied.',
+        sk: 'Pozývací kód bol skopírovaný.',
       ),
     );
   }
@@ -216,7 +216,7 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
                   ),
                   const SizedBox(height: 14),
                   _HouseholdCodeCard(
-                    householdId: widget.household.id,
+                    inviteCode: widget.household.inviteCode,
                     onCopyCode: _copyCode,
                   ),
                   const SizedBox(height: 16),
@@ -245,8 +245,8 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
                             const SizedBox(height: 8),
                             Text(
                               context.tr(
-                                en: 'Try pulling to refresh after another user joins with your household code.',
-                                sk: 'Skús potiahnuť na obnovenie po tom, ako sa ďalší používateľ pripojí cez kód tvojej domácnosti.',
+                                en: 'Try pulling to refresh after another user joins with your invite code.',
+                                sk: 'Skús potiahnuť na obnovenie po tom, ako sa ďalší používateľ pripojí cez tvoj pozývací kód.',
                               ),
                               textAlign: TextAlign.center,
                               style: Theme.of(context).textTheme.bodySmall,
@@ -1559,11 +1559,11 @@ class _HouseholdSummaryCard extends StatelessWidget {
 }
 
 class _HouseholdCodeCard extends StatelessWidget {
-  final String householdId;
+  final String inviteCode;
   final VoidCallback onCopyCode;
 
   const _HouseholdCodeCard({
-    required this.householdId,
+    required this.inviteCode,
     required this.onCopyCode,
   });
 
@@ -1588,8 +1588,8 @@ class _HouseholdCodeCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               context.tr(
-                en: 'Share this household code with your family so they can join the same pantry, shopping list, and meal plan.',
-                sk: 'Zdieľaj tento kód domácnosti s rodinou, aby sa pripojili do rovnakej špajze, nákupu a jedálnička.',
+                en: 'Share this short invite code with your family so they can join the same pantry, shopping list, and meal plan.',
+                sk: 'Zdieľaj tento krátky pozývací kód s rodinou, aby sa pripojili do rovnakej špajze, nákupu a jedálnička.',
               ),
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: SafoColors.textSecondary,
@@ -1605,7 +1605,7 @@ class _HouseholdCodeCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(16),
               ),
               child: SelectableText(
-                householdId,
+                inviteCode,
                 style: Theme.of(
                   context,
                 ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700),
@@ -1615,7 +1615,9 @@ class _HouseholdCodeCard extends StatelessWidget {
             FilledButton.tonalIcon(
               onPressed: onCopyCode,
               icon: const Icon(Icons.copy_outlined),
-              label: Text(context.tr(en: 'Copy code', sk: 'Kopírovať kód')),
+              label: Text(
+                context.tr(en: 'Copy invite code', sk: 'Kopírovať kód'),
+              ),
             ),
           ],
         ),

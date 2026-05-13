@@ -65,9 +65,13 @@ class HouseholdRemoteDataSource {
   Future<Household> joinHousehold(String householdId) async {
     final client = _requireClient();
     final user = _requireUser(client);
+    final resolvedHouseholdId = await _resolveHouseholdId(
+      client,
+      householdId.trim(),
+    );
 
     await client.from('household_members').upsert({
-      'household_id': householdId.trim(),
+      'household_id': resolvedHouseholdId,
       'user_id': user.id,
       'role': 'member',
     });
@@ -75,7 +79,7 @@ class HouseholdRemoteDataSource {
     final householdResponse = await client
         .from('households')
         .select()
-        .eq('id', householdId.trim())
+        .eq('id', resolvedHouseholdId)
         .single();
 
     return Household.fromMap(householdResponse);
@@ -107,6 +111,42 @@ class HouseholdRemoteDataSource {
     return (response as List<dynamic>)
         .map((row) => HouseholdMember.fromMap(row as Map<String, dynamic>))
         .toList();
+  }
+
+  Future<String> _resolveHouseholdId(
+    SupabaseClient client,
+    String rawCode,
+  ) async {
+    final normalized = rawCode.trim().toLowerCase();
+    if (normalized.isEmpty) {
+      throw const HouseholdJoinCodeException('Household code is empty.');
+    }
+
+    if (normalized.contains('-') || normalized.length > 8) {
+      return normalized;
+    }
+
+    final rows = await client
+        .from('households')
+        .select('id')
+        .ilike('id', '$normalized%')
+        .limit(2);
+
+    final matches = (rows as List<dynamic>)
+        .map((row) => row['id'] as String)
+        .toList();
+
+    if (matches.isEmpty) {
+      throw const HouseholdJoinCodeException('Household code was not found.');
+    }
+
+    if (matches.length > 1) {
+      throw const HouseholdJoinCodeException(
+        'Household code matched more than one household.',
+      );
+    }
+
+    return matches.single;
   }
 
   SupabaseClient _requireClient() {
@@ -143,6 +183,15 @@ class HouseholdAuthException implements Exception {
   final String message;
 
   const HouseholdAuthException(this.message);
+
+  @override
+  String toString() => message;
+}
+
+class HouseholdJoinCodeException implements Exception {
+  final String message;
+
+  const HouseholdJoinCodeException(this.message);
 
   @override
   String toString() => message;
