@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../app/localization/app_locale.dart';
 import '../../../app/theme/safo_tokens.dart';
+import '../../../core/forms/app_input_decoration.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/app_feedback.dart';
 import '../../../core/widgets/safo_alert_dialog.dart';
@@ -181,13 +182,9 @@ class _RecipesScreenState extends State<RecipesScreen> {
               controller: controller,
               autofocus: true,
               keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: context.tr(
-                  en: 'Number of servings',
-                  sk: 'Počet porcií',
-                ),
-                errorText: errorText,
-              ),
+              decoration: appInputDecoration(
+                context.tr(en: 'Number of servings', sk: 'Počet porcií'),
+              ).copyWith(errorText: errorText),
             ),
             actions: [
               TextButton(

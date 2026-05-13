@@ -4,6 +4,7 @@ import '../../../app/localization/app_locale.dart';
 import '../../../app/supabase.dart';
 import '../../../app/theme/safo_tokens.dart';
 import '../../../core/food/food_signal_catalog.dart';
+import '../../../core/forms/app_input_decoration.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/app_feedback.dart';
 import '../../../core/widgets/safo_alert_dialog.dart';
@@ -299,13 +300,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 decimal: true,
               ),
               autofocus: true,
-              decoration: InputDecoration(
-                labelText: context.tr(
+              decoration: appInputDecoration(
+                context.tr(
                   en: 'Used quantity (${item.unit})',
                   sk: 'Použité množstvo (${item.unit})',
                 ),
-                errorText: errorText,
-              ),
+              ).copyWith(errorText: errorText),
             ),
             actions: [
               TextButton(
@@ -509,11 +509,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               const SizedBox(height: 4),
               DropdownButtonFormField<String>(
                 initialValue: selectedStorage,
-                decoration: InputDecoration(
-                  labelText: context.tr(
-                    en: 'Storage location',
-                    sk: 'Umiestnenie',
-                  ),
+                decoration: appInputDecoration(
+                  context.tr(en: 'Storage location', sk: 'Umiestnenie'),
                 ),
                 items: [
                   DropdownMenuItem(
@@ -552,11 +549,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   });
                 },
                 child: InputDecorator(
-                  decoration: InputDecoration(
-                    labelText: context.tr(
-                      en: 'Expiration date',
-                      sk: 'Dátum spotreby',
-                    ),
+                  decoration: appInputDecoration(
+                    context.tr(en: 'Expiration date', sk: 'Dátum spotreby'),
                   ),
                   child: Text(
                     expirationDate == null

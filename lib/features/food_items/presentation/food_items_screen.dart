@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../app/localization/app_locale.dart';
 import '../../../app/theme/safo_tokens.dart';
 import '../../../core/food/food_signal_catalog.dart';
+import '../../../core/forms/app_input_decoration.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/app_feedback.dart';
 import '../../../core/widgets/safo_alert_dialog.dart';
@@ -684,13 +685,12 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
                 decimal: true,
               ),
               autofocus: true,
-              decoration: InputDecoration(
-                labelText: context.tr(
+              decoration: appInputDecoration(
+                context.tr(
                   en: 'Used quantity (${item.unit})',
                   sk: 'Použité množstvo (${item.unit})',
                 ),
-                errorText: errorText,
-              ),
+              ).copyWith(errorText: errorText),
             ),
             actions: [
               TextButton(
@@ -931,13 +931,12 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
                 controller: controller,
                 autofocus: true,
                 keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: context.tr(
+                decoration: appInputDecoration(
+                  context.tr(
                     en: 'How many units did you open?',
                     sk: 'Koľko kusov si otvoril?',
                   ),
-                  errorText: errorText,
-                ),
+                ).copyWith(errorText: errorText),
               ),
               actions: [
                 TextButton(
