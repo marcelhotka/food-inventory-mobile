@@ -778,13 +778,13 @@ class _WelcomeStep extends StatelessWidget {
                 child: Stack(
                   children: [
                     Positioned.fill(
-                  child: _AuthNetworkImage(
-                    imageUrl: imageUrl,
-                    fit: BoxFit.cover,
-                    alignment: Alignment.topCenter,
-                    fallback: const _AuthImageFallback(
-                      icon: Icons.kitchen_rounded,
-                      accent: Color(0xFF4C8C68),
+                      child: _AuthNetworkImage(
+                        imageUrl: imageUrl,
+                        fit: BoxFit.cover,
+                        alignment: Alignment.topCenter,
+                        fallback: const _AuthImageFallback(
+                          icon: Icons.kitchen_rounded,
+                          accent: Color(0xFF4C8C68),
                           background: Color(0xFFF4EFE5),
                         ),
                       ),
@@ -997,13 +997,13 @@ class _OnboardingStep extends StatelessWidget {
                           Positioned.fill(
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(40),
-                            child: _AuthNetworkImage(
-                              imageUrl: imageUrl!,
-                              fit: BoxFit.cover,
-                              alignment: Alignment.center,
-                              fallback: _AuthImageFallback(
-                                icon: icon,
-                                accent: accent,
+                              child: _AuthNetworkImage(
+                                imageUrl: imageUrl!,
+                                fit: BoxFit.cover,
+                                alignment: Alignment.center,
+                                fallback: _AuthImageFallback(
+                                  icon: icon,
+                                  accent: accent,
                                   background: background,
                                 ),
                               ),
