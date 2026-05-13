@@ -1111,8 +1111,9 @@ String _defaultPantryCategory(String itemKey) {
     case 'yogurt':
     case 'butter':
     case 'cream':
-    case 'eggs':
       return 'dairy';
+    case 'eggs':
+      return 'other';
     case 'ham':
     case 'chicken':
       return 'meat';

@@ -1032,7 +1032,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       case 'cream':
         return 'dairy';
       case 'eggs':
-        return 'dairy';
+        return 'other';
       case 'ham':
       case 'chicken':
         return 'meat';
