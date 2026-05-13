@@ -1115,7 +1115,7 @@ _ScanDefaultsSuggestion _suggestedScanDefaults(String itemKey) {
       );
     case 'eggs':
       return _ScanDefaultsSuggestion(
-        category: 'dairy',
+        category: 'other',
         storageLocation: 'fridge',
         unit: 'pcs',
         expirationDate: now.add(const Duration(days: 7)),

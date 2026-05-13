@@ -213,8 +213,6 @@ class BarcodeLookupService {
       case 'yogurt':
       case 'butter':
       case 'cream':
-      case 'eggs':
-        return 'dairy';
       case 'ham':
       case 'chicken':
         return 'meat';

@@ -24,7 +24,7 @@ class FridgeScanMockService {
         confidence: 0.91,
         prefill: FoodItemPrefill(
           name: 'Eggs',
-          category: 'dairy',
+          category: 'other',
           storageLocation: 'fridge',
           quantity: 6,
           unit: 'pcs',

@@ -29,7 +29,7 @@ const stapleFoodPresets = <StapleFoodPreset>[
     id: 'eggs',
     nameEn: 'eggs',
     nameSk: 'vajcia',
-    category: 'dairy',
+    category: 'other',
     quantity: 10,
     unit: 'pcs',
   ),
