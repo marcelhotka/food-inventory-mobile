@@ -593,12 +593,18 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
 
       final selectedUserId = await showDialog<String?>(
         context: context,
-        builder: (context) => AlertDialog(
-          title: Text(
-            context.tr(
-              en: 'Assign shopping item',
-              sk: 'Priradiť nákupnú položku',
-            ),
+        builder: (context) => SafoAlertDialog(
+          badge: context.tr(en: 'Shopping list', sk: 'Nákupný zoznam'),
+          icon: Icons.person_add_alt_1_rounded,
+          iconColor: SafoColors.accent,
+          iconBackgroundColor: SafoColors.accentSoft,
+          title: context.tr(
+            en: 'Assign shopping item',
+            sk: 'Priradiť nákupnú položku',
+          ),
+          subtitle: context.tr(
+            en: 'Choose who should take care of this item.',
+            sk: 'Vyber, kto sa má o túto položku postarať.',
           ),
           content: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 380),

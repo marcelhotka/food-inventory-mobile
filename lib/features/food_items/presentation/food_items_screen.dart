@@ -665,9 +665,18 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
         String? errorText;
 
         return StatefulBuilder(
-          builder: (context, setDialogState) => AlertDialog(
-            title: Text(
-              context.tr(en: 'Use ${item.name}', sk: 'Použiť ${item.name}'),
+          builder: (context, setDialogState) => SafoAlertDialog(
+            badge: context.tr(en: 'Pantry', sk: 'Špajza'),
+            icon: Icons.remove_shopping_cart_outlined,
+            iconColor: SafoColors.primary,
+            iconBackgroundColor: SafoColors.primarySoft,
+            title: context.tr(
+              en: 'Use ${item.name}',
+              sk: 'Použiť ${item.name}',
+            ),
+            subtitle: context.tr(
+              en: 'Enter how much you used so Safo can update your pantry.',
+              sk: 'Zadaj, koľko si použil, aby Safo upravilo tvoju špajzu.',
             ),
             content: TextField(
               controller: controller,
@@ -905,9 +914,18 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
         builder: (context) {
           String? errorText;
           return StatefulBuilder(
-            builder: (context, setDialogState) => AlertDialog(
-              title: Text(
-                context.tr(en: 'Open ${item.name}', sk: 'Otvoriť ${item.name}'),
+            builder: (context, setDialogState) => SafoAlertDialog(
+              badge: context.tr(en: 'Pantry', sk: 'Špajza'),
+              icon: Icons.inventory_2_outlined,
+              iconColor: SafoColors.warning,
+              iconBackgroundColor: SafoColors.warningSoft,
+              title: context.tr(
+                en: 'Open ${item.name}',
+                sk: 'Otvoriť ${item.name}',
+              ),
+              subtitle: context.tr(
+                en: 'Choose how many units you opened so the rest can stay unopened.',
+                sk: 'Vyber, koľko kusov si otvoril, aby zvyšok ostal neotvorený.',
               ),
               content: TextField(
                 controller: controller,

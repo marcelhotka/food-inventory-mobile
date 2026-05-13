@@ -6,6 +6,7 @@ import '../../../app/theme/safo_tokens.dart';
 import '../../../core/food/food_signal_catalog.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/app_feedback.dart';
+import '../../../core/widgets/safo_alert_dialog.dart';
 import '../../../core/widgets/safo_page_header.dart';
 import '../../food_items/data/food_items_repository.dart';
 import '../../food_items/domain/food_item.dart';
@@ -279,12 +280,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         String? errorText;
 
         return StatefulBuilder(
-          builder: (context, setDialogState) => AlertDialog(
-            title: Text(
-              context.tr(
-                en: 'Use ${localizedIngredientDisplayName(context, item.name)}',
-                sk: 'Použiť ${localizedIngredientDisplayName(context, item.name)}',
-              ),
+          builder: (context, setDialogState) => SafoAlertDialog(
+            badge: context.tr(en: 'Notifications', sk: 'Upozornenia'),
+            icon: Icons.remove_shopping_cart_outlined,
+            iconColor: SafoColors.primary,
+            iconBackgroundColor: SafoColors.primarySoft,
+            title: context.tr(
+              en: 'Use ${localizedIngredientDisplayName(context, item.name)}',
+              sk: 'Použiť ${localizedIngredientDisplayName(context, item.name)}',
+            ),
+            subtitle: context.tr(
+              en: 'Enter how much you used so Safo can update the pantry item.',
+              sk: 'Zadaj, koľko si použil, aby Safo upravilo pantry položku.',
             ),
             content: TextField(
               controller: controller,
