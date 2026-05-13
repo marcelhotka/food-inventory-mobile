@@ -5,6 +5,7 @@ import '../../../app/theme/safo_tokens.dart';
 import '../../../core/forms/app_input_decoration.dart';
 import '../../../core/widgets/app_feedback.dart';
 import '../../../core/widgets/safo_alert_dialog.dart';
+import '../../../core/widgets/safo_flow_hint_card.dart';
 import '../../../core/widgets/safo_page_header.dart';
 import '../data/quick_command_service.dart';
 import '../domain/quick_command_models.dart';
@@ -340,6 +341,24 @@ class _QuickCommandScreenState extends State<QuickCommandScreen> {
                 ),
               ],
             ),
+          ),
+          const SizedBox(height: SafoSpacing.lg),
+          SafoFlowHintCard(
+            icon: Icons.bolt_rounded,
+            eyebrow: context.tr(en: 'Quick action', sk: 'Rýchla akcia'),
+            title: context.tr(
+              en: 'Describe what happened in the kitchen in one natural sentence.',
+              sk: 'Opíš jednou prirodzenou vetou, čo sa stalo v kuchyni.',
+            ),
+            description: context.tr(
+              en: 'Safo previews the change first, then updates pantry or shopping only after you confirm the command.',
+              sk: 'Safo najprv ukáže náhľad zmeny a špajzu alebo nákup upraví až po tvojom potvrdení.',
+            ),
+            highlights: [
+              context.tr(en: 'Natural language', sk: 'Prirodzený jazyk'),
+              context.tr(en: 'Preview first', sk: 'Najprv náhľad'),
+              context.tr(en: 'Pantry + shopping', sk: 'Špajza + nákup'),
+            ],
           ),
           const SizedBox(height: SafoSpacing.lg),
           Container(

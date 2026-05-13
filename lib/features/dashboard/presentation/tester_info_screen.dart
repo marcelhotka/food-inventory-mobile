@@ -5,6 +5,7 @@ import '../../../app/localization/app_locale.dart';
 import '../../../app/theme/safo_tokens.dart';
 import '../../../core/widgets/app_feedback.dart';
 import '../../../core/widgets/safo_alert_dialog.dart';
+import '../../../core/widgets/safo_flow_hint_card.dart';
 import '../../../core/widgets/safo_page_header.dart';
 import '../../food_items/data/food_items_repository.dart';
 import '../../households/domain/household.dart';
@@ -237,6 +238,24 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
                 ),
               ],
             ),
+          ),
+          const SizedBox(height: SafoSpacing.lg),
+          SafoFlowHintCard(
+            icon: Icons.science_outlined,
+            eyebrow: context.tr(en: 'QA helper', sk: 'QA pomocník'),
+            title: context.tr(
+              en: 'Prepare Safo for realistic testing in a few quick steps.',
+              sk: 'Priprav Safo na realistické testovanie v pár rýchlych krokoch.',
+            ),
+            description: context.tr(
+              en: 'Load sample data, clear it when you need a fresh pass, and keep one simple checklist for what to test next.',
+              sk: 'Nahraj ukážkové dáta, podľa potreby ich vymaž a maj po ruke jednoduchý checklist toho, čo testovať ďalej.',
+            ),
+            highlights: [
+              context.tr(en: 'Sample data', sk: 'Ukážkové dáta'),
+              context.tr(en: 'Clear reset', sk: 'Čistý reset'),
+              context.tr(en: 'QA checklist', sk: 'QA checklist'),
+            ],
           ),
           const SizedBox(height: SafoSpacing.lg),
           _InfoCard(

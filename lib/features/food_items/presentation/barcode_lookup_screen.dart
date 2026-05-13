@@ -5,6 +5,7 @@ import '../../../app/theme/safo_tokens.dart';
 import '../../../core/forms/app_input_decoration.dart';
 import '../../../core/widgets/app_feedback.dart';
 import '../../../core/widgets/safo_alert_dialog.dart';
+import '../../../core/widgets/safo_flow_hint_card.dart';
 import '../../../core/widgets/safo_page_header.dart';
 import '../data/barcode_lookup_service.dart';
 import '../domain/barcode_lookup_result.dart';
@@ -163,6 +164,24 @@ class _BarcodeLookupScreenState extends State<BarcodeLookupScreen> {
                 ),
               ],
             ),
+          ),
+          const SizedBox(height: SafoSpacing.lg),
+          SafoFlowHintCard(
+            icon: Icons.qr_code_scanner_rounded,
+            eyebrow: context.tr(en: 'Barcode lookup', sk: 'Vyhľadanie kódu'),
+            title: context.tr(
+              en: 'Look up a product quickly and open pantry with useful defaults.',
+              sk: 'Rýchlo vyhľadaj produkt a otvor špajzu s užitočnými predvolenými údajmi.',
+            ),
+            description: context.tr(
+              en: 'Safo tries online product details first, then falls back to local demo data so you can keep testing without getting stuck.',
+              sk: 'Safo najprv skúsi online detaily produktu a potom prejde na lokálne demo dáta, aby si sa pri testovaní nezasekol.',
+            ),
+            highlights: [
+              context.tr(en: 'Online first', sk: 'Najprv online'),
+              context.tr(en: 'Prefilled pantry', sk: 'Predvyplnená špajza'),
+              context.tr(en: 'Demo fallback', sk: 'Demo záloha'),
+            ],
           ),
           const SizedBox(height: SafoSpacing.lg),
           Container(
