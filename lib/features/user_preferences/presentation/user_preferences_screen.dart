@@ -204,7 +204,9 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
     );
     _householdSizeController.text =
         preferences?.householdSize?.toString() ?? '';
-    _selectedDietStyles = {...(preferences?.dietStyles ?? const <String>[])};
+    _selectedDietStyles = _normalizeDietStyles({
+      ...(preferences?.dietStyles ?? const <String>[]),
+    });
     _selectedCookingFrequency =
         _cookingFrequencies.contains(preferences?.cookingFrequency)
         ? preferences?.cookingFrequency
@@ -1080,7 +1082,7 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
   }
 
   static Set<String> _normalizeDietStyles(Set<String> values) {
-    final next = {...values};
+    final next = values.where(_dietStyles.contains).toSet();
     if (next.contains('no_special_diet') && next.length > 1) {
       next.remove('no_special_diet');
     }
