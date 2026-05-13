@@ -310,7 +310,7 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
   void _applySampleProfile() {
     setState(() {
       _selectedFavoriteMeals = {'pasta', 'omelette', 'soup'};
-      _selectedFavoriteFoods = {'milk', 'eggs', 'bread', 'cheese'};
+      _selectedFavoriteFoods = {'eggs', 'bread', 'cheese', 'yogurt'};
       _selectedAllergies = <String>{};
       _selectedIntolerances = {'lactose'};
       _favoriteMealsController.text = '';
