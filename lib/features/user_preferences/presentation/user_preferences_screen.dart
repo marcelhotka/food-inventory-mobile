@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../app/app_metadata.dart';
 import '../../../app/localization/app_locale.dart';
 import '../../../app/theme/safo_tokens.dart';
 import '../../../core/forms/app_input_decoration.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/app_feedback.dart';
+import '../../../core/widgets/safo_alert_dialog.dart';
 import '../../../core/widgets/safo_logo.dart';
 import '../../../core/widgets/safo_page_header.dart';
 import '../../auth/data/auth_repository.dart';
@@ -978,6 +980,93 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
                                 ),
                               ],
                             ),
+                            const SizedBox(height: 18),
+                            _PreferenceSection(
+                              title: context.tr(
+                                en: 'About Safo',
+                                sk: 'O aplikácii Safo',
+                              ),
+                              icon: Icons.info_outline_rounded,
+                              accent: const Color(0xFF4B6CB7),
+                              subtitle: context.tr(
+                                en: 'Keep release details, privacy notes and tester support close at hand while we prepare Safo for TestFlight.',
+                                sk: 'Maj poruke release detaily, poznámky k súkromiu a testerskú podporu, kým pripravujeme Safo na TestFlight.',
+                              ),
+                              children: [
+                                Wrap(
+                                  spacing: 12,
+                                  runSpacing: 12,
+                                  children: [
+                                    _InfoPill(
+                                      label: context.tr(
+                                        en: 'Version',
+                                        sk: 'Verzia',
+                                      ),
+                                      value:
+                                          '${SafoAppMetadata.version} (${SafoAppMetadata.buildNumber})',
+                                    ),
+                                    _InfoPill(
+                                      label: context.tr(
+                                        en: 'Stage',
+                                        sk: 'Fáza',
+                                      ),
+                                      value: SafoAppMetadata.releaseStage,
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 16),
+                                Wrap(
+                                  spacing: 12,
+                                  runSpacing: 12,
+                                  children: [
+                                    OutlinedButton.icon(
+                                      onPressed: _showAboutDialog,
+                                      icon: const Icon(
+                                        Icons.info_outline_rounded,
+                                      ),
+                                      label: Text(
+                                        context.tr(
+                                          en: 'About',
+                                          sk: 'O aplikácii',
+                                        ),
+                                      ),
+                                    ),
+                                    OutlinedButton.icon(
+                                      onPressed: _showPrivacyDialog,
+                                      icon: const Icon(
+                                        Icons.privacy_tip_outlined,
+                                      ),
+                                      label: Text(
+                                        context.tr(
+                                          en: 'Privacy',
+                                          sk: 'Súkromie',
+                                        ),
+                                      ),
+                                    ),
+                                    OutlinedButton.icon(
+                                      onPressed: _showTermsDialog,
+                                      icon: const Icon(Icons.gavel_rounded),
+                                      label: Text(
+                                        context.tr(
+                                          en: 'Terms',
+                                          sk: 'Podmienky',
+                                        ),
+                                      ),
+                                    ),
+                                    OutlinedButton.icon(
+                                      onPressed: _showSupportDialog,
+                                      icon: const Icon(Icons.support_agent),
+                                      label: Text(
+                                        context.tr(
+                                          en: 'Tester help',
+                                          sk: 'Pomoc pre testerov',
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ],
                           const SizedBox(height: 8),
                           if (!widget.isOnboarding) ...[
@@ -1200,6 +1289,202 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
       'alcohol' => context.tr(en: 'Alcohol', sk: 'Alkohol'),
       _ => value,
     };
+  }
+
+  Future<void> _showAboutDialog() {
+    return showDialog<void>(
+      context: context,
+      builder: (context) => SafoAlertDialog(
+        badge: context.tr(en: 'Safo', sk: 'Safo'),
+        icon: Icons.info_outline_rounded,
+        iconColor: SafoColors.primary,
+        iconBackgroundColor: SafoColors.primarySoft,
+        title: context.tr(en: 'About Safo', sk: 'O aplikácii Safo'),
+        subtitle: context.tr(
+          en: 'Safo is a shared kitchen assistant for households.',
+          sk: 'Safo je spoločný kuchynský asistent pre domácnosti.',
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 4),
+            Text(
+              context.tr(
+                en: 'It helps you track pantry items, reduce waste, plan meals faster, and manage shopping together.',
+                sk: 'Pomáha sledovať zásoby, znižovať odpad, rýchlejšie plánovať jedlá a spravovať nákup spoločne.',
+              ),
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                _InfoPill(
+                  label: context.tr(en: 'Version', sk: 'Verzia'),
+                  value:
+                      '${SafoAppMetadata.version} (${SafoAppMetadata.buildNumber})',
+                ),
+                _InfoPill(
+                  label: context.tr(en: 'Stage', sk: 'Fáza'),
+                  value: SafoAppMetadata.releaseStage,
+                ),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(context.tr(en: 'Close', sk: 'Zavrieť')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showPrivacyDialog() {
+    return showDialog<void>(
+      context: context,
+      builder: (context) => SafoAlertDialog(
+        badge: context.tr(en: 'Privacy', sk: 'Súkromie'),
+        icon: Icons.privacy_tip_outlined,
+        iconColor: SafoColors.warning,
+        iconBackgroundColor: SafoColors.warningSoft,
+        title: context.tr(en: 'Privacy overview', sk: 'Prehľad súkromia'),
+        subtitle: context.tr(
+          en: 'This is a tester-facing summary before the final public policy is published.',
+          sk: 'Toto je testerské zhrnutie pred zverejnením finálnej verejnej politiky.',
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 4),
+            _DialogBullet(
+              text: context.tr(
+                en: 'Safo stores pantry, shopping, recipe, household and preference data so shared kitchen features can work.',
+                sk: 'Safo ukladá dáta o špajzi, nákupe, receptoch, domácnosti a preferenciách, aby fungovali spoločné kuchynské funkcie.',
+              ),
+            ),
+            _DialogBullet(
+              text: context.tr(
+                en: 'Allergy, intolerance and diet preferences are used to improve warnings and safer suggestions.',
+                sk: 'Alergie, intolerancie a stravovacie preferencie sa používajú na lepšie upozornenia a bezpečnejšie odporúčania.',
+              ),
+            ),
+            _DialogBullet(
+              text: context.tr(
+                en: 'Fridge and barcode scans are used only for the features you explicitly trigger.',
+                sk: 'Skenovanie chladničky a čiarových kódov sa používa len pre funkcie, ktoré výslovne spustíš.',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(context.tr(en: 'Close', sk: 'Zavrieť')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showTermsDialog() {
+    return showDialog<void>(
+      context: context,
+      builder: (context) => SafoAlertDialog(
+        badge: context.tr(en: 'Terms', sk: 'Podmienky'),
+        icon: Icons.gavel_rounded,
+        iconColor: SafoColors.textPrimary,
+        iconBackgroundColor: SafoColors.surfaceSoft,
+        title: context.tr(en: 'Terms overview', sk: 'Prehľad podmienok'),
+        subtitle: context.tr(
+          en: 'A lightweight tester summary until the final public terms are published.',
+          sk: 'Krátke testerské zhrnutie, kým zverejníme finálne verejné podmienky.',
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 4),
+            _DialogBullet(
+              text: context.tr(
+                en: 'Safo is designed for planning and organization, not as medical advice.',
+                sk: 'Safo je určené na plánovanie a organizáciu, nie ako medicínske odporúčanie.',
+              ),
+            ),
+            _DialogBullet(
+              text: context.tr(
+                en: 'Shared household data can be visible to other members of the same household.',
+                sk: 'Zdieľané dáta domácnosti môžu byť viditeľné aj pre ďalších členov tej istej domácnosti.',
+              ),
+            ),
+            _DialogBullet(
+              text: context.tr(
+                en: 'Users remain responsible for checking product labels, ingredients and cooking suitability.',
+                sk: 'Používatelia sú stále zodpovední za kontrolu etikiet, ingrediencií a vhodnosti prípravy jedla.',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(context.tr(en: 'Close', sk: 'Zavrieť')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showSupportDialog() {
+    return showDialog<void>(
+      context: context,
+      builder: (context) => SafoAlertDialog(
+        badge: context.tr(en: 'Testing', sk: 'Testovanie'),
+        icon: Icons.support_agent,
+        iconColor: SafoColors.success,
+        iconBackgroundColor: SafoColors.successSoft,
+        title: context.tr(en: 'Tester help', sk: 'Pomoc pre testerov'),
+        subtitle: context.tr(
+          en: 'Use this guidance while Safo is still in internal alpha / TestFlight preparation.',
+          sk: 'Použi toto zhrnutie, kým je Safo ešte v internej alfa fáze / príprave na TestFlight.',
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 4),
+            _DialogBullet(
+              text: context.tr(
+                en: 'Report the screen, exact action, expected result and actual result whenever you hit a bug.',
+                sk: 'Pri chybe nahlás obrazovku, presnú akciu, očakávaný výsledok a reálny výsledok.',
+              ),
+            ),
+            _DialogBullet(
+              text: context.tr(
+                en: 'If possible, include a screenshot of the issue or the state right before it happened.',
+                sk: 'Ak sa dá, prilož screenshot chyby alebo stavu tesne predtým, než nastala.',
+              ),
+            ),
+            _DialogBullet(
+              text: context.tr(
+                en: 'Support contact and final legal links will be added before public release.',
+                sk: 'Kontakt na podporu a finálne právne odkazy doplníme pred verejným vydaním.',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(context.tr(en: 'Close', sk: 'Zavrieť')),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -1545,6 +1830,72 @@ class _KitchenSetupSummary extends StatelessWidget {
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoPill extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _InfoPill({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: SafoColors.surfaceSoft,
+        borderRadius: BorderRadius.circular(SafoRadii.pill),
+        border: Border.all(color: SafoColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: Theme.of(
+              context,
+            ).textTheme.labelSmall?.copyWith(color: SafoColors.textSecondary),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: Theme.of(
+              context,
+            ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DialogBullet extends StatelessWidget {
+  final String text;
+
+  const _DialogBullet({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            margin: const EdgeInsets.only(top: 6),
+            decoration: const BoxDecoration(
+              color: SafoColors.primary,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(child: Text(text)),
         ],
       ),
     );

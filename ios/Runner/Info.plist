@@ -39,6 +39,10 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Safo uses the camera so you can scan your fridge and add food faster.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Safo uses your photo library so you can import fridge photos for pantry scanning.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
