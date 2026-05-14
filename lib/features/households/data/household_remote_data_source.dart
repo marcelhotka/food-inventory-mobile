@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../app/supabase.dart';
 import '../domain/household.dart';
+import '../domain/household_join_target.dart';
 import '../domain/household_member.dart';
 
 class HouseholdRemoteDataSource {
@@ -129,19 +130,15 @@ class HouseholdRemoteDataSource {
     SupabaseClient client,
     String rawCode,
   ) async {
-    final normalized = rawCode.trim().toLowerCase();
-    if (normalized.isEmpty) {
-      throw const HouseholdJoinCodeException('Household code is empty.');
-    }
-
-    if (normalized.contains('-') || normalized.length > 8) {
-      return normalized;
+    final target = _parseJoinTarget(rawCode);
+    if (target.isFullHouseholdId) {
+      return target.value;
     }
 
     final rows = await client
         .from('households')
         .select('id')
-        .ilike('id', '$normalized%')
+        .ilike('id', '${target.value}%')
         .limit(2);
 
     final matches = (rows as List<dynamic>)
@@ -159,6 +156,14 @@ class HouseholdRemoteDataSource {
     }
 
     return matches.single;
+  }
+
+  HouseholdJoinTarget _parseJoinTarget(String rawCode) {
+    try {
+      return parseHouseholdJoinTarget(rawCode);
+    } on HouseholdJoinCodeFormatException catch (error) {
+      throw HouseholdJoinCodeException(error.message);
+    }
   }
 
   SupabaseClient _requireClient() {

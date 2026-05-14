@@ -178,6 +178,10 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen> {
         en: 'Invite code was not found.',
         sk: 'Pozývací kód sa nenašiel.',
       ),
+      'Household code has invalid format.' => context.tr(
+        en: 'Invite code format is not valid.',
+        sk: 'Formát pozývacieho kódu nie je platný.',
+      ),
       'Household code matched more than one household.' => context.tr(
         en: 'Invite code matched more than one household. Ask for a newer code.',
         sk: 'Pozývací kód sedí na viac domácností. Vyžiadaj si novší kód.',
@@ -396,6 +400,7 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen> {
                           TextFormField(
                             controller: _joinCodeController,
                             textCapitalization: TextCapitalization.characters,
+                            autofillHints: const [AutofillHints.oneTimeCode],
                             decoration: appInputDecoration(
                               context.tr(en: 'Invite code', sk: 'Pozývací kód'),
                             ),
