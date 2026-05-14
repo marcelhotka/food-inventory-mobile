@@ -1616,7 +1616,10 @@ class _HouseholdCodeCard extends StatelessWidget {
               onPressed: onCopyCode,
               icon: const Icon(Icons.copy_outlined),
               label: Text(
-                context.tr(en: 'Copy invite code', sk: 'Kopírovať kód'),
+                context.tr(
+                  en: 'Copy invite code',
+                  sk: 'Kopírovať pozývací kód',
+                ),
               ),
             ),
           ],
