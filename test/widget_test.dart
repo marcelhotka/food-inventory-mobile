@@ -4,7 +4,7 @@ import 'package:food_inventory_mobile/app/app.dart';
 
 void main() {
   testWidgets('renders bootstrap home screen', (WidgetTester tester) async {
-    await tester.pumpWidget(const FoodInventoryApp());
+    await tester.pumpWidget(const SafoApp());
 
     await tester.pump();
 

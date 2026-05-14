@@ -7,14 +7,14 @@ import 'localization/app_locale.dart';
 import 'router.dart';
 import 'theme/safo_theme.dart';
 
-class FoodInventoryApp extends StatefulWidget {
-  const FoodInventoryApp({super.key});
+class SafoApp extends StatefulWidget {
+  const SafoApp({super.key});
 
   @override
-  State<FoodInventoryApp> createState() => _FoodInventoryAppState();
+  State<SafoApp> createState() => _SafoAppState();
 }
 
-class _FoodInventoryAppState extends State<FoodInventoryApp> {
+class _SafoAppState extends State<SafoApp> {
   late final AuthRepository _authRepository = AuthRepository();
   late final UserPreferencesRepository _userPreferencesRepository =
       UserPreferencesRepository();

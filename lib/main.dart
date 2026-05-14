@@ -6,5 +6,5 @@ import 'app/supabase.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await bootstrapSupabase();
-  runApp(const FoodInventoryApp());
+  runApp(const SafoApp());
 }
