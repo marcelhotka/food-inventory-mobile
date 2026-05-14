@@ -76,7 +76,7 @@ class TesterSampleDataService {
         householdId: household.id,
         name: 'Vajcia',
         barcode: null,
-        category: 'dairy',
+        category: 'other',
         storageLocation: 'fridge',
         quantity: 6,
         lowStockThreshold: 6,
