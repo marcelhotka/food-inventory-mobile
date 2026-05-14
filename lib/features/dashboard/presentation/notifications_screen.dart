@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../app/localization/app_locale.dart';
 import '../../../app/supabase.dart';
 import '../../../app/theme/safo_tokens.dart';
+import '../../../core/food/pantry_defaults.dart';
 import '../../../core/food/food_signal_catalog.dart';
 import '../../../core/forms/app_input_decoration.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
@@ -481,7 +482,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   Future<({String storageLocation, DateTime? expirationDate})?>
   _confirmBoughtPantryDetails(ShoppingListItem item) async {
-    var selectedStorage = _defaultPantryStorage(
+    var selectedStorage = defaultPantryStorage(
       deriveFoodSignalInfo(item.name).itemKey,
     );
     DateTime? expirationDate;
@@ -604,7 +605,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           householdId: item.householdId,
           name: item.name,
           barcode: null,
-          category: _defaultPantryCategory(info.itemKey),
+          category: defaultPantryCategory(info.itemKey),
           storageLocation: storageLocation,
           quantity: item.quantity,
           lowStockThreshold: null,
@@ -1085,50 +1086,6 @@ double? _convertQuantity({
     return quantity;
   }
   return null;
-}
-
-String _defaultPantryStorage(String itemKey) {
-  switch (itemKey) {
-    case 'milk':
-    case 'cheese':
-    case 'eggs':
-    case 'yogurt':
-    case 'butter':
-    case 'cream':
-    case 'ham':
-      return 'fridge';
-    case 'peas':
-      return 'freezer';
-    default:
-      return 'pantry';
-  }
-}
-
-String _defaultPantryCategory(String itemKey) {
-  switch (itemKey) {
-    case 'milk':
-    case 'cheese':
-    case 'yogurt':
-    case 'butter':
-    case 'cream':
-      return 'dairy';
-    case 'eggs':
-      return 'other';
-    case 'ham':
-    case 'chicken':
-      return 'meat';
-    case 'peas':
-      return 'frozen';
-    case 'bread':
-    case 'pasta':
-    case 'rice':
-    case 'beans':
-      return 'grains';
-    case 'tomato':
-      return 'produce';
-    default:
-      return 'other';
-  }
 }
 
 enum _NotificationKind { expiringSoon, opened, lowStock, shopping, mealPlan }

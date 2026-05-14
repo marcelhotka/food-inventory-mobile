@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../app/localization/app_locale.dart';
 import '../../../app/theme/safo_tokens.dart';
+import '../../../core/food/pantry_defaults.dart';
 import '../../../core/food/food_signal_catalog.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/app_feedback.dart';
@@ -1097,8 +1098,8 @@ _ScanDefaultsSuggestion _suggestedScanDefaults(String itemKey) {
   switch (itemKey) {
     case 'milk':
       return _ScanDefaultsSuggestion(
-        category: 'dairy',
-        storageLocation: 'fridge',
+        category: defaultPantryCategory(itemKey),
+        storageLocation: defaultPantryStorage(itemKey),
         unit: 'l',
         expirationDate: now.add(const Duration(days: 5)),
         lowStockThreshold: 1,
@@ -1107,24 +1108,24 @@ _ScanDefaultsSuggestion _suggestedScanDefaults(String itemKey) {
     case 'yogurt':
     case 'butter':
       return _ScanDefaultsSuggestion(
-        category: 'dairy',
-        storageLocation: 'fridge',
+        category: defaultPantryCategory(itemKey),
+        storageLocation: defaultPantryStorage(itemKey),
         unit: itemKey == 'butter' ? 'g' : 'pcs',
         expirationDate: now.add(const Duration(days: 5)),
         lowStockThreshold: itemKey == 'butter' ? 200 : 2,
       );
     case 'eggs':
       return _ScanDefaultsSuggestion(
-        category: 'other',
-        storageLocation: 'fridge',
+        category: defaultPantryCategory(itemKey),
+        storageLocation: defaultPantryStorage(itemKey),
         unit: 'pcs',
         expirationDate: now.add(const Duration(days: 7)),
         lowStockThreshold: 6,
       );
     case 'bread':
       return _ScanDefaultsSuggestion(
-        category: 'grains',
-        storageLocation: 'pantry',
+        category: defaultPantryCategory(itemKey),
+        storageLocation: defaultPantryStorage(itemKey),
         unit: 'pcs',
         expirationDate: now.add(const Duration(days: 3)),
         lowStockThreshold: 1,
@@ -1133,16 +1134,16 @@ _ScanDefaultsSuggestion _suggestedScanDefaults(String itemKey) {
     case 'rice':
     case 'flour':
       return _ScanDefaultsSuggestion(
-        category: 'grains',
-        storageLocation: 'pantry',
+        category: defaultPantryCategory(itemKey),
+        storageLocation: defaultPantryStorage(itemKey),
         unit: itemKey == 'rice' || itemKey == 'flour' ? 'kg' : 'g',
         expirationDate: now.add(const Duration(days: 30)),
         lowStockThreshold: itemKey == 'pasta' ? 500 : 1,
       );
     default:
-      return const _ScanDefaultsSuggestion(
-        category: 'other',
-        storageLocation: 'pantry',
+      return _ScanDefaultsSuggestion(
+        category: defaultPantryCategory(itemKey),
+        storageLocation: defaultPantryStorage(itemKey),
         unit: 'pcs',
       );
   }

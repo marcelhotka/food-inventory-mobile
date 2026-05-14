@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../../../core/food/pantry_defaults.dart';
 import '../../../core/food/food_signal_catalog.dart';
 import '../domain/barcode_lookup_result.dart';
 import '../domain/food_item_prefill.dart';
@@ -199,54 +200,11 @@ class BarcodeLookupService {
     final info = deriveFoodSignalInfo(name);
     return (
       itemKey: info.itemKey,
-      category: _defaultCategory(info.itemKey),
-      storageLocation: _defaultStorage(info.itemKey),
+      category: defaultPantryCategory(info.itemKey),
+      storageLocation: defaultPantryStorage(info.itemKey),
       quantity: _defaultQuantity(info.itemKey),
       unit: _defaultUnit(info.itemKey),
     );
-  }
-
-  String _defaultCategory(String itemKey) {
-    switch (itemKey) {
-      case 'milk':
-      case 'cheese':
-      case 'yogurt':
-      case 'butter':
-      case 'cream':
-      case 'ham':
-      case 'chicken':
-        return 'meat';
-      case 'peas':
-        return 'frozen';
-      case 'bread':
-      case 'pasta':
-      case 'rice':
-      case 'beans':
-      case 'flour':
-        return 'grains';
-      case 'tomato':
-        return 'produce';
-      default:
-        return 'other';
-    }
-  }
-
-  String _defaultStorage(String itemKey) {
-    switch (itemKey) {
-      case 'milk':
-      case 'cheese':
-      case 'yogurt':
-      case 'butter':
-      case 'cream':
-      case 'eggs':
-      case 'ham':
-      case 'chicken':
-        return 'fridge';
-      case 'peas':
-        return 'freezer';
-      default:
-        return 'pantry';
-    }
   }
 
   String _defaultUnit(String itemKey) {
