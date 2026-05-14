@@ -27,7 +27,7 @@ This checklist tracks what still needs to be finished before Safo can move from 
 - [ ] Fix the local Flutter toolchain/runtime issue so `flutter test` works reliably
 - [ ] Run `flutter analyze` clean on the whole app
 - [ ] Run `flutter test` clean on the whole app
-- [ ] Add a lightweight release regression checklist for:
+- [x] Add a lightweight release regression checklist for:
   - auth
   - household join/share
   - allergy/intolerance warnings
@@ -158,3 +158,4 @@ The biggest remaining work before store release is not visual polish anymore. It
 - `TESTFLIGHT_QA_MATRIX.md`
 - `APP_STORE_SCREENSHOT_PLAN.md`
 - `TESTFLIGHT_FEEDBACK_TEMPLATE.md`
+- `RELEASE_REGRESSION_CHECKLIST.md`
