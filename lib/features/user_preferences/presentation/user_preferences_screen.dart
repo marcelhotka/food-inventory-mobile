@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../app/app_metadata.dart';
@@ -1471,18 +1472,51 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
             ),
             _DialogBullet(
               text: context.tr(
-                en: 'Support contact and final legal links will be added before public release.',
-                sk: 'Kontakt na podporu a finálne právne odkazy doplníme pred verejným vydaním.',
+                en: 'During internal alpha, use Tester info from the dashboard or copy the feedback template below.',
+                sk: 'Počas internej alfa verzie použi Tester info z dashboardu alebo si skopíruj feedback šablónu nižšie.',
               ),
             ),
           ],
         ),
         actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _copyFeedbackTemplateFromSettings();
+            },
+            child: Text(
+              context.tr(
+                en: 'Copy feedback template',
+                sk: 'Kopírovať feedback šablónu',
+              ),
+            ),
+          ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(),
             child: Text(context.tr(en: 'Close', sk: 'Zavrieť')),
           ),
         ],
+      ),
+    );
+  }
+
+  String _feedbackTemplate(BuildContext context) {
+    return context.tr(
+      en: 'Tested flow:\nWhat I expected:\nWhat happened:\nSeverity:\nNotes / screenshot:',
+      sk: 'Testovaný flow:\nČo som očakával:\nČo sa stalo:\nZávažnosť:\nPoznámka / screenshot:',
+    );
+  }
+
+  Future<void> _copyFeedbackTemplateFromSettings() async {
+    await Clipboard.setData(ClipboardData(text: _feedbackTemplate(context)));
+    if (!mounted) {
+      return;
+    }
+    showSuccessFeedback(
+      context,
+      context.tr(
+        en: 'Feedback template copied.',
+        sk: 'Šablóna na feedback bola skopírovaná.',
       ),
     );
   }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../app/app_metadata.dart';
 import '../../../app/localization/app_locale.dart';
 import '../../../app/theme/safo_tokens.dart';
 import '../../../core/widgets/app_feedback.dart';
@@ -17,8 +18,6 @@ class TesterInfoScreen extends StatefulWidget {
   final Household household;
 
   const TesterInfoScreen({super.key, required this.household});
-
-  static const buildLabel = '1.0.0+1';
 
   @override
   State<TesterInfoScreen> createState() => _TesterInfoScreenState();
@@ -265,8 +264,8 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
               children: [
                 Text(
                   context.tr(
-                    en: 'Version ${TesterInfoScreen.buildLabel}',
-                    sk: 'Verzia ${TesterInfoScreen.buildLabel}',
+                    en: 'Version ${SafoAppMetadata.buildLabel}',
+                    sk: 'Verzia ${SafoAppMetadata.buildLabel}',
                   ),
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
