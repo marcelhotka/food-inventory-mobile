@@ -154,6 +154,7 @@ The biggest remaining work before store release is not visual polish anymore. It
 - `PRIVACY_POLICY_DRAFT.md`
 - `TERMS_OF_USE_DRAFT.md`
 - `SUPABASE_RELEASE_CHECKLIST.md`
+- `SUPABASE_AUTH_PROVIDER_SETUP.md`
 - `TESTFLIGHT_QA_MATRIX.md`
 - `APP_STORE_SCREENSHOT_PLAN.md`
 - `TESTFLIGHT_FEEDBACK_TEMPLATE.md`
