@@ -147,3 +147,11 @@ The biggest remaining work before store release is not visual polish anymore. It
 2. auth/provider production setup
 3. release tooling stability
 4. legal + store metadata
+
+## Companion Docs In This Repo
+
+- `APP_STORE_METADATA_DRAFT.md`
+- `PRIVACY_POLICY_DRAFT.md`
+- `TERMS_OF_USE_DRAFT.md`
+- `SUPABASE_RELEASE_CHECKLIST.md`
+- `TESTFLIGHT_QA_MATRIX.md`
