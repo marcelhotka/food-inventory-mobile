@@ -110,6 +110,7 @@ This checklist tracks what still needs to be finished before Safo can move from 
 
 - [ ] Confirm bundle identifier
 - [ ] Confirm signing / certificates / provisioning
+- [ ] Confirm Android release signing via `android/key.properties`
 - [ ] Confirm release version number strategy
 - [ ] Archive the iOS build successfully in Xcode
 - [ ] Upload first build to TestFlight
@@ -159,3 +160,4 @@ The biggest remaining work before store release is not visual polish anymore. It
 - `APP_STORE_SCREENSHOT_PLAN.md`
 - `TESTFLIGHT_FEEDBACK_TEMPLATE.md`
 - `RELEASE_REGRESSION_CHECKLIST.md`
+- `ANDROID_RELEASE_SIGNING_SETUP.md`
