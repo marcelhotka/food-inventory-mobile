@@ -49,6 +49,24 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
     );
   }
 
+  String _qaChecklistTemplate(BuildContext context) {
+    return context.tr(
+      en:
+          'QA checklist:\n- Onboarding and auth\n- Household create / join\n- Pantry add / edit / opened / expiring\n- Shopping add / bought / move to pantry\n- Recipes safe-for-you / servings / shopping add\n- Meal plan add / assign cook\n- Quick command / barcode / fridge scan\n- Dashboard density and alerts\n- Empty, loading, error, offline states',
+      sk:
+          'QA checklist:\n- Onboarding a prihlásenie\n- Vytvorenie / pripojenie domácnosti\n- Špajza: pridať / upraviť / otvorené / exspirácia\n- Nákup: pridať / kúpené / presun do špajze\n- Recepty: safe-for-you / porcie / pridanie do nákupu\n- Jedálniček: pridať / priradiť kuchára\n- Rýchly príkaz / barcode / scan chladničky\n- Hustota dashboardu a upozornenia\n- Empty, loading, error a offline stavy',
+    );
+  }
+
+  String _buildSummary(BuildContext context) {
+    return context.tr(
+      en:
+          'App: ${SafoAppMetadata.appName}\nVersion: ${SafoAppMetadata.buildLabel}\nStage: ${SafoAppMetadata.releaseStage}\nHousehold: ${widget.household.name}',
+      sk:
+          'Aplikácia: ${SafoAppMetadata.appName}\nVerzia: ${SafoAppMetadata.buildLabel}\nFáza: ${SafoAppMetadata.releaseStage}\nDomácnosť: ${widget.household.name}',
+    );
+  }
+
   Future<void> _loadSampleData() async {
     setState(() {
       _isLoadingSampleData = true;
@@ -206,6 +224,34 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
     );
   }
 
+  Future<void> _copyQaChecklist() async {
+    await Clipboard.setData(ClipboardData(text: _qaChecklistTemplate(context)));
+    if (!mounted) {
+      return;
+    }
+    showSuccessFeedback(
+      context,
+      context.tr(
+        en: 'QA checklist copied.',
+        sk: 'QA checklist bol skopírovaný.',
+      ),
+    );
+  }
+
+  Future<void> _copyBuildSummary() async {
+    await Clipboard.setData(ClipboardData(text: _buildSummary(context)));
+    if (!mounted) {
+      return;
+    }
+    showSuccessFeedback(
+      context,
+      context.tr(
+        en: 'Build summary copied.',
+        sk: 'Zhrnutie buildu bolo skopírované.',
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -272,6 +318,17 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
+                Text(
+                  context.tr(
+                    en: 'Stage: ${SafoAppMetadata.releaseStage}',
+                    sk: 'Fáza: ${SafoAppMetadata.releaseStage}',
+                  ),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: SafoColors.textSecondary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 12),
                 FilledButton.tonalIcon(
                   onPressed: _isLoadingSampleData ? null : _loadSampleData,
                   icon: _isLoadingSampleData
@@ -307,6 +364,17 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
                             en: 'Clear sample data',
                             sk: 'Vymazať ukážkové dáta',
                           ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  onPressed: _copyBuildSummary,
+                  icon: const Icon(Icons.copy_all_outlined),
+                  label: Text(
+                    context.tr(
+                      en: 'Copy build summary',
+                      sk: 'Skopírovať zhrnutie buildu',
+                    ),
                   ),
                 ),
               ],
@@ -436,6 +504,17 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
                     context.tr(
                       en: 'Copy feedback template',
                       sk: 'Skopírovať šablónu',
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  onPressed: _copyQaChecklist,
+                  icon: const Icon(Icons.checklist_rtl_outlined),
+                  label: Text(
+                    context.tr(
+                      en: 'Copy QA checklist',
+                      sk: 'Skopírovať QA checklist',
                     ),
                   ),
                 ),
