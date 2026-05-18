@@ -1369,8 +1369,8 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       return error.toString();
     }
     return context.tr(
-      en: 'Failed to load shopping list items.',
-      sk: 'Nákupný zoznam sa nepodarilo načítať.',
+      en: 'Safo could not load your shopping list right now.',
+      sk: 'Safo teraz nedokázalo načítať tvoj nákupný zoznam.',
     );
   }
 

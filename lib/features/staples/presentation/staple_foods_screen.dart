@@ -500,8 +500,8 @@ class _StapleFoodsScreenState extends State<StapleFoodsScreen> {
                   fallback: AppErrorKind.sync,
                 ),
                 message: context.tr(
-                  en: 'Failed to load staple foods.',
-                  sk: 'Nepodarilo sa načítať základné potraviny.',
+                  en: 'Safo could not load your staple foods right now.',
+                  sk: 'Safo teraz nedokázalo načítať tvoje základné potraviny.',
                 ),
                 onRetry: _reload,
               ),

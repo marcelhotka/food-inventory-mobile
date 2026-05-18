@@ -751,8 +751,8 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                   sk: 'Jedálniček nie je k dispozícii',
                 ),
                 message: context.tr(
-                  en: 'Failed to load meal plan.',
-                  sk: 'Jedálniček sa nepodarilo načítať.',
+                  en: 'Safo could not load your meal plan right now.',
+                  sk: 'Safo teraz nedokázalo načítať tvoj jedálniček.',
                 ),
                 hint: context.tr(
                   en: 'Safo could not load planned meals right now.',

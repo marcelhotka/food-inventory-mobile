@@ -2250,8 +2250,8 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
       return error.toString();
     }
     return context.tr(
-      en: 'Failed to load food items.',
-      sk: 'Položky v špajzi sa nepodarilo načítať.',
+      en: 'Safo could not load your pantry items right now.',
+      sk: 'Safo teraz nedokázalo načítať tvoje pantry položky.',
     );
   }
 
