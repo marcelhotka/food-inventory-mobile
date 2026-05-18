@@ -234,8 +234,8 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'No signed-in user.',
-          sk: 'Nie je prihlásený používateľ.',
+          en: 'Sign in to keep setting up your kitchen.',
+          sk: 'Prihlás sa, aby si mohol pokračovať v nastavení kuchyne.',
         ),
       );
       return;

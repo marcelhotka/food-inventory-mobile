@@ -112,8 +112,8 @@ class _StapleFoodsScreenState extends State<StapleFoodsScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'No signed-in user.',
-          sk: 'Nie je prihlásený žiadny používateľ.',
+          en: 'Sign in to add staple foods.',
+          sk: 'Prihlás sa, aby si mohol pridať základné potraviny.',
         ),
       );
       return;
@@ -256,8 +256,8 @@ class _StapleFoodsScreenState extends State<StapleFoodsScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'No signed-in user.',
-          sk: 'Nie je prihlásený žiadny používateľ.',
+          en: 'Sign in to update staple foods.',
+          sk: 'Prihlás sa, aby si mohol upraviť základné potraviny.',
         ),
       );
       return;

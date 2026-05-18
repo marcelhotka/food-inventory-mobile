@@ -177,9 +177,7 @@ class HouseholdRemoteDataSource {
   User _requireUser(SupabaseClient client) {
     final user = client.auth.currentUser;
     if (user == null) {
-      throw const HouseholdAuthException(
-        'No signed-in user. Add auth before loading households.',
-      );
+      throw const HouseholdAuthException(safoSignInRequiredMessage);
     }
     return user;
   }

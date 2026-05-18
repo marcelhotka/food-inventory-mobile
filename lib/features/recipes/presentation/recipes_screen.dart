@@ -1890,8 +1890,8 @@ class _RecipesScreenState extends State<RecipesScreen> {
     if (user == null) {
       throw StateError(
         context.tr(
-          en: 'No signed-in user.',
-          sk: 'Žiadny prihlásený používateľ.',
+          en: 'Sign in to add missing ingredients to Shopping.',
+          sk: 'Prihlás sa, aby si mohol pridať chýbajúce suroviny do nákupu.',
         ),
       );
     }

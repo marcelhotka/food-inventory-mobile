@@ -444,8 +444,8 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'No signed-in user.',
-          sk: 'Nie je prihlásený žiadny používateľ.',
+          en: 'Sign in to add planned ingredients to Shopping.',
+          sk: 'Prihlás sa, aby si mohol pridať plánované suroviny do nákupu.',
         ),
       );
       return;

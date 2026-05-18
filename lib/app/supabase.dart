@@ -6,6 +6,7 @@ const safoSupabaseSetupMessage =
     'Safo is not configured yet. Copy .env.example to .env and add SUPABASE_URL plus SUPABASE_ANON_KEY before testing this flow.';
 const safoSupabaseSetupLogMessage =
     'Safo backend is not configured yet. Copy .env.example to .env and add SUPABASE_URL plus SUPABASE_ANON_KEY.';
+const safoSignInRequiredMessage = 'Sign in to continue with this Safo flow.';
 
 Future<void> bootstrapSupabase() async {
   await dotenv.load(fileName: '.env');

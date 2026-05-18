@@ -13,7 +13,7 @@ class UserPreferencesRemoteDataSource {
     final client = _requireClient();
     final user = client.auth.currentUser;
     if (user == null) {
-      throw const UserPreferencesConfigException('No signed-in user.');
+      throw const UserPreferencesConfigException(safoSignInRequiredMessage);
     }
 
     try {

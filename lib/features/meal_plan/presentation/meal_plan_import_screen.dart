@@ -142,8 +142,8 @@ class _MealPlanImportScreenState extends State<MealPlanImportScreen> {
       return _ParsedMealLine(
         source: line,
         error: context.tr(
-          en: 'No signed-in user.',
-          sk: 'Nie je prihlásený žiadny používateľ.',
+          en: 'Sign in to import a meal plan.',
+          sk: 'Prihlás sa, aby si mohol importovať jedálniček.',
         ),
       );
     }

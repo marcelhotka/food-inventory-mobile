@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../app/supabase.dart';
 import '../domain/recipe.dart';
 import '../domain/recipe_ingredient.dart';
 import 'recipes_remote_data_source.dart';
@@ -63,7 +64,7 @@ class RecipesRepository {
   }) async {
     final userId = Supabase.instance.client.auth.currentUser?.id;
     if (userId == null) {
-      throw StateError('No signed-in user.');
+      throw StateError(safoSignInRequiredMessage);
     }
 
     await _remoteDataSource.setRecipeFavorite(
