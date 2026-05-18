@@ -149,7 +149,7 @@ class _StapleFoodFormScreenState extends State<StapleFoodFormScreen> {
           ),
           const SizedBox(height: SafoSpacing.lg),
           SafoFlowHintCard(
-            icon: Icons.shelves_outlined,
+            icon: Icons.inventory_2_outlined,
             eyebrow: context.tr(en: 'Staple foods', sk: 'Základné potraviny'),
             title: context.tr(
               en: 'Tell Safo what should stay regularly stocked at home.',

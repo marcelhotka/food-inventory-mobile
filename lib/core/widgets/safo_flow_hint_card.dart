@@ -40,10 +40,10 @@ class SafoFlowHintCard extends StatelessWidget {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: SafoColors.brand.withValues(alpha: 0.12),
+              color: SafoColors.accentSoft,
               borderRadius: BorderRadius.circular(SafoRadii.lg),
             ),
-            child: Icon(icon, color: SafoColors.brand),
+            child: Icon(icon, color: SafoColors.accent),
           ),
           const SizedBox(height: SafoSpacing.md),
           Text(
@@ -51,7 +51,7 @@ class SafoFlowHintCard extends StatelessWidget {
             style: theme.textTheme.labelSmall?.copyWith(
               letterSpacing: 0.8,
               fontWeight: FontWeight.w700,
-              color: SafoColors.brand,
+              color: SafoColors.accent,
             ),
           ),
           const SizedBox(height: SafoSpacing.xs),
@@ -93,7 +93,7 @@ class SafoFlowHintCard extends StatelessWidget {
                           const Icon(
                             Icons.check_circle_outline,
                             size: 16,
-                            color: SafoColors.brand,
+                            color: SafoColors.accent,
                           ),
                           const SizedBox(width: 6),
                           Text(
