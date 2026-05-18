@@ -110,9 +110,7 @@ class ScanSessionsRemoteDataSource {
   SupabaseClient _requireClient() {
     final client = _client;
     if (client == null) {
-      throw const ScanSessionsConfigException(
-        'Supabase is not configured. Add values to mobile/.env first.',
-      );
+      throw const ScanSessionsConfigException(safoSupabaseSetupMessage);
     }
     return client;
   }

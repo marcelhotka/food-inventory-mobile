@@ -10,7 +10,7 @@ class MealPlanRemoteDataSource {
   Future<List<MealPlanEntry>> fetchEntries() async {
     final client = tryGetSupabaseClient();
     if (client == null) {
-      throw StateError('Supabase is not configured.');
+      throw StateError(safoSupabaseSetupMessage);
     }
 
     final response = await client
@@ -28,7 +28,7 @@ class MealPlanRemoteDataSource {
   Future<MealPlanEntry> createEntry(MealPlanEntry entry) async {
     final client = tryGetSupabaseClient();
     if (client == null) {
-      throw StateError('Supabase is not configured.');
+      throw StateError(safoSupabaseSetupMessage);
     }
 
     final response = await client
@@ -43,7 +43,7 @@ class MealPlanRemoteDataSource {
   Future<MealPlanEntry> updateEntry(MealPlanEntry entry) async {
     final client = tryGetSupabaseClient();
     if (client == null) {
-      throw StateError('Supabase is not configured.');
+      throw StateError(safoSupabaseSetupMessage);
     }
 
     final response = await client
@@ -59,7 +59,7 @@ class MealPlanRemoteDataSource {
   Future<void> deleteEntry(String id) async {
     final client = tryGetSupabaseClient();
     if (client == null) {
-      throw StateError('Supabase is not configured.');
+      throw StateError(safoSupabaseSetupMessage);
     }
 
     await client.from('meal_plan_entries').delete().eq('id', id);

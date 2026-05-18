@@ -41,6 +41,7 @@ These working docs live in this repo:
 
 ## Local Development Notes
 
+- copy `.env.example` to `.env` and fill in `SUPABASE_URL` + `SUPABASE_ANON_KEY` before testing backend-backed flows
 - iOS is the main release target right now
 - the project currently has a local Flutter toolchain/runtime issue affecting `flutter analyze` and `flutter test`
 - app functionality and release readiness are being pushed forward in parallel with QA-driven fixes

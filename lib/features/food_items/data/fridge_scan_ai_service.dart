@@ -75,9 +75,7 @@ class FridgeScanAiService {
   SupabaseClient _requireClient() {
     final client = _client;
     if (client == null) {
-      throw const FridgeScanAiException(
-        'Supabase is not configured. Add values to mobile/.env first.',
-      );
+      throw const FridgeScanAiException(safoSupabaseSetupMessage);
     }
     return client;
   }

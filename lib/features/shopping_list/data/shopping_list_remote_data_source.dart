@@ -79,9 +79,7 @@ class ShoppingListRemoteDataSource {
   SupabaseClient _requireClient() {
     final client = _client;
     if (client == null) {
-      throw const ShoppingListConfigException(
-        'Supabase is not configured. Add values to mobile/.env first.',
-      );
+      throw const ShoppingListConfigException(safoSupabaseSetupMessage);
     }
     return client;
   }

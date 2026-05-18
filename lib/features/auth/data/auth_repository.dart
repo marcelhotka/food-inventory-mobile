@@ -4,7 +4,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../app/supabase.dart';
 
 class AuthRepository {
-  AuthRepository({SupabaseClient? client}) : _client = client ?? tryGetSupabaseClient();
+  AuthRepository({SupabaseClient? client})
+    : _client = client ?? tryGetSupabaseClient();
 
   final SupabaseClient? _client;
 
@@ -21,10 +22,7 @@ class AuthRepository {
 
   Future<void> signInWithMagicLink(String email) async {
     final client = _requireClient();
-    await client.auth.signInWithOtp(
-      email: email,
-      emailRedirectTo: null,
-    );
+    await client.auth.signInWithOtp(email: email, emailRedirectTo: null);
   }
 
   Future<void> signInAnonymously() async {
@@ -64,9 +62,7 @@ class AuthRepository {
   SupabaseClient _requireClient() {
     final client = _client;
     if (client == null) {
-      throw const AuthConfigException(
-        'Supabase is not configured. Add values to mobile/.env first.',
-      );
+      throw const AuthConfigException(safoSupabaseSetupMessage);
     }
     return client;
   }

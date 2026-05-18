@@ -45,9 +45,7 @@ class HouseholdActivityRemoteDataSource {
   SupabaseClient _requireClient() {
     final client = _client;
     if (client == null) {
-      throw const HouseholdActivityConfigException(
-        'Supabase is not configured. Add values to mobile/.env first.',
-      );
+      throw const HouseholdActivityConfigException(safoSupabaseSetupMessage);
     }
     return client;
   }

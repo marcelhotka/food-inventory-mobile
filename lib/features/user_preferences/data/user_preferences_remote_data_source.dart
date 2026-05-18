@@ -43,7 +43,7 @@ class UserPreferencesRemoteDataSource {
     try {
       final response = await client
           .from('user_preferences')
-        .upsert({
+          .upsert({
             'user_id': preferences.userId,
             'favorite_meals': preferences.favoriteMeals,
             'favorite_foods': preferences.favoriteFoods,
@@ -73,9 +73,7 @@ class UserPreferencesRemoteDataSource {
   SupabaseClient _requireClient() {
     final client = _client;
     if (client == null) {
-      throw const UserPreferencesConfigException(
-        'Supabase is not configured. Add values to mobile/.env first.',
-      );
+      throw const UserPreferencesConfigException(safoSupabaseSetupMessage);
     }
     return client;
   }

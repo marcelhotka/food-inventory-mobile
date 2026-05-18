@@ -71,9 +71,7 @@ class StapleFoodRemoteDataSource {
   SupabaseClient _requireClient() {
     final client = _client;
     if (client == null) {
-      throw const StapleFoodsConfigException(
-        'Supabase is not configured. Add values to mobile/.env first.',
-      );
+      throw const StapleFoodsConfigException(safoSupabaseSetupMessage);
     }
     return client;
   }

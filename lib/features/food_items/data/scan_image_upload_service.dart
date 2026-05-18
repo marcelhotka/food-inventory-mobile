@@ -40,9 +40,7 @@ class ScanImageUploadService {
   SupabaseClient _requireClient() {
     final client = _client;
     if (client == null) {
-      throw const ScanImageUploadConfigException(
-        'Supabase is not configured. Add values to mobile/.env first.',
-      );
+      throw const ScanImageUploadConfigException(safoSupabaseSetupMessage);
     }
     return client;
   }

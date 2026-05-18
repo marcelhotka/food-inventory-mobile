@@ -160,9 +160,7 @@ class RecipesRemoteDataSource {
   SupabaseClient _requireClient() {
     final client = _client;
     if (client == null) {
-      throw const RecipesConfigException(
-        'Supabase is not configured. Add values to mobile/.env first.',
-      );
+      throw const RecipesConfigException(safoSupabaseSetupMessage);
     }
     return client;
   }
