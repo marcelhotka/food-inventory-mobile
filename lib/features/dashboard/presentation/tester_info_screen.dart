@@ -81,6 +81,31 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
     ].join('\n');
   }
 
+  String _householdJoinScenario(BuildContext context) {
+    return context.tr(
+      en:
+          'Household join scenario\n'
+          '1. Open Safo on a second device or browser.\n'
+          '2. Sign in or continue as guest.\n'
+          '3. Go through onboarding until Household setup.\n'
+          '4. Choose Join household.\n'
+          '5. Enter invite code: ${widget.household.inviteCode}\n'
+          '6. Confirm the shared household name: ${widget.household.name}\n'
+          '7. Verify Pantry, Shopping, and Meal plan now match the shared household.\n'
+          '8. Pull to refresh on the first device and verify the new member/feed update appears.',
+      sk:
+          'Scenár pripojenia do domácnosti\n'
+          '1. Otvor Safo na druhom zariadení alebo v druhom prehliadači.\n'
+          '2. Prihlás sa alebo pokračuj ako hosť.\n'
+          '3. Prejdi onboarding až po nastavenie domácnosti.\n'
+          '4. Vyber Pripojiť sa do domácnosti.\n'
+          '5. Zadaj pozývací kód: ${widget.household.inviteCode}\n'
+          '6. Skontroluj názov spoločnej domácnosti: ${widget.household.name}\n'
+          '7. Over, že Špajza, Nákup a Jedálniček už zodpovedajú spoločnej domácnosti.\n'
+          '8. Na prvom zariadení obnov obrazovku a over, že sa zobrazí nový člen alebo update vo feede.',
+    );
+  }
+
   Future<void> _loadSampleData() async {
     setState(() {
       _isLoadingSampleData = true;
@@ -301,6 +326,22 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
       context.tr(
         en: 'Invite code copied.',
         sk: 'Pozývací kód bol skopírovaný.',
+      ),
+    );
+  }
+
+  Future<void> _copyHouseholdJoinScenario() async {
+    await Clipboard.setData(
+      ClipboardData(text: _householdJoinScenario(context)),
+    );
+    if (!mounted) {
+      return;
+    }
+    showSuccessFeedback(
+      context,
+      context.tr(
+        en: 'Household join scenario copied.',
+        sk: 'Scenár pripojenia do domácnosti bol skopírovaný.',
       ),
     );
   }
@@ -590,6 +631,17 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
                       label: Text(context.tr(en: 'Copy', sk: 'Kopírovať')),
                     ),
                   ],
+                ),
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  onPressed: _copyHouseholdJoinScenario,
+                  icon: const Icon(Icons.group_add_outlined),
+                  label: Text(
+                    context.tr(
+                      en: 'Copy household join scenario',
+                      sk: 'Skopírovať join scenár domácnosti',
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 12),
                 FilledButton.tonalIcon(
