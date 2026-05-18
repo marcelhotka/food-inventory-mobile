@@ -12,6 +12,7 @@ import '../../food_items/data/food_items_repository.dart';
 import '../../households/domain/household.dart';
 import '../../meal_plan/data/meal_plan_repository.dart';
 import '../../shopping_list/data/shopping_list_repository.dart';
+import '../../user_preferences/data/user_preferences_repository.dart';
 import '../data/tester_sample_data_service.dart';
 
 class TesterInfoScreen extends StatefulWidget {
@@ -36,11 +37,14 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
   late final MealPlanRepository _mealPlanRepository = MealPlanRepository(
     householdId: widget.household.id,
   );
+  late final UserPreferencesRepository _userPreferencesRepository =
+      UserPreferencesRepository();
   late final TesterSampleDataService _testerSampleDataService =
       TesterSampleDataService(household: widget.household);
 
   bool _isLoadingSampleData = false;
   bool _isClearingSampleData = false;
+  bool _isResettingOnboarding = false;
 
   String _feedbackTemplate(BuildContext context) {
     return context.tr(
@@ -272,6 +276,63 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
     );
   }
 
+  Future<void> _resetOnboardingFlag() async {
+    setState(() {
+      _isResettingOnboarding = true;
+    });
+
+    try {
+      final preferences = await _userPreferencesRepository
+          .getCurrentUserPreferences();
+
+      if (preferences == null) {
+        if (!mounted) return;
+        showWarningFeedback(
+          context,
+          context.tr(
+            en: 'No saved kitchen setup was found yet. Finish onboarding once first, then you can reset it here.',
+            sk: 'Zatiaľ sa nenašlo uložené nastavenie kuchyne. Najprv onboarding raz dokonči a potom ho tu budeš vedieť resetovať.',
+          ),
+        );
+        return;
+      }
+
+      await _userPreferencesRepository.savePreferences(
+        preferences.copyWith(
+          onboardingCompleted: false,
+          updatedAt: DateTime.now().toUtc(),
+        ),
+      );
+
+      if (!mounted) return;
+      showSuccessFeedback(
+        context,
+        context.tr(
+          en: 'Onboarding flag reset. Sign out or restart the flow to test first-run screens again.',
+          sk: 'Onboarding flag bol resetovaný. Odhlás sa alebo reštartuj flow a môžeš znovu testovať first-run obrazovky.',
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Failed to reset onboarding flag.',
+          sk: 'Onboarding flag sa nepodarilo resetovať.',
+        ),
+        title: context.tr(en: 'Reset not completed', sk: 'Reset sa nedokončil'),
+        actionLabel: context.tr(en: 'Retry', sk: 'Skúsiť znova'),
+        onAction: _resetOnboardingFlag,
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isResettingOnboarding = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -406,6 +467,27 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
                       en: 'Copy tester pack',
                       sk: 'Skopírovať tester balík',
                     ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  onPressed: _isResettingOnboarding
+                      ? null
+                      : _resetOnboardingFlag,
+                  icon: _isResettingOnboarding
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.restart_alt_rounded),
+                  label: Text(
+                    _isResettingOnboarding
+                        ? context.tr(en: 'Resetting...', sk: 'Resetujem...')
+                        : context.tr(
+                            en: 'Reset onboarding flag',
+                            sk: 'Resetovať onboarding',
+                          ),
                   ),
                 ),
               ],
