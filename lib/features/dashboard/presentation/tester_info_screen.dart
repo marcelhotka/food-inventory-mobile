@@ -8,6 +8,7 @@ import '../../../core/widgets/app_feedback.dart';
 import '../../../core/widgets/safo_alert_dialog.dart';
 import '../../../core/widgets/safo_flow_hint_card.dart';
 import '../../../core/widgets/safo_page_header.dart';
+import '../../auth/data/auth_repository.dart';
 import '../../food_items/data/food_items_repository.dart';
 import '../../households/domain/household.dart';
 import '../../meal_plan/data/meal_plan_repository.dart';
@@ -32,6 +33,7 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
   late final FoodItemsRepository _foodItemsRepository = FoodItemsRepository(
     householdId: widget.household.id,
   );
+  late final AuthRepository _authRepository = AuthRepository();
   late final ShoppingListRepository _shoppingListRepository =
       ShoppingListRepository(householdId: widget.household.id);
   late final MealPlanRepository _mealPlanRepository = MealPlanRepository(
@@ -45,6 +47,8 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
   bool _isLoadingSampleData = false;
   bool _isClearingSampleData = false;
   bool _isResettingOnboarding = false;
+  bool _isPreparingFirstRun = false;
+  bool _isRestartingFirstRun = false;
 
   String _feedbackTemplate(BuildContext context) {
     return context.tr(
@@ -62,8 +66,8 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
 
   String _buildSummary(BuildContext context) {
     return context.tr(
-      en: 'App: ${SafoAppMetadata.appName}\nVersion: ${SafoAppMetadata.buildLabel}\nStage: ${SafoAppMetadata.releaseStage}\nHousehold: ${widget.household.name}',
-      sk: 'Aplikácia: ${SafoAppMetadata.appName}\nVerzia: ${SafoAppMetadata.buildLabel}\nFáza: ${SafoAppMetadata.releaseStage}\nDomácnosť: ${widget.household.name}',
+      en: 'App: ${SafoAppMetadata.appName}\nVersion: ${SafoAppMetadata.buildLabel}\nStage: ${SafoAppMetadata.releaseStage}\nHousehold: ${widget.household.name}\nInvite code: ${widget.household.inviteCode}',
+      sk: 'Aplikácia: ${SafoAppMetadata.appName}\nVerzia: ${SafoAppMetadata.buildLabel}\nFáza: ${SafoAppMetadata.releaseStage}\nDomácnosť: ${widget.household.name}\nPozývací kód: ${widget.household.inviteCode}',
     );
   }
 
@@ -162,37 +166,8 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
     });
 
     try {
-      final pantryItems = await _foodItemsRepository.getFoodItems();
-      final shoppingItems = await _shoppingListRepository
-          .getShoppingListItems();
-      final mealPlanEntries = await _mealPlanRepository.getEntries();
-
-      var removedPantry = 0;
-      for (final item in pantryItems) {
-        if (!_samplePantryNames.contains(item.name)) {
-          continue;
-        }
-        await _foodItemsRepository.removeFoodItem(item.id);
-        removedPantry++;
-      }
-
-      var removedShopping = 0;
-      for (final item in shoppingItems) {
-        if (!_sampleShoppingNames.contains(item.name)) {
-          continue;
-        }
-        await _shoppingListRepository.removeShoppingListItem(item.id);
-        removedShopping++;
-      }
-
-      var removedMeals = 0;
-      for (final entry in mealPlanEntries) {
-        if (!_sampleRecipeIds.contains(entry.recipeId)) {
-          continue;
-        }
-        await _mealPlanRepository.removeEntry(entry.id);
-        removedMeals++;
-      }
+      final (:removedPantry, :removedShopping, :removedMeals) =
+          await _removeSampleData();
 
       if (!mounted) return;
       showSuccessFeedback(
@@ -218,6 +193,46 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
         });
       }
     }
+  }
+
+  Future<({int removedPantry, int removedShopping, int removedMeals})>
+  _removeSampleData() async {
+    final pantryItems = await _foodItemsRepository.getFoodItems();
+    final shoppingItems = await _shoppingListRepository.getShoppingListItems();
+    final mealPlanEntries = await _mealPlanRepository.getEntries();
+
+    var removedPantry = 0;
+    for (final item in pantryItems) {
+      if (!_samplePantryNames.contains(item.name)) {
+        continue;
+      }
+      await _foodItemsRepository.removeFoodItem(item.id);
+      removedPantry++;
+    }
+
+    var removedShopping = 0;
+    for (final item in shoppingItems) {
+      if (!_sampleShoppingNames.contains(item.name)) {
+        continue;
+      }
+      await _shoppingListRepository.removeShoppingListItem(item.id);
+      removedShopping++;
+    }
+
+    var removedMeals = 0;
+    for (final entry in mealPlanEntries) {
+      if (!_sampleRecipeIds.contains(entry.recipeId)) {
+        continue;
+      }
+      await _mealPlanRepository.removeEntry(entry.id);
+      removedMeals++;
+    }
+
+    return (
+      removedPantry: removedPantry,
+      removedShopping: removedShopping,
+      removedMeals: removedMeals,
+    );
   }
 
   Future<void> _copyFeedbackTemplate() async {
@@ -276,33 +291,30 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
     );
   }
 
+  Future<void> _copyInviteCode() async {
+    await Clipboard.setData(ClipboardData(text: widget.household.inviteCode));
+    if (!mounted) {
+      return;
+    }
+    showSuccessFeedback(
+      context,
+      context.tr(
+        en: 'Invite code copied.',
+        sk: 'Pozývací kód bol skopírovaný.',
+      ),
+    );
+  }
+
   Future<void> _resetOnboardingFlag() async {
     setState(() {
       _isResettingOnboarding = true;
     });
 
     try {
-      final preferences = await _userPreferencesRepository
-          .getCurrentUserPreferences();
-
-      if (preferences == null) {
-        if (!mounted) return;
-        showWarningFeedback(
-          context,
-          context.tr(
-            en: 'No saved kitchen setup was found yet. Finish onboarding once first, then you can reset it here.',
-            sk: 'Zatiaľ sa nenašlo uložené nastavenie kuchyne. Najprv onboarding raz dokonči a potom ho tu budeš vedieť resetovať.',
-          ),
-        );
+      final wasReset = await _resetOnboardingFlagInternal();
+      if (!wasReset) {
         return;
       }
-
-      await _userPreferencesRepository.savePreferences(
-        preferences.copyWith(
-          onboardingCompleted: false,
-          updatedAt: DateTime.now().toUtc(),
-        ),
-      );
 
       if (!mounted) return;
       showSuccessFeedback(
@@ -328,6 +340,154 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
       if (mounted) {
         setState(() {
           _isResettingOnboarding = false;
+        });
+      }
+    }
+  }
+
+  Future<bool> _resetOnboardingFlagInternal() async {
+    final preferences = await _userPreferencesRepository
+        .getCurrentUserPreferences();
+
+    if (preferences == null) {
+      if (!mounted) return false;
+      showWarningFeedback(
+        context,
+        context.tr(
+          en: 'No saved kitchen setup was found yet. Finish onboarding once first, then you can reset it here.',
+          sk: 'Zatiaľ sa nenašlo uložené nastavenie kuchyne. Najprv onboarding raz dokonči a potom ho tu budeš vedieť resetovať.',
+        ),
+      );
+      return false;
+    }
+
+    await _userPreferencesRepository.savePreferences(
+      preferences.copyWith(
+        onboardingCompleted: false,
+        updatedAt: DateTime.now().toUtc(),
+      ),
+    );
+
+    return true;
+  }
+
+  Future<void> _prepareFreshFirstRunPass() async {
+    await _prepareFirstRunPass(signOutAfterPreparation: false);
+  }
+
+  Future<void> _restartFreshFirstRunPass() async {
+    await _prepareFirstRunPass(signOutAfterPreparation: true);
+  }
+
+  Future<void> _prepareFirstRunPass({
+    required bool signOutAfterPreparation,
+  }) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => SafoAlertDialog(
+        badge: context.tr(en: 'First-run retest', sk: 'First-run retest'),
+        icon: Icons.restart_alt_rounded,
+        iconColor: SafoColors.accent,
+        iconBackgroundColor: SafoColors.accentSoft,
+        title: context.tr(
+          en: signOutAfterPreparation
+              ? 'Prepare and restart onboarding'
+              : 'Prepare a fresh first-run pass',
+          sk: signOutAfterPreparation
+              ? 'Pripraviť a reštartovať onboarding'
+              : 'Pripraviť nový first-run priechod',
+        ),
+        subtitle: context.tr(
+          en: signOutAfterPreparation
+              ? 'This clears sample data, resets the onboarding flag, and signs you out so you can replay the first-run flow immediately.'
+              : 'This clears sample data and resets the onboarding flag so you can replay the first-run flow again.',
+          sk: signOutAfterPreparation
+              ? 'Týmto sa vymažú ukážkové dáta, resetuje onboarding flag a Safo ťa odhlási, aby si mohol first-run flow hneď prejsť znova.'
+              : 'Týmto sa vymažú ukážkové dáta a resetuje onboarding flag, aby si mohol znovu prejsť first-run flow.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(context.tr(en: 'Cancel', sk: 'Zrušiť')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(
+              context.tr(
+                en: signOutAfterPreparation ? 'Prepare and restart' : 'Prepare',
+                sk: signOutAfterPreparation
+                    ? 'Pripraviť a reštartovať'
+                    : 'Pripraviť',
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) {
+      return;
+    }
+
+    setState(() {
+      if (signOutAfterPreparation) {
+        _isRestartingFirstRun = true;
+      } else {
+        _isPreparingFirstRun = true;
+      }
+    });
+
+    try {
+      final counts = await _removeSampleData();
+      final wasReset = await _resetOnboardingFlagInternal();
+      if (!mounted) return;
+      if (!wasReset) {
+        return;
+      }
+      if (signOutAfterPreparation) {
+        await _authRepository.signOut();
+        return;
+      }
+      showSuccessFeedback(
+        context,
+        context.tr(
+          en: 'Fresh first-run pass is ready. Removed ${counts.removedPantry} pantry, ${counts.removedShopping} shopping, and ${counts.removedMeals} meal plan samples. Sign out to replay onboarding.',
+          sk: 'Nový first-run priechod je pripravený. Odstránilo sa ${counts.removedPantry} položiek zo špajze, ${counts.removedShopping} z nákupu a ${counts.removedMeals} z jedálnička. Odhlás sa a onboarding si môžeš prejsť znova.',
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: signOutAfterPreparation
+              ? 'Failed to prepare and restart the first-run flow.'
+              : 'Failed to prepare a fresh first-run pass.',
+          sk: signOutAfterPreparation
+              ? 'Nepodarilo sa pripraviť a reštartovať first-run flow.'
+              : 'Nepodarilo sa pripraviť nový first-run priechod.',
+        ),
+        title: context.tr(
+          en: signOutAfterPreparation
+              ? 'Restart not completed'
+              : 'Preparation not completed',
+          sk: signOutAfterPreparation
+              ? 'Reštart sa nedokončil'
+              : 'Príprava sa nedokončila',
+        ),
+        actionLabel: context.tr(en: 'Retry', sk: 'Skúsiť znova'),
+        onAction: signOutAfterPreparation
+            ? _restartFreshFirstRunPass
+            : _prepareFreshFirstRunPass,
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          if (signOutAfterPreparation) {
+            _isRestartingFirstRun = false;
+          } else {
+            _isPreparingFirstRun = false;
+          }
         });
       }
     }
@@ -410,6 +570,28 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        context.tr(
+                          en: 'Invite code: ${widget.household.inviteCode}',
+                          sk: 'Pozývací kód: ${widget.household.inviteCode}',
+                        ),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: SafoColors.textSecondary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: _copyInviteCode,
+                      icon: const Icon(Icons.copy_all_outlined, size: 18),
+                      label: Text(context.tr(en: 'Copy', sk: 'Kopírovať')),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
                 FilledButton.tonalIcon(
                   onPressed: _isLoadingSampleData ? null : _loadSampleData,
                   icon: _isLoadingSampleData
@@ -487,6 +669,27 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
                         : context.tr(
                             en: 'Reset onboarding flag',
                             sk: 'Resetovať onboarding',
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                FilledButton.tonalIcon(
+                  onPressed: _isPreparingFirstRun
+                      ? null
+                      : _prepareFreshFirstRunPass,
+                  icon: _isPreparingFirstRun
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.rocket_launch_outlined),
+                  label: Text(
+                    _isPreparingFirstRun
+                        ? context.tr(en: 'Preparing...', sk: 'Pripravujem...')
+                        : context.tr(
+                            en: 'Prepare fresh first-run pass',
+                            sk: 'Pripraviť nový first-run priechod',
                           ),
                   ),
                 ),
@@ -629,6 +832,27 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
                       en: 'Copy QA checklist',
                       sk: 'Skopírovať QA checklist',
                     ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                FilledButton.icon(
+                  onPressed: _isRestartingFirstRun
+                      ? null
+                      : _restartFreshFirstRunPass,
+                  icon: _isRestartingFirstRun
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.logout_rounded),
+                  label: Text(
+                    _isRestartingFirstRun
+                        ? context.tr(en: 'Restarting...', sk: 'Reštartujem...')
+                        : context.tr(
+                            en: 'Prepare and restart onboarding',
+                            sk: 'Pripraviť a reštartovať onboarding',
+                          ),
                   ),
                 ),
               ],

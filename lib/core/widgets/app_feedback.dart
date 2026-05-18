@@ -3,11 +3,7 @@ import 'package:flutter/material.dart';
 enum AppFeedbackKind { success, error, warning, info }
 
 void showSuccessFeedback(BuildContext context, String message) {
-  showAppFeedback(
-    context,
-    message: message,
-    kind: AppFeedbackKind.success,
-  );
+  showAppFeedback(context, message: message, kind: AppFeedbackKind.success);
 }
 
 void showErrorFeedback(
@@ -21,6 +17,23 @@ void showErrorFeedback(
     context,
     message: message,
     kind: AppFeedbackKind.error,
+    title: title,
+    actionLabel: actionLabel,
+    onAction: onAction,
+  );
+}
+
+void showWarningFeedback(
+  BuildContext context,
+  String message, {
+  String? title,
+  String? actionLabel,
+  VoidCallback? onAction,
+}) {
+  showAppFeedback(
+    context,
+    message: message,
+    kind: AppFeedbackKind.warning,
     title: title,
     actionLabel: actionLabel,
     onAction: onAction,
@@ -76,10 +89,7 @@ void showAppFeedback(
                     ),
                     const SizedBox(height: 2),
                   ],
-                  Text(
-                    message,
-                    style: const TextStyle(color: Colors.white),
-                  ),
+                  Text(message, style: const TextStyle(color: Colors.white)),
                 ],
               ),
             ),
