@@ -189,8 +189,8 @@ class _RootScreenState extends State<_RootScreen> {
                 sk: 'Nepodarilo sa otvoriť tvoju domácnosť',
               ),
               message: context.tr(
-                en: 'Failed to load household.',
-                sk: 'Nepodarilo sa načítať domácnosť.',
+                en: 'Safo could not load your shared household right now. Try refreshing in a moment.',
+                sk: 'Safo teraz nedokázalo načítať tvoju spoločnú domácnosť. Skús to o chvíľu obnoviť.',
               ),
               onRetry: _loadHousehold,
             ),
@@ -276,8 +276,8 @@ class _RootScreenState extends State<_RootScreen> {
                     sk: 'Nepodarilo sa otvoriť preferencie',
                   ),
                   message: context.tr(
-                    en: 'Failed to load preferences.',
-                    sk: 'Nepodarilo sa načítať preferencie.',
+                    en: 'Safo could not load your saved preferences right now. Try refreshing in a moment.',
+                    sk: 'Safo teraz nedokázalo načítať tvoje uložené preferencie. Skús to o chvíľu obnoviť.',
                   ),
                   onRetry: _loadPreferences,
                 ),
