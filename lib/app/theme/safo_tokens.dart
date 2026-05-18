@@ -14,6 +14,8 @@ abstract final class SafoColors {
   static const primarySoft = Color(0xFFE8F7EE);
   static const accent = Color(0xFF6366F1);
   static const accentSoft = Color(0xFFEEF2FF);
+  static const success = Color(0xFF4CAF72);
+  static const successSoft = Color(0xFFE8F7EE);
   static const warning = Color(0xFFD4A017);
   static const warningSoft = Color(0xFFFFF8E8);
   static const danger = Color(0xFFE8956F);

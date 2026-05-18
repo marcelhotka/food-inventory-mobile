@@ -1491,6 +1491,15 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
               ),
             ),
           ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _copyTesterPackFromSettings();
+            },
+            child: Text(
+              context.tr(en: 'Copy tester pack', sk: 'Kopírovať tester balík'),
+            ),
+          ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(),
             child: Text(context.tr(en: 'Close', sk: 'Zavrieť')),
@@ -1507,6 +1516,30 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
     );
   }
 
+  String _qaChecklistTemplate(BuildContext context) {
+    return context.tr(
+      en: 'QA checklist:\n- Onboarding and auth\n- Household create / join\n- Pantry add / edit / opened / expiring\n- Shopping add / bought / move to pantry\n- Recipes safe-for-you / servings / shopping add\n- Meal plan add / assign cook\n- Quick command / barcode / fridge scan\n- Dashboard density and alerts\n- Empty, loading, error, offline states',
+      sk: 'QA checklist:\n- Onboarding a prihlásenie\n- Vytvorenie / pripojenie domácnosti\n- Špajza: pridať / upraviť / otvorené / exspirácia\n- Nákup: pridať / kúpené / presun do špajze\n- Recepty: safe-for-you / porcie / pridanie do nákupu\n- Jedálniček: pridať / priradiť kuchára\n- Rýchly príkaz / barcode / scan chladničky\n- Hustota dashboardu a upozornenia\n- Empty, loading, error a offline stavy',
+    );
+  }
+
+  String _buildSummary(BuildContext context) {
+    return context.tr(
+      en: 'App: ${SafoAppMetadata.appName}\nVersion: ${SafoAppMetadata.buildLabel}\nStage: ${SafoAppMetadata.releaseStage}',
+      sk: 'Aplikácia: ${SafoAppMetadata.appName}\nVerzia: ${SafoAppMetadata.buildLabel}\nFáza: ${SafoAppMetadata.releaseStage}',
+    );
+  }
+
+  String _testerPack(BuildContext context) {
+    return [
+      _buildSummary(context),
+      '',
+      _qaChecklistTemplate(context),
+      '',
+      _feedbackTemplate(context),
+    ].join('\n');
+  }
+
   Future<void> _copyFeedbackTemplateFromSettings() async {
     await Clipboard.setData(ClipboardData(text: _feedbackTemplate(context)));
     if (!mounted) {
@@ -1517,6 +1550,20 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
       context.tr(
         en: 'Feedback template copied.',
         sk: 'Šablóna na feedback bola skopírovaná.',
+      ),
+    );
+  }
+
+  Future<void> _copyTesterPackFromSettings() async {
+    await Clipboard.setData(ClipboardData(text: _testerPack(context)));
+    if (!mounted) {
+      return;
+    }
+    showSuccessFeedback(
+      context,
+      context.tr(
+        en: 'Tester pack copied.',
+        sk: 'Tester balík bol skopírovaný.',
       ),
     );
   }
