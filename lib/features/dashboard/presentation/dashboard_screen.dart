@@ -223,8 +223,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'You need to be signed in.',
-          sk: 'Musíš byť prihlásený.',
+          en: 'Sign in to load sample data for this household.',
+          sk: 'Prihlás sa, aby si mohol nahrať ukážkové dáta pre túto domácnosť.',
         ),
         title: context.tr(en: 'Sign in required', sk: 'Treba sa prihlásiť'),
       );

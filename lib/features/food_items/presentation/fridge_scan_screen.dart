@@ -63,8 +63,8 @@ class _FridgeScanScreenState extends State<FridgeScanScreen> {
     if (user == null) {
       throw StateError(
         context.tr(
-          en: 'You need to be signed in.',
-          sk: 'Musíš byť prihlásený.',
+          en: 'Sign in to save this fridge scan.',
+          sk: 'Prihlás sa, aby si mohol uložiť tento scan chladničky.',
         ),
       );
     }

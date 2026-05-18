@@ -264,9 +264,10 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'You need to be signed in.',
-          sk: 'Musíš byť prihlásený.',
+          en: 'Sign in to add scanned items to Pantry.',
+          sk: 'Prihlás sa, aby si mohol pridať naskenované položky do špajze.',
         ),
+        title: context.tr(en: 'Sign in required', sk: 'Treba sa prihlásiť'),
       );
       return;
     }
@@ -1291,13 +1292,26 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
   Future<void> _addLowStockItemsToShoppingList(List<FoodItem> items) async {
     final lowStockItems = items.where(_isLowStock).toList();
     if (lowStockItems.isEmpty) {
-      showErrorFeedback(context, 'No low stock items to add.');
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'There are no low stock items to add right now.',
+          sk: 'Momentálne tu nie sú žiadne položky s nízkou zásobou na pridanie.',
+        ),
+      );
       return;
     }
 
     final user = widget.authRepository.currentSession?.user;
     if (user == null) {
-      showErrorFeedback(context, 'You need to be signed in.');
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Sign in to add low stock items to Shopping.',
+          sk: 'Prihlás sa, aby si mohol pridať položky s nízkou zásobou do nákupu.',
+        ),
+        title: context.tr(en: 'Sign in required', sk: 'Treba sa prihlásiť'),
+      );
       return;
     }
 
