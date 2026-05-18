@@ -703,7 +703,28 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 10),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          _InfoCard(
+            title: context.tr(
+              en: 'First-run retest tools',
+              sk: 'Nástroje na first-run retest',
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.tr(
+                    en: 'Use these actions when you want to replay onboarding cleanly without rebuilding the whole household by hand.',
+                    sk: 'Použi tieto akcie, keď chceš znovu prejsť onboarding čisto bez ručného prestavovania celej domácnosti.',
+                  ),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: SafoColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 12),
                 OutlinedButton.icon(
                   onPressed: _isResettingOnboarding
                       ? null
@@ -742,6 +763,27 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
                         : context.tr(
                             en: 'Prepare fresh first-run pass',
                             sk: 'Pripraviť nový first-run priechod',
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                FilledButton.icon(
+                  onPressed: _isRestartingFirstRun
+                      ? null
+                      : _restartFreshFirstRunPass,
+                  icon: _isRestartingFirstRun
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.logout_rounded),
+                  label: Text(
+                    _isRestartingFirstRun
+                        ? context.tr(en: 'Restarting...', sk: 'Reštartujem...')
+                        : context.tr(
+                            en: 'Prepare and restart onboarding',
+                            sk: 'Pripraviť a reštartovať onboarding',
                           ),
                   ),
                 ),
@@ -884,27 +926,6 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
                       en: 'Copy QA checklist',
                       sk: 'Skopírovať QA checklist',
                     ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                FilledButton.icon(
-                  onPressed: _isRestartingFirstRun
-                      ? null
-                      : _restartFreshFirstRunPass,
-                  icon: _isRestartingFirstRun
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.logout_rounded),
-                  label: Text(
-                    _isRestartingFirstRun
-                        ? context.tr(en: 'Restarting...', sk: 'Reštartujem...')
-                        : context.tr(
-                            en: 'Prepare and restart onboarding',
-                            sk: 'Pripraviť a reštartovať onboarding',
-                          ),
                   ),
                 ),
               ],
