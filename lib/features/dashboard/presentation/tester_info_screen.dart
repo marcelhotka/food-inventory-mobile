@@ -51,20 +51,26 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
 
   String _qaChecklistTemplate(BuildContext context) {
     return context.tr(
-      en:
-          'QA checklist:\n- Onboarding and auth\n- Household create / join\n- Pantry add / edit / opened / expiring\n- Shopping add / bought / move to pantry\n- Recipes safe-for-you / servings / shopping add\n- Meal plan add / assign cook\n- Quick command / barcode / fridge scan\n- Dashboard density and alerts\n- Empty, loading, error, offline states',
-      sk:
-          'QA checklist:\n- Onboarding a prihlásenie\n- Vytvorenie / pripojenie domácnosti\n- Špajza: pridať / upraviť / otvorené / exspirácia\n- Nákup: pridať / kúpené / presun do špajze\n- Recepty: safe-for-you / porcie / pridanie do nákupu\n- Jedálniček: pridať / priradiť kuchára\n- Rýchly príkaz / barcode / scan chladničky\n- Hustota dashboardu a upozornenia\n- Empty, loading, error a offline stavy',
+      en: 'QA checklist:\n- Onboarding and auth\n- Household create / join\n- Pantry add / edit / opened / expiring\n- Shopping add / bought / move to pantry\n- Recipes safe-for-you / servings / shopping add\n- Meal plan add / assign cook\n- Quick command / barcode / fridge scan\n- Dashboard density and alerts\n- Empty, loading, error, offline states',
+      sk: 'QA checklist:\n- Onboarding a prihlásenie\n- Vytvorenie / pripojenie domácnosti\n- Špajza: pridať / upraviť / otvorené / exspirácia\n- Nákup: pridať / kúpené / presun do špajze\n- Recepty: safe-for-you / porcie / pridanie do nákupu\n- Jedálniček: pridať / priradiť kuchára\n- Rýchly príkaz / barcode / scan chladničky\n- Hustota dashboardu a upozornenia\n- Empty, loading, error a offline stavy',
     );
   }
 
   String _buildSummary(BuildContext context) {
     return context.tr(
-      en:
-          'App: ${SafoAppMetadata.appName}\nVersion: ${SafoAppMetadata.buildLabel}\nStage: ${SafoAppMetadata.releaseStage}\nHousehold: ${widget.household.name}',
-      sk:
-          'Aplikácia: ${SafoAppMetadata.appName}\nVerzia: ${SafoAppMetadata.buildLabel}\nFáza: ${SafoAppMetadata.releaseStage}\nDomácnosť: ${widget.household.name}',
+      en: 'App: ${SafoAppMetadata.appName}\nVersion: ${SafoAppMetadata.buildLabel}\nStage: ${SafoAppMetadata.releaseStage}\nHousehold: ${widget.household.name}',
+      sk: 'Aplikácia: ${SafoAppMetadata.appName}\nVerzia: ${SafoAppMetadata.buildLabel}\nFáza: ${SafoAppMetadata.releaseStage}\nDomácnosť: ${widget.household.name}',
     );
+  }
+
+  String _fullTesterPack(BuildContext context) {
+    return [
+      _buildSummary(context),
+      '',
+      _qaChecklistTemplate(context),
+      '',
+      _feedbackTemplate(context),
+    ].join('\n');
   }
 
   Future<void> _loadSampleData() async {
@@ -252,6 +258,20 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
     );
   }
 
+  Future<void> _copyTesterPack() async {
+    await Clipboard.setData(ClipboardData(text: _fullTesterPack(context)));
+    if (!mounted) {
+      return;
+    }
+    showSuccessFeedback(
+      context,
+      context.tr(
+        en: 'Tester pack copied.',
+        sk: 'Tester balík bol skopírovaný.',
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -374,6 +394,17 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
                     context.tr(
                       en: 'Copy build summary',
                       sk: 'Skopírovať zhrnutie buildu',
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  onPressed: _copyTesterPack,
+                  icon: const Icon(Icons.inventory_2_outlined),
+                  label: Text(
+                    context.tr(
+                      en: 'Copy tester pack',
+                      sk: 'Skopírovať tester balík',
                     ),
                   ),
                 ),
