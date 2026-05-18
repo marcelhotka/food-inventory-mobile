@@ -13,6 +13,8 @@ import '../../../core/widgets/safo_logo.dart';
 import '../../../core/widgets/safo_page_header.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/presentation/sign_out_action.dart';
+import '../../dashboard/presentation/tester_info_screen.dart';
+import '../../households/data/household_repository.dart';
 import '../data/user_preferences_remote_data_source.dart';
 import '../data/user_preferences_repository.dart';
 import '../domain/user_preferences.dart';
@@ -49,6 +51,7 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
   late final UserPreferencesRepository _repository =
       UserPreferencesRepository();
   late final AuthRepository _authRepository = AuthRepository();
+  late final HouseholdRepository _householdRepository = HouseholdRepository();
   late Future<UserPreferences?> _preferencesFuture = _repository
       .getCurrentUserPreferences();
 
@@ -1500,6 +1503,15 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
               context.tr(en: 'Copy tester pack', sk: 'Kopírovať tester balík'),
             ),
           ),
+          TextButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+              await _openTesterInfoFromSettings();
+            },
+            child: Text(
+              context.tr(en: 'Open Tester info', sk: 'Otvoriť Tester info'),
+            ),
+          ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(),
             child: Text(context.tr(en: 'Close', sk: 'Zavrieť')),
@@ -1566,6 +1578,46 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
         sk: 'Tester balík bol skopírovaný.',
       ),
     );
+  }
+
+  Future<void> _openTesterInfoFromSettings() async {
+    try {
+      final household = await _householdRepository.getPrimaryHousehold();
+      if (!mounted) {
+        return;
+      }
+      if (household == null) {
+        showWarningFeedback(
+          context,
+          context.tr(
+            en: 'Create or join a household first, then Tester info will be ready from here too.',
+            sk: 'Najprv si vytvor alebo pripoj domácnosť a potom bude Tester info pripravené aj odtiaľto.',
+          ),
+          title: context.tr(en: 'Household needed', sk: 'Treba domácnosť'),
+        );
+        return;
+      }
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => TesterInfoScreen(household: household),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Safo could not open Tester info right now.',
+          sk: 'Safo teraz nedokázalo otvoriť Tester info.',
+        ),
+        title: context.tr(
+          en: 'Tester info unavailable',
+          sk: 'Tester info nie je dostupné',
+        ),
+      );
+    }
   }
 }
 
