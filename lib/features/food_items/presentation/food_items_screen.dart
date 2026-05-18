@@ -819,22 +819,19 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
       if (remainingQuantity <= 0.000001) {
         return;
       }
-    } catch (error) {
+    } catch (_) {
       if (!mounted) return;
-      messenger
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text(
-              context.tr(
-                en: 'Failed to update pantry item: $error',
-                sk: 'Položku v špajzi sa nepodarilo upraviť: $error',
-              ),
-            ),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Safo could not update this pantry item right now.',
+          sk: 'Safo teraz nedokázalo upraviť túto pantry položku.',
+        ),
+        title: context.tr(
+          en: 'Pantry update failed',
+          sk: 'Úprava položky zlyhala',
+        ),
+      );
     }
   }
 
