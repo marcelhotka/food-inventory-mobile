@@ -262,8 +262,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Failed to update shopping item.',
-          sk: 'Nákupnú položku sa nepodarilo upraviť.',
+          en: 'Safo could not update this shopping item right now.',
+          sk: 'Safo teraz nedokázalo upraviť túto nákupnú položku.',
+        ),
+        title: context.tr(
+          en: 'Shopping update failed',
+          sk: 'Úprava nákupu zlyhala',
         ),
       );
     }
@@ -397,8 +401,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Failed to update pantry item.',
-          sk: 'Položku v špajzi sa nepodarilo upraviť.',
+          en: 'Safo could not update this pantry item right now.',
+          sk: 'Safo teraz nedokázalo upraviť túto pantry položku.',
+        ),
+        title: context.tr(
+          en: 'Pantry update failed',
+          sk: 'Úprava špajze zlyhala',
         ),
       );
     }
@@ -473,8 +481,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Failed to add item to shopping list.',
-          sk: 'Položku sa nepodarilo pridať do nákupného zoznamu.',
+          en: 'Safo could not add this item to shopping right now.',
+          sk: 'Safo teraz nedokázalo pridať túto položku do nákupu.',
+        ),
+        title: context.tr(
+          en: 'Shopping add failed',
+          sk: 'Pridanie do nákupu zlyhalo',
         ),
       );
     }
@@ -700,8 +712,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   sk: 'Upozornenia nie sú k dispozícii',
                 ),
                 message: context.tr(
-                  en: 'Failed to load notifications.',
-                  sk: 'Upozornenia sa nepodarilo načítať.',
+                  en: 'Safo could not load your notifications right now.',
+                  sk: 'Safo teraz nedokázalo načítať tvoje upozornenia.',
                 ),
                 hint: context.tr(
                   en: 'Safo could not refresh your urgent alerts right now.',

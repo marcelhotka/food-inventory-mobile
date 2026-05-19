@@ -235,8 +235,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Failed to load sample data.',
-          sk: 'Ukážkové dáta sa nepodarilo nahrať.',
+          en: 'Safo could not load sample data right now.',
+          sk: 'Safo teraz nedokázalo nahrať ukážkové dáta.',
         ),
         title: context.tr(
           en: 'Sample data not loaded',
@@ -356,8 +356,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   sk: 'Prehľad nie je k dispozícii',
                 ),
                 message: context.tr(
-                  en: 'Failed to load dashboard.',
-                  sk: 'Prehľad sa nepodarilo načítať.',
+                  en: 'Safo could not load your dashboard right now.',
+                  sk: 'Safo teraz nedokázalo načítať tvoj prehľad.',
                 ),
                 hint: context.tr(
                   en: 'Safo could not prepare today\'s overview right now.',

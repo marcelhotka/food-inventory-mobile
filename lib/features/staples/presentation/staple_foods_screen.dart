@@ -77,8 +77,12 @@ class _StapleFoodsScreenState extends State<StapleFoodsScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Failed to add staple food.',
-          sk: 'Základnú potravinu sa nepodarilo pridať.',
+          en: 'Safo could not add this staple food right now.',
+          sk: 'Safo teraz nedokázalo pridať túto základnú potravinu.',
+        ),
+        title: context.tr(
+          en: 'Staple add failed',
+          sk: 'Pridanie základnej potraviny zlyhalo',
         ),
       );
     }
@@ -148,8 +152,12 @@ class _StapleFoodsScreenState extends State<StapleFoodsScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Failed to add staple food.',
-          sk: 'Základnú potravinu sa nepodarilo pridať.',
+          en: 'Safo could not add this staple food right now.',
+          sk: 'Safo teraz nedokázalo pridať túto základnú potravinu.',
+        ),
+        title: context.tr(
+          en: 'Staple add failed',
+          sk: 'Pridanie základnej potraviny zlyhalo',
         ),
       );
     }
@@ -241,8 +249,12 @@ class _StapleFoodsScreenState extends State<StapleFoodsScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Failed to delete staple food.',
-          sk: 'Základnú potravinu sa nepodarilo zmazať.',
+          en: 'Safo could not remove this staple food right now.',
+          sk: 'Safo teraz nedokázalo odstrániť túto základnú potravinu.',
+        ),
+        title: context.tr(
+          en: 'Staple delete failed',
+          sk: 'Odstránenie základnej potraviny zlyhalo',
         ),
       );
     }
@@ -309,8 +321,12 @@ class _StapleFoodsScreenState extends State<StapleFoodsScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Failed to update shopping list from staples.',
-          sk: 'Nákupný zoznam sa nepodarilo aktualizovať zo základných potravín.',
+          en: 'Safo could not update shopping from your staple foods right now.',
+          sk: 'Safo teraz nedokázalo aktualizovať nákup podľa tvojich základných potravín.',
+        ),
+        title: context.tr(
+          en: 'Shopping update failed',
+          sk: 'Aktualizácia nákupu zlyhala',
         ),
       );
     }

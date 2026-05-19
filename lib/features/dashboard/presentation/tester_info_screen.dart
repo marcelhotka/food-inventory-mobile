@@ -137,8 +137,8 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Failed to load sample data.',
-          sk: 'Ukážkové dáta sa nepodarilo nahrať.',
+          en: 'Safo could not load sample data right now.',
+          sk: 'Safo teraz nedokázalo nahrať ukážkové dáta.',
         ),
         title: context.tr(
           en: 'Sample data not loaded',
@@ -207,8 +207,12 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Failed to clear sample data.',
-          sk: 'Ukážkové dáta sa nepodarilo vymazať.',
+          en: 'Safo could not clear sample data right now.',
+          sk: 'Safo teraz nedokázalo vymazať ukážkové dáta.',
+        ),
+        title: context.tr(
+          en: 'Sample data not cleared',
+          sk: 'Ukážkové dáta sa nevymazali',
         ),
       );
     } finally {
@@ -370,8 +374,8 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Failed to reset onboarding flag.',
-          sk: 'Onboarding flag sa nepodarilo resetovať.',
+          en: 'Safo could not reset the onboarding flag right now.',
+          sk: 'Safo teraz nedokázalo resetovať onboarding flag.',
         ),
         title: context.tr(en: 'Reset not completed', sk: 'Reset sa nedokončil'),
         actionLabel: context.tr(en: 'Retry', sk: 'Skúsiť znova'),
@@ -502,11 +506,11 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
         context,
         context.tr(
           en: signOutAfterPreparation
-              ? 'Failed to prepare and restart the first-run flow.'
-              : 'Failed to prepare a fresh first-run pass.',
+              ? 'Safo could not prepare and restart the first-run flow right now.'
+              : 'Safo could not prepare a fresh first-run pass right now.',
           sk: signOutAfterPreparation
-              ? 'Nepodarilo sa pripraviť a reštartovať first-run flow.'
-              : 'Nepodarilo sa pripraviť nový first-run priechod.',
+              ? 'Safo teraz nedokázalo pripraviť a reštartovať first-run flow.'
+              : 'Safo teraz nedokázalo pripraviť nový first-run priechod.',
         ),
         title: context.tr(
           en: signOutAfterPreparation
