@@ -23,10 +23,10 @@ This checklist tracks what still needs to be finished before Safo can move from 
 
 ## 2. Technical Readiness
 
-- [ ] Fix the local Flutter toolchain/runtime issue so `flutter analyze` works reliably
-- [ ] Fix the local Flutter toolchain/runtime issue so `flutter test` works reliably
-- [ ] Run `flutter analyze` clean on the whole app
-- [ ] Run `flutter test` clean on the whole app
+- [x] Fix the local Flutter toolchain/runtime issue so `flutter analyze` works reliably
+- [x] Fix the local Flutter toolchain/runtime issue so `flutter test` works reliably
+- [x] Run `flutter analyze` clean on the whole app
+- [x] Run `flutter test` clean on the whole app
 - [x] Add a lightweight release regression checklist for:
   - auth
   - household join/share

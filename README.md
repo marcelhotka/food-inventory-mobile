@@ -18,8 +18,8 @@ The biggest remaining work is:
 
 1. end-to-end QA
 2. auth/provider production setup
-3. release tooling stability
-4. store/legal/support preparation
+3. store/legal/support preparation
+4. TestFlight and multi-account validation
 
 ## Release Planning Docs
 
@@ -43,5 +43,5 @@ These working docs live in this repo:
 
 - copy `.env.example` to `.env` and fill in `SUPABASE_URL` + `SUPABASE_ANON_KEY` before testing backend-backed flows
 - iOS is the main release target right now
-- the project currently has a local Flutter toolchain/runtime issue affecting `flutter analyze` and `flutter test`
+- `flutter analyze` and `flutter test` now run clean again from the project root
 - app functionality and release readiness are being pushed forward in parallel with QA-driven fixes

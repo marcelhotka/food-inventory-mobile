@@ -1436,6 +1436,9 @@ class _RecipesScreenState extends State<RecipesScreen> {
         sk: 'pridať chýbajúce suroviny do nákupného zoznamu',
       ),
     );
+    if (!mounted) {
+      return;
+    }
     if (!confirmed) {
       return;
     }
@@ -1677,6 +1680,9 @@ class _RecipesScreenState extends State<RecipesScreen> {
       ),
     );
 
+    if (!mounted) {
+      return;
+    }
     if (cookConfirmed != true) {
       return;
     }
