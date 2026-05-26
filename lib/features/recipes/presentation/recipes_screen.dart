@@ -1428,6 +1428,16 @@ class _RecipesScreenState extends State<RecipesScreen> {
     if (!confirmed) {
       return;
     }
+    if (Supabase.instance.client.auth.currentUser == null) {
+      showSignInRequiredFeedback(
+        context,
+        context.tr(
+          en: 'Sign in to add missing ingredients to your shopping list.',
+          sk: 'Prihlás sa, aby si mohol pridať chýbajúce suroviny do nákupu.',
+        ),
+      );
+      return;
+    }
 
     try {
       final freshResult = await _refreshRecipeMatch(result.recipe);
@@ -1657,6 +1667,17 @@ class _RecipesScreenState extends State<RecipesScreen> {
     );
 
     if (cookConfirmed != true) {
+      return;
+    }
+    if (addMissingToShopping &&
+        Supabase.instance.client.auth.currentUser == null) {
+      showSignInRequiredFeedback(
+        context,
+        context.tr(
+          en: 'Sign in to add missing ingredients to your shopping list.',
+          sk: 'Prihlás sa, aby si mohol pridať chýbajúce suroviny do nákupu.',
+        ),
+      );
       return;
     }
 

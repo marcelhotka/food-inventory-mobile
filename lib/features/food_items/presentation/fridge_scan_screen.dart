@@ -45,9 +45,14 @@ class _FridgeScanScreenState extends State<FridgeScanScreen> {
     if (imageLabel == null || photoBytes == null) {
       return;
     }
+    final userId = _requireSignedInUserForScan();
+    if (userId == null) {
+      return;
+    }
 
     setState(() {
       _scanFuture = _startPhotoScan(
+        userId: userId,
         imageBytes: photoBytes,
         imageLabel: imageLabel,
       );
@@ -56,24 +61,30 @@ class _FridgeScanScreenState extends State<FridgeScanScreen> {
   }
 
   Future<ScanSession> _startPhotoScan({
+    required String userId,
     required Uint8List imageBytes,
     required String imageLabel,
   }) async {
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) {
-      throw StateError(
-        context.tr(
-          en: 'Sign in to save this fridge scan.',
-          sk: 'Prihlás sa, aby si mohol uložiť tento scan chladničky.',
-        ),
-      );
-    }
-
     return _scanSessionsRepository.startPhotoScan(
-      userId: user.id,
+      userId: userId,
       imageLabel: imageLabel,
       imageBytes: imageBytes,
     );
+  }
+
+  String? _requireSignedInUserForScan() {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user != null) {
+      return user.id;
+    }
+    showSignInRequiredFeedback(
+      context,
+      context.tr(
+        en: 'Sign in to save this fridge scan.',
+        sk: 'Prihlás sa, aby si mohol uložiť tento scan chladničky.',
+      ),
+    );
+    return null;
   }
 
   Future<void> _pickImage(ImageSource source) async {
@@ -101,6 +112,13 @@ class _FridgeScanScreenState extends State<FridgeScanScreen> {
       if (!mounted) {
         return;
       }
+      final userId = _requireSignedInUserForScan();
+      if (userId == null) {
+        setState(() {
+          _isPickingImage = false;
+        });
+        return;
+      }
 
       setState(() {
         _photoBytes = bytes;
@@ -108,6 +126,7 @@ class _FridgeScanScreenState extends State<FridgeScanScreen> {
             ? context.tr(en: 'Fridge photo', sk: 'Fotka chladničky')
             : file.name;
         _scanFuture = _startPhotoScan(
+          userId: userId,
           imageBytes: bytes,
           imageLabel: _imageLabel!,
         );
