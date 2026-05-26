@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/localization/app_locale.dart';
+import '../../../app/supabase.dart';
 import '../../../app/theme/safo_tokens.dart';
 import '../../../core/forms/app_input_decoration.dart';
 import '../../../core/widgets/app_feedback.dart';
@@ -21,6 +22,8 @@ enum _AuthFlowStep {
 }
 
 enum _AuthLinkSentMode { signIn, register }
+
+enum _AuthRequestKind { magicLink, guest, google, apple, passwordReset }
 
 enum AuthScreenInitialStep { splash, welcome, account }
 
@@ -94,6 +97,63 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
+  String _friendlyAuthErrorMessage(
+    Object error, {
+    required _AuthRequestKind kind,
+  }) {
+    final raw = error.toString().trim();
+
+    if (raw.contains(safoSupabaseSetupMessage)) {
+      return context.tr(
+        en: 'Safo sign-in is not ready on this build yet. Finish the backend setup and try again.',
+        sk: 'Prihlásenie v Safo ešte na tomto builde nie je pripravené. Dokonči backend nastavenie a skús to znova.',
+      );
+    }
+
+    final normalized = raw.toLowerCase();
+    if (normalized.contains('network') ||
+        normalized.contains('socket') ||
+        normalized.contains('timeout') ||
+        normalized.contains('timed out') ||
+        normalized.contains('connection')) {
+      return context.tr(
+        en: 'Safo could not reach the internet right now. Check your connection and try again.',
+        sk: 'Safo sa teraz nevie pripojiť na internet. Skontroluj pripojenie a skús to znova.',
+      );
+    }
+
+    if (normalized.contains('rate limit') ||
+        normalized.contains('too many requests')) {
+      return context.tr(
+        en: 'You have tried this too many times in a row. Wait a moment and try again.',
+        sk: 'Skúsil si to príliš veľakrát za sebou. Chvíľu počkaj a skús to znova.',
+      );
+    }
+
+    return switch (kind) {
+      _AuthRequestKind.magicLink => context.tr(
+        en: 'We could not send the sign-in link right now. Check the email address and try again.',
+        sk: 'Prihlasovací odkaz sa teraz nepodarilo odoslať. Skontroluj e-mail a skús to znova.',
+      ),
+      _AuthRequestKind.guest => context.tr(
+        en: 'Guest mode could not start right now. Try again in a moment.',
+        sk: 'Hosťovský režim sa teraz nepodarilo spustiť. Skús to znova o chvíľu.',
+      ),
+      _AuthRequestKind.google => context.tr(
+        en: 'Google sign-in could not start right now. Try again in a moment.',
+        sk: 'Google prihlásenie sa teraz nepodarilo spustiť. Skús to znova o chvíľu.',
+      ),
+      _AuthRequestKind.apple => context.tr(
+        en: 'Apple sign-in could not start right now. Try again in a moment.',
+        sk: 'Apple prihlásenie sa teraz nepodarilo spustiť. Skús to znova o chvíľu.',
+      ),
+      _AuthRequestKind.passwordReset => context.tr(
+        en: 'We could not send the reset email right now. Check the address and try again.',
+        sk: 'Resetovací e-mail sa teraz nepodarilo odoslať. Skontroluj adresu a skús to znova.',
+      ),
+    };
+  }
+
   Future<void> _submit() async {
     final activeFormKey = _step == _AuthFlowStep.register
         ? _registerFormKey
@@ -109,6 +169,9 @@ class _AuthScreenState extends State<AuthScreen> {
 
     try {
       await widget.repository.signInWithMagicLink(_emailController.text.trim());
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _linkSentEmail = _emailController.text.trim();
         _linkSentMode = _step == _AuthFlowStep.register
@@ -117,8 +180,14 @@ class _AuthScreenState extends State<AuthScreen> {
         _step = _AuthFlowStep.linkSent;
       });
     } catch (error) {
+      if (!mounted) {
+        return;
+      }
       setState(() {
-        _message = error.toString();
+        _message = _friendlyAuthErrorMessage(
+          error,
+          kind: _AuthRequestKind.magicLink,
+        );
       });
     } finally {
       if (mounted) {
@@ -137,9 +206,18 @@ class _AuthScreenState extends State<AuthScreen> {
 
     try {
       await widget.repository.signInAnonymously();
+      if (!mounted) {
+        return;
+      }
     } catch (error) {
+      if (!mounted) {
+        return;
+      }
       setState(() {
-        _message = error.toString();
+        _message = _friendlyAuthErrorMessage(
+          error,
+          kind: _AuthRequestKind.guest,
+        );
       });
     } finally {
       if (mounted) {
@@ -158,6 +236,9 @@ class _AuthScreenState extends State<AuthScreen> {
 
     try {
       final launched = await widget.repository.signInWithGoogle();
+      if (!mounted) {
+        return;
+      }
       if (!launched) {
         setState(() {
           _message = context.tr(
@@ -167,8 +248,14 @@ class _AuthScreenState extends State<AuthScreen> {
         });
       }
     } catch (error) {
+      if (!mounted) {
+        return;
+      }
       setState(() {
-        _message = error.toString();
+        _message = _friendlyAuthErrorMessage(
+          error,
+          kind: _AuthRequestKind.google,
+        );
       });
     } finally {
       if (mounted) {
@@ -187,6 +274,9 @@ class _AuthScreenState extends State<AuthScreen> {
 
     try {
       final launched = await widget.repository.signInWithApple();
+      if (!mounted) {
+        return;
+      }
       if (!launched) {
         setState(() {
           _message = context.tr(
@@ -196,8 +286,14 @@ class _AuthScreenState extends State<AuthScreen> {
         });
       }
     } catch (error) {
+      if (!mounted) {
+        return;
+      }
       setState(() {
-        _message = error.toString();
+        _message = _friendlyAuthErrorMessage(
+          error,
+          kind: _AuthRequestKind.apple,
+        );
       });
     } finally {
       if (mounted) {
@@ -243,7 +339,10 @@ class _AuthScreenState extends State<AuthScreen> {
         return;
       }
       setState(() {
-        _message = error.toString();
+        _message = _friendlyAuthErrorMessage(
+          error,
+          kind: _AuthRequestKind.passwordReset,
+        );
       });
     } finally {
       if (mounted) {
