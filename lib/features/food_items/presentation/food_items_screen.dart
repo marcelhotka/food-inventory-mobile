@@ -265,13 +265,12 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
     final user = widget.authRepository.currentSession?.user;
     if (user == null) {
       if (!mounted) return;
-      showErrorFeedback(
+      showSignInRequiredFeedback(
         context,
         context.tr(
           en: 'Sign in to save scanned items to your pantry.',
           sk: 'Prihlás sa, aby si mohol pridať naskenované položky do špajze.',
         ),
-        title: context.tr(en: 'Sign in required', sk: 'Treba sa prihlásiť'),
       );
       return;
     }
@@ -1322,13 +1321,12 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
 
     final user = widget.authRepository.currentSession?.user;
     if (user == null) {
-      showErrorFeedback(
+      showSignInRequiredFeedback(
         context,
         context.tr(
           en: 'Sign in to add low-stock items to your shopping list.',
           sk: 'Prihlás sa, aby si mohol pridať položky s nízkou zásobou do nákupu.',
         ),
-        title: context.tr(en: 'Sign in required', sk: 'Treba sa prihlásiť'),
       );
       return;
     }

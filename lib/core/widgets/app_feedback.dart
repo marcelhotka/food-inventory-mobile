@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../app/localization/app_locale.dart';
+
 enum AppFeedbackKind { success, error, warning, info }
 
 void showSuccessFeedback(BuildContext context, String message) {
@@ -35,6 +37,21 @@ void showWarningFeedback(
     message: message,
     kind: AppFeedbackKind.warning,
     title: title,
+    actionLabel: actionLabel,
+    onAction: onAction,
+  );
+}
+
+void showSignInRequiredFeedback(
+  BuildContext context,
+  String message, {
+  String? actionLabel,
+  VoidCallback? onAction,
+}) {
+  showErrorFeedback(
+    context,
+    message,
+    title: context.tr(en: 'Sign in required', sk: 'Treba sa prihlásiť'),
     actionLabel: actionLabel,
     onAction: onAction,
   );

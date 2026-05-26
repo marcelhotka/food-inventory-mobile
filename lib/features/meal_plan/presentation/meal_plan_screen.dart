@@ -461,13 +461,12 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
   ) async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) {
-      showErrorFeedback(
+      showSignInRequiredFeedback(
         context,
         context.tr(
           en: 'Sign in to add planned ingredients to your shopping list.',
           sk: 'Prihlás sa, aby si mohol pridať plánované suroviny do nákupu.',
         ),
-        title: context.tr(en: 'Sign in required', sk: 'Treba sa prihlásiť'),
       );
       return;
     }

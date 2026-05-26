@@ -113,13 +113,12 @@ class _StapleFoodsScreenState extends State<StapleFoodsScreen> {
 
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) {
-      showErrorFeedback(
+      showSignInRequiredFeedback(
         context,
         context.tr(
           en: 'Sign in to add staple foods.',
           sk: 'Prihlás sa, aby si mohol pridať základné potraviny.',
         ),
-        title: context.tr(en: 'Sign in required', sk: 'Treba sa prihlásiť'),
       );
       return;
     }
@@ -270,13 +269,12 @@ class _StapleFoodsScreenState extends State<StapleFoodsScreen> {
   ) async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) {
-      showErrorFeedback(
+      showSignInRequiredFeedback(
         context,
         context.tr(
           en: 'Sign in to update staple foods from your household plan.',
           sk: 'Prihlás sa, aby si mohol upraviť základné potraviny.',
         ),
-        title: context.tr(en: 'Sign in required', sk: 'Treba sa prihlásiť'),
       );
       return;
     }

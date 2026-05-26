@@ -234,13 +234,12 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
 
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) {
-      showErrorFeedback(
+      showSignInRequiredFeedback(
         context,
         context.tr(
           en: 'Sign in to keep setting up your kitchen.',
           sk: 'Prihlás sa, aby si mohol pokračovať v nastavení kuchyne.',
         ),
-        title: context.tr(en: 'Sign in required', sk: 'Treba sa prihlásiť'),
       );
       return;
     }

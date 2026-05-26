@@ -124,13 +124,12 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
       );
     } on TesterSampleDataAuthException {
       if (!mounted) return;
-      showErrorFeedback(
+      showSignInRequiredFeedback(
         context,
         context.tr(
           en: 'Sign in to load sample data for this household.',
           sk: 'Prihlás sa, aby si mohol nahrať ukážkové dáta pre túto domácnosť.',
         ),
-        title: context.tr(en: 'Sign in required', sk: 'Treba sa prihlásiť'),
       );
     } catch (_) {
       if (!mounted) return;
