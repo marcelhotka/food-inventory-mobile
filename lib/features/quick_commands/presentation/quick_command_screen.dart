@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/localization/app_locale.dart';
+import '../../../app/supabase.dart';
 import '../../../app/theme/safo_tokens.dart';
 import '../../../core/forms/app_input_decoration.dart';
 import '../../../core/widgets/app_feedback.dart';
@@ -85,6 +86,16 @@ class _QuickCommandScreenState extends State<QuickCommandScreen> {
       showSuccessFeedback(context, result.summary);
     } on QuickCommandException catch (error) {
       if (!mounted) {
+        return;
+      }
+      if (isSignInRequiredError(error)) {
+        showSignInRequiredFeedback(
+          context,
+          context.tr(
+            en: 'Sign in to use quick commands in your household.',
+            sk: 'Prihlás sa, aby si mohol používať rýchle príkazy v domácnosti.',
+          ),
+        );
         return;
       }
       showErrorFeedback(

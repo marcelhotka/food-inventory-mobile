@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../app/localization/app_locale.dart';
+import '../../../app/supabase.dart';
 import '../../../app/theme/safo_tokens.dart';
 import '../../../core/forms/app_input_decoration.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
@@ -1040,8 +1041,18 @@ class _RecipesScreenState extends State<RecipesScreen> {
                 sk: 'Pridané medzi obľúbené recepty.',
               ),
       );
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
+      if (isSignInRequiredError(error)) {
+        showSignInRequiredFeedback(
+          context,
+          context.tr(
+            en: 'Sign in to update favorite recipes in your household.',
+            sk: 'Prihlás sa, aby si mohol upraviť obľúbené recepty v domácnosti.',
+          ),
+        );
+        return;
+      }
       showErrorFeedback(
         context,
         context.tr(

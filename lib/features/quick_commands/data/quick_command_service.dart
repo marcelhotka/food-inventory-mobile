@@ -42,7 +42,7 @@ class QuickCommandService {
   Future<QuickCommandExecutionResult> execute(String rawCommand) async {
     final user = _client?.auth.currentUser;
     if (user == null) {
-      throw const QuickCommandException('Musíš byť prihlásený.');
+      throw const QuickCommandException(safoSignInRequiredMessage);
     }
 
     final parsedCommands = preview(rawCommand).commands;
