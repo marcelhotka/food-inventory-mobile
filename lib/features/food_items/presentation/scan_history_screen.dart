@@ -271,8 +271,12 @@ class _ScanSessionDetailScreenState extends State<ScanSessionDetailScreen> {
                   fallback: AppErrorKind.sync,
                 ),
                 message: context.tr(
-                  en: 'Failed to load scan detail.',
+                  en: 'Safo could not load this scan detail right now.',
                   sk: 'Detail scanu sa nepodarilo načítať.',
+                ),
+                hint: context.tr(
+                  en: 'Safo could not reopen this saved fridge scan right now.',
+                  sk: 'Safo teraz nedokázalo znovu otvoriť tento uložený scan chladničky.',
                 ),
                 onRetry: _reload,
               ),

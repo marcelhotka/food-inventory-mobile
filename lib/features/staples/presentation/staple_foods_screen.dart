@@ -119,6 +119,7 @@ class _StapleFoodsScreenState extends State<StapleFoodsScreen> {
           en: 'Sign in to add staple foods.',
           sk: 'Prihlás sa, aby si mohol pridať základné potraviny.',
         ),
+        title: context.tr(en: 'Sign in required', sk: 'Treba sa prihlásiť'),
       );
       return;
     }
@@ -193,8 +194,12 @@ class _StapleFoodsScreenState extends State<StapleFoodsScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Failed to update staple food.',
+          en: 'Safo could not update this staple food right now.',
           sk: 'Základnú potravinu sa nepodarilo upraviť.',
+        ),
+        title: context.tr(
+          en: 'Staple update failed',
+          sk: 'Úprava základnej potraviny zlyhala',
         ),
       );
     }
@@ -268,9 +273,10 @@ class _StapleFoodsScreenState extends State<StapleFoodsScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Sign in to update staple foods.',
+          en: 'Sign in to update staple foods from your household plan.',
           sk: 'Prihlás sa, aby si mohol upraviť základné potraviny.',
         ),
+        title: context.tr(en: 'Sign in required', sk: 'Treba sa prihlásiť'),
       );
       return;
     }

@@ -102,7 +102,7 @@ class _QuickCommandScreenState extends State<QuickCommandScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Failed to process quick command.',
+          en: 'Safo could not process this quick command right now.',
           sk: 'Príkaz sa nepodarilo spracovať.',
         ),
         title: context.tr(

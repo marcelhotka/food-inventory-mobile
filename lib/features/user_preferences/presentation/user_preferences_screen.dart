@@ -240,6 +240,7 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
           en: 'Sign in to keep setting up your kitchen.',
           sk: 'Prihlás sa, aby si mohol pokračovať v nastavení kuchyne.',
         ),
+        title: context.tr(en: 'Sign in required', sk: 'Treba sa prihlásiť'),
       );
       return;
     }
@@ -309,8 +310,12 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Failed to save preferences.',
+          en: 'Safo could not save your kitchen preferences right now.',
           sk: 'Preferencie sa nepodarilo uložiť.',
+        ),
+        title: context.tr(
+          en: 'Preferences save failed',
+          sk: 'Uloženie preferencií zlyhalo',
         ),
       );
     } finally {
@@ -492,7 +497,7 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
                     message:
                         configError?.message ??
                         context.tr(
-                          en: 'Failed to load preferences.',
+                          en: 'Safo could not load your kitchen preferences right now.',
                           sk: 'Preferencie sa nepodarilo načítať.',
                         ),
                     hint: configError != null

@@ -103,13 +103,21 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen> {
         context,
         _isEditingExistingHousehold
             ? context.tr(
-                en: 'Failed to update household name.',
+                en: 'Safo could not update this household name right now.',
                 sk: 'Názov domácnosti sa nepodarilo upraviť.',
               )
             : context.tr(
-                en: 'Failed to create household.',
+                en: 'Safo could not create this household right now.',
                 sk: 'Domácnosť sa nepodarilo vytvoriť.',
               ),
+        title: context.tr(
+          en: _isEditingExistingHousehold
+              ? 'Household update failed'
+              : 'Household creation failed',
+          sk: _isEditingExistingHousehold
+              ? 'Úprava domácnosti zlyhala'
+              : 'Vytvorenie domácnosti zlyhalo',
+        ),
       );
     } finally {
       if (mounted) {
@@ -152,8 +160,12 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Failed to join household.',
+          en: 'Safo could not join this household right now.',
           sk: 'Do domácnosti sa nepodarilo pripojiť.',
+        ),
+        title: context.tr(
+          en: 'Household join failed',
+          sk: 'Pripojenie do domácnosti zlyhalo',
         ),
       );
     } finally {
@@ -187,7 +199,7 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen> {
         sk: 'Pozývací kód sedí na viac domácností. Vyžiadaj si novší kód.',
       ),
       _ => context.tr(
-        en: 'Failed to join household.',
+        en: 'Safo could not join this household right now.',
         sk: 'Do domácnosti sa nepodarilo pripojiť.',
       ),
     };

@@ -150,8 +150,12 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
                   fallback: AppErrorKind.sync,
                 ),
                 message: context.tr(
-                  en: 'Failed to load household members.',
+                  en: 'Safo could not load household members right now.',
                   sk: 'Nepodarilo sa načítať členov domácnosti.',
+                ),
+                hint: context.tr(
+                  en: 'Safo could not refresh the latest household details right now.',
+                  sk: 'Safo teraz nedokázalo obnoviť najnovšie údaje o domácnosti.',
                 ),
                 onRetry: _reload,
               ),

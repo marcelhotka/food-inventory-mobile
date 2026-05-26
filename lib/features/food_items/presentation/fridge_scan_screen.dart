@@ -439,7 +439,7 @@ class _FridgeScanScreenState extends State<FridgeScanScreen> {
       }
     }
     return context.tr(
-      en: 'Failed to load photo.',
+      en: 'Safo could not load this photo right now.',
       sk: 'Fotku sa nepodarilo načítať.',
     );
   }
@@ -475,7 +475,7 @@ class _FridgeScanScreenState extends State<FridgeScanScreen> {
       return error.toString();
     }
     return context.tr(
-      en: 'Failed to analyze fridge photo.',
+      en: 'Safo could not analyze this fridge photo right now.',
       sk: 'Fotku chladničky sa nepodarilo analyzovať.',
     );
   }
@@ -744,7 +744,7 @@ class _FridgeScanReviewState extends State<_FridgeScanReview> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Failed to save scan session.',
+          en: 'Safo could not save this fridge scan right now.',
           sk: 'Scan sa nepodarilo uložiť.',
         ),
         title: context.tr(en: 'Scan not saved', sk: 'Scan sa neuložil'),
