@@ -274,7 +274,7 @@ class _RecipesScreenState extends State<RecipesScreen> {
                     sk: 'Recepty nie sú k dispozícii',
                   ),
                   message: context.tr(
-                    en: 'Failed to load recipes or pantry items.',
+                    en: 'Safo could not load recipes or pantry matches right now.',
                     sk: 'Recepty alebo pantry položky sa nepodarilo načítať.',
                   ),
                   hint: context.tr(
@@ -917,8 +917,12 @@ class _RecipesScreenState extends State<RecipesScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Failed to add recipe.',
+          en: 'Safo could not add this recipe right now.',
           sk: 'Recept sa nepodarilo pridať.',
+        ),
+        title: context.tr(
+          en: 'Recipe add failed',
+          sk: 'Pridanie receptu zlyhalo',
         ),
       );
     }
@@ -951,8 +955,12 @@ class _RecipesScreenState extends State<RecipesScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Failed to update recipe.',
+          en: 'Safo could not update this recipe right now.',
           sk: 'Recept sa nepodarilo upraviť.',
+        ),
+        title: context.tr(
+          en: 'Recipe update failed',
+          sk: 'Úprava receptu zlyhala',
         ),
       );
     }
@@ -1001,8 +1009,12 @@ class _RecipesScreenState extends State<RecipesScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Failed to delete recipe.',
+          en: 'Safo could not remove this recipe right now.',
           sk: 'Recept sa nepodarilo zmazať.',
+        ),
+        title: context.tr(
+          en: 'Recipe delete failed',
+          sk: 'Odstránenie receptu zlyhalo',
         ),
       );
     }
@@ -1033,8 +1045,12 @@ class _RecipesScreenState extends State<RecipesScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Failed to update favorite recipe.',
+          en: 'Safo could not update favorite recipes right now.',
           sk: 'Obľúbený recept sa nepodarilo upraviť.',
+        ),
+        title: context.tr(
+          en: 'Favorites update failed',
+          sk: 'Úprava obľúbených receptov zlyhala',
         ),
       );
     }
@@ -1088,8 +1104,12 @@ class _RecipesScreenState extends State<RecipesScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Failed to add recipe to meal plan.',
+          en: 'Safo could not add this recipe to your meal plan right now.',
           sk: 'Recept sa nepodarilo pridať do jedálnička.',
+        ),
+        title: context.tr(
+          en: 'Meal plan update failed',
+          sk: 'Úprava jedálnička zlyhala',
         ),
       );
     }
@@ -1437,8 +1457,12 @@ class _RecipesScreenState extends State<RecipesScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Failed to add missing items.',
+          en: 'Safo could not add the missing ingredients to your shopping list right now.',
           sk: 'Chýbajúce položky sa nepodarilo pridať.',
+        ),
+        title: context.tr(
+          en: 'Shopping update failed',
+          sk: 'Aktualizácia nákupu zlyhala',
         ),
       );
     }
@@ -1529,8 +1553,12 @@ class _RecipesScreenState extends State<RecipesScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Failed to update pantry from recipe.',
+          en: 'Safo could not update your pantry from this recipe right now.',
           sk: 'Špajzu sa nepodarilo upraviť podľa receptu.',
+        ),
+        title: context.tr(
+          en: 'Pantry update failed',
+          sk: 'Úprava špajze zlyhala',
         ),
       );
     }
@@ -1678,8 +1706,12 @@ class _RecipesScreenState extends State<RecipesScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Failed to cook recipe.',
+          en: 'Safo could not finish this recipe flow right now.',
           sk: 'Recept sa nepodarilo spracovať.',
+        ),
+        title: context.tr(
+          en: 'Recipe flow failed',
+          sk: 'Práca s receptom zlyhala',
         ),
       );
     }
@@ -1890,7 +1922,7 @@ class _RecipesScreenState extends State<RecipesScreen> {
     if (user == null) {
       throw StateError(
         context.tr(
-          en: 'Sign in to add missing ingredients to Shopping.',
+          en: 'Sign in to add missing ingredients to your shopping list.',
           sk: 'Prihlás sa, aby si mohol pridať chýbajúce suroviny do nákupu.',
         ),
       );

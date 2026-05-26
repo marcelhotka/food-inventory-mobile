@@ -155,8 +155,12 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Failed to add meal plan entry.',
+          en: 'Safo could not add this meal plan entry right now.',
           sk: 'Položku jedálnička sa nepodarilo pridať.',
+        ),
+        title: context.tr(
+          en: 'Meal plan add failed',
+          sk: 'Pridanie do jedálnička zlyhalo',
         ),
       );
     }
@@ -216,8 +220,12 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Failed to import meal plan.',
+          en: 'Safo could not import this meal plan right now.',
           sk: 'Jedálniček sa nepodarilo importovať.',
+        ),
+        title: context.tr(
+          en: 'Meal plan import failed',
+          sk: 'Import jedálnička zlyhal',
         ),
       );
     }
@@ -274,8 +282,12 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Failed to update meal plan entry.',
+          en: 'Safo could not update this meal plan entry right now.',
           sk: 'Položku jedálnička sa nepodarilo upraviť.',
+        ),
+        title: context.tr(
+          en: 'Meal plan update failed',
+          sk: 'Úprava jedálnička zlyhala',
         ),
       );
     }
@@ -330,8 +342,12 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Failed to delete meal plan entry.',
+          en: 'Safo could not remove this meal plan entry right now.',
           sk: 'Položku jedálnička sa nepodarilo odstrániť.',
+        ),
+        title: context.tr(
+          en: 'Meal plan delete failed',
+          sk: 'Odstránenie z jedálnička zlyhalo',
         ),
       );
     }
@@ -429,8 +445,12 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Failed to update cooking assignment.',
+          en: 'Safo could not update this cooking assignment right now.',
           sk: 'Priradenie varenia sa nepodarilo upraviť.',
+        ),
+        title: context.tr(
+          en: 'Assignment update failed',
+          sk: 'Úprava priradenia zlyhala',
         ),
       );
     }
@@ -444,9 +464,10 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Sign in to add planned ingredients to Shopping.',
+          en: 'Sign in to add planned ingredients to your shopping list.',
           sk: 'Prihlás sa, aby si mohol pridať plánované suroviny do nákupu.',
         ),
+        title: context.tr(en: 'Sign in required', sk: 'Treba sa prihlásiť'),
       );
       return;
     }
@@ -512,8 +533,12 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Failed to update shopping list from meal plan.',
+          en: 'Safo could not update your shopping list from this meal plan right now.',
           sk: 'Nákupný zoznam sa nepodarilo aktualizovať z jedálnička.',
+        ),
+        title: context.tr(
+          en: 'Shopping update failed',
+          sk: 'Aktualizácia nákupu zlyhala',
         ),
       );
     }

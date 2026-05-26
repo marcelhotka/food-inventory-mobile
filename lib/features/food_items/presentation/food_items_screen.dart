@@ -228,8 +228,12 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Failed to add pantry item.',
+          en: 'Safo could not add this pantry item right now.',
           sk: 'Položku sa nepodarilo pridať do špajze.',
+        ),
+        title: context.tr(
+          en: 'Pantry add failed',
+          sk: 'Pridanie do špajze zlyhalo',
         ),
       );
     }
@@ -264,7 +268,7 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Sign in to add scanned items to Pantry.',
+          en: 'Sign in to save scanned items to your pantry.',
           sk: 'Prihlás sa, aby si mohol pridať naskenované položky do špajze.',
         ),
         title: context.tr(en: 'Sign in required', sk: 'Treba sa prihlásiť'),
@@ -347,9 +351,10 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Failed to add scanned items.',
+          en: 'Safo could not save scanned items to your pantry right now.',
           sk: 'Naskenované položky sa nepodarilo pridať.',
         ),
+        title: context.tr(en: 'Scan save failed', sk: 'Uloženie scanu zlyhalo'),
       );
     }
   }
@@ -551,8 +556,12 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Failed to update pantry item.',
+          en: 'Safo could not update this pantry item right now.',
           sk: 'Položku v špajzi sa nepodarilo upraviť.',
+        ),
+        title: context.tr(
+          en: 'Pantry update failed',
+          sk: 'Úprava špajze zlyhala',
         ),
       );
     }
@@ -614,8 +623,12 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Failed to add more to pantry item.',
+          en: 'Safo could not increase this pantry item right now.',
           sk: 'Nepodarilo sa pridať viac k pantry položke.',
+        ),
+        title: context.tr(
+          en: 'Pantry increase failed',
+          sk: 'Navýšenie v špajzi zlyhalo',
         ),
       );
     }
@@ -674,8 +687,12 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Failed to delete pantry item.',
+          en: 'Safo could not remove this pantry item right now.',
           sk: 'Položku zo špajze sa nepodarilo zmazať.',
+        ),
+        title: context.tr(
+          en: 'Pantry delete failed',
+          sk: 'Odstránenie zo špajze zlyhalo',
         ),
       );
     }
@@ -1078,8 +1095,12 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Failed to mark pantry item as opened.',
+          en: 'Safo could not mark this pantry item as opened right now.',
           sk: 'Položku v špajzi sa nepodarilo označiť ako otvorenú.',
+        ),
+        title: context.tr(
+          en: 'Open item failed',
+          sk: 'Označenie otvorenia zlyhalo',
         ),
       );
     }
@@ -1304,7 +1325,7 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Sign in to add low stock items to Shopping.',
+          en: 'Sign in to add low-stock items to your shopping list.',
           sk: 'Prihlás sa, aby si mohol pridať položky s nízkou zásobou do nákupu.',
         ),
         title: context.tr(en: 'Sign in required', sk: 'Treba sa prihlásiť'),
@@ -1422,8 +1443,12 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Failed to add low stock items.',
+          en: 'Safo could not send low-stock items to your shopping list right now.',
           sk: 'Položky s nízkou zásobou sa nepodarilo pridať.',
+        ),
+        title: context.tr(
+          en: 'Shopping update failed',
+          sk: 'Aktualizácia nákupu zlyhala',
         ),
       );
     }
@@ -1852,8 +1877,12 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Failed to merge duplicate items.',
+          en: 'Safo could not merge duplicate pantry items right now.',
           sk: 'Duplicitné položky sa nepodarilo zlúčiť.',
+        ),
+        title: context.tr(
+          en: 'Pantry merge failed',
+          sk: 'Zlúčenie špajze zlyhalo',
         ),
       );
     }

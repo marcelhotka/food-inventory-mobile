@@ -242,8 +242,12 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Failed to add shopping item.',
+          en: 'Safo could not add this shopping item right now.',
           sk: 'Položku sa nepodarilo pridať do nákupného zoznamu.',
+        ),
+        title: context.tr(
+          en: 'Shopping add failed',
+          sk: 'Pridanie do nákupu zlyhalo',
         ),
       );
     }
@@ -358,8 +362,12 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Failed to update shopping item.',
+          en: 'Safo could not update this shopping item right now.',
           sk: 'Položku v nákupnom zozname sa nepodarilo upraviť.',
+        ),
+        title: context.tr(
+          en: 'Shopping update failed',
+          sk: 'Úprava nákupu zlyhala',
         ),
       );
     }
@@ -499,8 +507,12 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Failed to add more to this shopping item.',
+          en: 'Safo could not increase this shopping item right now.',
           sk: 'Nepodarilo sa pridať viac k tejto nákupnej položke.',
+        ),
+        title: context.tr(
+          en: 'Shopping update failed',
+          sk: 'Úprava nákupu zlyhala',
         ),
       );
     }
@@ -660,8 +672,12 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Failed to load household members.',
+          en: 'Safo could not load household members right now.',
           sk: 'Nepodarilo sa načítať členov domácnosti.',
+        ),
+        title: context.tr(
+          en: 'Household members unavailable',
+          sk: 'Členovia domácnosti nie sú k dispozícii',
         ),
       );
     }
@@ -725,8 +741,12 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Failed to update assignment.',
+          en: 'Safo could not update this shopping assignment right now.',
           sk: 'Priradenie sa nepodarilo upraviť.',
+        ),
+        title: context.tr(
+          en: 'Assignment update failed',
+          sk: 'Úprava priradenia zlyhala',
         ),
       );
     }
@@ -787,8 +807,12 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Failed to delete shopping item.',
+          en: 'Safo could not remove this shopping item right now.',
           sk: 'Nákupnú položku sa nepodarilo zmazať.',
+        ),
+        title: context.tr(
+          en: 'Shopping delete failed',
+          sk: 'Odstránenie z nákupu zlyhalo',
         ),
       );
     }
@@ -837,8 +861,12 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       showErrorFeedback(
         context,
         context.tr(
-          en: 'Failed to update shopping item.',
+          en: 'Safo could not update this shopping item right now.',
           sk: 'Nákupnú položku sa nepodarilo upraviť.',
+        ),
+        title: context.tr(
+          en: 'Shopping update failed',
+          sk: 'Úprava nákupu zlyhala',
         ),
       );
     }
