@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../app/localization/app_locale.dart';
 import '../../../app/theme/safo_tokens.dart';
 import '../../../core/forms/app_input_decoration.dart';
+import '../../../core/widgets/app_feedback.dart';
 import '../../../core/widgets/safo_flow_hint_card.dart';
 import '../../../core/widgets/safo_page_header.dart';
 import '../domain/shopping_list_item.dart';
@@ -59,7 +60,13 @@ class _ShoppingListFormScreenState extends State<ShoppingListFormScreen> {
     final user = Supabase.instance.client.auth.currentUser;
 
     if (user == null) {
-      Navigator.pop(context);
+      showSignInRequiredFeedback(
+        context,
+        context.tr(
+          en: 'Sign in to save this shopping item.',
+          sk: 'Prihlás sa, aby si mohol uložiť túto nákupnú položku.',
+        ),
+      );
       return;
     }
 
