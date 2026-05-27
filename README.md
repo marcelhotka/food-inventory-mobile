@@ -45,4 +45,5 @@ These working docs live in this repo:
 - iOS is the main release target right now
 - `flutter analyze` and `flutter test` now run clean again from the project root
 - GitHub Actions now runs `flutter analyze` and `flutter test` on pushes and pull requests
+- GitHub Actions prepares a placeholder `.env` from `.env.example`, so CI can validate the app even without production Supabase secrets
 - app functionality and release readiness are being pushed forward in parallel with QA-driven fixes
