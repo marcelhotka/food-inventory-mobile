@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../app/app_metadata.dart';
 import '../../../app/localization/app_locale.dart';
+import '../../../app/supabase.dart';
 import '../../../app/theme/safo_tokens.dart';
 import '../../../core/forms/app_input_decoration.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
@@ -303,7 +304,40 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
       }
     } on UserPreferencesConfigException catch (error) {
       if (!mounted) return;
-      showErrorFeedback(context, error.message);
+      if (isSignInRequiredError(error)) {
+        showSignInRequiredFeedback(
+          context,
+          context.tr(
+            en: 'Sign in to keep setting up your kitchen.',
+            sk: 'Prihlás sa, aby si mohol pokračovať v nastavení kuchyne.',
+          ),
+        );
+      } else if (isSupabaseSetupError(error) ||
+          _isPreferencesSetupError(error)) {
+        showErrorFeedback(
+          context,
+          context.tr(
+            en: 'Safo kitchen setup is not ready on this build yet.',
+            sk: 'Nastavenie kuchyne v Safo ešte nie je na tomto build-e pripravené.',
+          ),
+          title: context.tr(
+            en: 'Kitchen setup unavailable',
+            sk: 'Nastavenie kuchyne nie je dostupné',
+          ),
+        );
+      } else {
+        showErrorFeedback(
+          context,
+          context.tr(
+            en: 'Safo could not save your kitchen preferences right now.',
+            sk: 'Preferencie sa nepodarilo uložiť.',
+          ),
+          title: context.tr(
+            en: 'Preferences save failed',
+            sk: 'Uloženie preferencií zlyhalo',
+          ),
+        );
+      }
     } catch (_) {
       if (!mounted) return;
       showErrorFeedback(
@@ -324,6 +358,80 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
         });
       }
     }
+  }
+
+  bool _isPreferencesSetupError(Object? error) {
+    final message = error?.toString().toLowerCase() ?? '';
+    return message.contains('preferences setup is not ready yet') ||
+        message.contains('user_preferences.sql') ||
+        message.contains('user_preferences');
+  }
+
+  AppErrorKind _preferencesErrorKind(Object? error) {
+    if (isSignInRequiredError(error)) {
+      return AppErrorKind.permission;
+    }
+    if (isSupabaseSetupError(error) || _isPreferencesSetupError(error)) {
+      return AppErrorKind.setup;
+    }
+    return inferAppErrorKind(error, fallback: AppErrorKind.sync);
+  }
+
+  String _preferencesErrorTitle(BuildContext context, Object? error) {
+    if (isSignInRequiredError(error)) {
+      return context.tr(
+        en: 'Sign in to continue',
+        sk: 'Prihlás sa, aby si pokračoval',
+      );
+    }
+    if (isSupabaseSetupError(error) || _isPreferencesSetupError(error)) {
+      return context.tr(
+        en: 'Kitchen setup needs backend setup',
+        sk: 'Nastavenie kuchyne potrebuje backend nastavenie',
+      );
+    }
+    return context.tr(
+      en: 'Preferences are unavailable',
+      sk: 'Preferencie nie sú k dispozícii',
+    );
+  }
+
+  String _preferencesErrorMessage(BuildContext context, Object? error) {
+    if (isSignInRequiredError(error)) {
+      return context.tr(
+        en: 'Sign in to open your kitchen preferences again.',
+        sk: 'Prihlás sa, aby si znovu otvoril preferencie svojej kuchyne.',
+      );
+    }
+    if (isSupabaseSetupError(error) || _isPreferencesSetupError(error)) {
+      return context.tr(
+        en: 'Safo kitchen setup is not ready on this build yet.',
+        sk: 'Nastavenie kuchyne v Safo ešte nie je na tomto build-e pripravené.',
+      );
+    }
+    return context.tr(
+      en: 'Safo could not load your kitchen preferences right now.',
+      sk: 'Preferencie sa nepodarilo načítať.',
+    );
+  }
+
+  String _preferencesErrorHint(BuildContext context, Object? error) {
+    if (isSignInRequiredError(error)) {
+      return context.tr(
+        en: 'Your session ended or is missing, so Safo cannot load this setup until you sign in again.',
+        sk: 'Relácia skončila alebo chýba, takže Safo nemôže načítať toto nastavenie, kým sa znovu neprihlásiš.',
+      );
+    }
+    if (isSupabaseSetupError(error) || _isPreferencesSetupError(error)) {
+      return context.tr(
+        en: 'Safo still needs backend configuration before preferences can be loaded.',
+        sk: 'Safo ešte potrebuje backend nastavenie, aby sa dali načítať preferencie.',
+      );
+    }
+    return context.tr(
+      en: 'Safo could not refresh saved preferences right now.',
+      sk: 'Safo teraz nedokázalo obnoviť uložené preferencie.',
+    );
   }
 
   void _applySampleProfile() {
@@ -439,9 +547,6 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
 
               if (snapshot.hasError) {
                 final error = snapshot.error;
-                final configError = error is UserPreferencesConfigException
-                    ? error
-                    : null;
                 return AppPageStateScaffold(
                   safeArea: false,
                   onRefresh: _reload,
@@ -481,33 +586,10 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
                         : null,
                   ),
                   child: AppErrorState(
-                    kind: configError != null
-                        ? AppErrorKind.setup
-                        : inferAppErrorKind(error, fallback: AppErrorKind.sync),
-                    title: configError != null
-                        ? context.tr(
-                            en: 'Preferences need setup',
-                            sk: 'Preferencie potrebujú nastavenie',
-                          )
-                        : context.tr(
-                            en: 'Preferences are unavailable',
-                            sk: 'Preferencie nie sú k dispozícii',
-                          ),
-                    message:
-                        configError?.message ??
-                        context.tr(
-                          en: 'Safo could not load your kitchen preferences right now.',
-                          sk: 'Preferencie sa nepodarilo načítať.',
-                        ),
-                    hint: configError != null
-                        ? context.tr(
-                            en: 'Safo still needs backend configuration before preferences can be loaded.',
-                            sk: 'Safo ešte potrebuje backend nastavenie, aby sa dali načítať preferencie.',
-                          )
-                        : context.tr(
-                            en: 'Safo could not refresh saved preferences right now.',
-                            sk: 'Safo teraz nedokázalo obnoviť uložené preferencie.',
-                          ),
+                    kind: _preferencesErrorKind(error),
+                    title: _preferencesErrorTitle(context, error),
+                    message: _preferencesErrorMessage(context, error),
+                    hint: _preferencesErrorHint(context, error),
                     onRetry: _reload,
                   ),
                 );
