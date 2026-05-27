@@ -40,3 +40,17 @@ bool isSignInRequiredError(Object? error) {
   return message.contains(safoSignInRequiredMessage) ||
       message.contains(safoLegacySignInRequiredMessage);
 }
+
+bool isSupabaseSetupError(Object? error) {
+  if (error == null) {
+    return false;
+  }
+
+  final message = error.toString().trim().toLowerCase();
+  return message.contains(safoSupabaseSetupMessage.toLowerCase()) ||
+      message.contains(safoSupabaseSetupLogMessage.toLowerCase()) ||
+      message.contains('supabase url is missing') ||
+      message.contains('supabase anon key is missing') ||
+      message.contains('not configured yet') ||
+      message.contains('backend configuration');
+}

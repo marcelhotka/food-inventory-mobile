@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/localization/app_locale.dart';
+import '../../../app/supabase.dart';
 import '../../../app/theme/safo_tokens.dart';
 import '../../../core/food/food_signal_catalog.dart';
 import '../../../core/forms/app_input_decoration.dart';
@@ -2273,8 +2274,23 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
   }
 
   String _errorMessage(Object? error) {
-    if (error is FoodItemsConfigException || error is FoodItemsAuthException) {
-      return error.toString();
+    if (isSupabaseSetupError(error)) {
+      return context.tr(
+        en: 'Safo backend is not ready on this build yet.',
+        sk: 'Backend Safo ešte nie je na tomto build-e pripravený.',
+      );
+    }
+    if (isSignInRequiredError(error) || error is FoodItemsAuthException) {
+      return context.tr(
+        en: 'Sign in to open your pantry again.',
+        sk: 'Prihlás sa, aby si znovu otvoril svoju špajzu.',
+      );
+    }
+    if (error is FoodItemsConfigException) {
+      return context.tr(
+        en: 'Safo pantry setup is still incomplete.',
+        sk: 'Nastavenie špajze v Safo ešte nie je kompletné.',
+      );
     }
     return context.tr(
       en: 'Safo could not load your pantry items right now.',

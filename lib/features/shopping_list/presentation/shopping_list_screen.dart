@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/localization/app_locale.dart';
+import '../../../app/supabase.dart';
 import '../../../app/theme/safo_tokens.dart';
 import '../../../core/food/pantry_defaults.dart';
 import '../../../core/food/food_signal_catalog.dart';
@@ -1392,9 +1393,23 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
   }
 
   String _errorMessage(Object? error) {
-    if (error is ShoppingListConfigException ||
-        error is ShoppingListAuthException) {
-      return error.toString();
+    if (isSupabaseSetupError(error)) {
+      return context.tr(
+        en: 'Safo backend is not ready on this build yet.',
+        sk: 'Backend Safo ešte nie je na tomto build-e pripravený.',
+      );
+    }
+    if (isSignInRequiredError(error) || error is ShoppingListAuthException) {
+      return context.tr(
+        en: 'Sign in to open your shopping list again.',
+        sk: 'Prihlás sa, aby si znovu otvoril svoj nákupný zoznam.',
+      );
+    }
+    if (error is ShoppingListConfigException) {
+      return context.tr(
+        en: 'Safo shopping setup is still incomplete.',
+        sk: 'Nastavenie nákupu v Safo ešte nie je kompletné.',
+      );
     }
     return context.tr(
       en: 'Safo could not load your shopping list right now.',

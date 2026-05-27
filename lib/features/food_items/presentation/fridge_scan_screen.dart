@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../app/localization/app_locale.dart';
+import '../../../app/supabase.dart';
 import '../../../app/theme/safo_tokens.dart';
 import '../../../core/food/pantry_defaults.dart';
 import '../../../core/food/food_signal_catalog.dart';
@@ -489,9 +490,26 @@ class _FridgeScanScreenState extends State<FridgeScanScreen> {
   }
 
   String _scanErrorMessage(BuildContext context, Object? error) {
-    if (error is ScanSessionsConfigException ||
-        error is FridgeScanAiException) {
-      return error.toString();
+    if (isSupabaseSetupError(error) ||
+        error is ScanSessionsConfigException ||
+        error is FridgeScanAiException &&
+            _scanErrorKind(error) == AppErrorKind.setup) {
+      return context.tr(
+        en: 'Safo scan still needs backend setup on this build.',
+        sk: 'Sken v Safo ešte potrebuje backend nastavenie na tomto build-e.',
+      );
+    }
+    if (isSignInRequiredError(error)) {
+      return context.tr(
+        en: 'Sign in to scan and save fridge items.',
+        sk: 'Prihlás sa, aby si mohol skenovať a ukladať položky z chladničky.',
+      );
+    }
+    if (error is FridgeScanAiException) {
+      return context.tr(
+        en: 'Safo could not analyze this fridge photo right now.',
+        sk: 'Fotku chladničky sa nepodarilo analyzovať.',
+      );
     }
     return context.tr(
       en: 'Safo could not analyze this fridge photo right now.',
