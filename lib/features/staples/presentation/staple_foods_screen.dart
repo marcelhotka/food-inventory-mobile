@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../app/localization/app_locale.dart';
+import '../../../app/supabase.dart';
 import '../../../app/theme/safo_tokens.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/app_feedback.dart';
@@ -72,15 +73,23 @@ class _StapleFoodsScreenState extends State<StapleFoodsScreen> {
           sk: 'Základná potravina bola pridaná.',
         ),
       );
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      showErrorFeedback(
-        context,
-        context.tr(
+      _showStaplesActionError(
+        error,
+        signInMessage: context.tr(
+          en: 'Sign in to add staple foods.',
+          sk: 'Prihlás sa, aby si mohol pridať základné potraviny.',
+        ),
+        setupMessage: context.tr(
+          en: 'Safo still needs backend configuration before staple foods can be added here.',
+          sk: 'Safo ešte potrebuje nastaviť backend, aby sa tu dali pridávať základné potraviny.',
+        ),
+        genericMessage: context.tr(
           en: 'Safo could not add this staple food right now.',
           sk: 'Safo teraz nedokázalo pridať túto základnú potravinu.',
         ),
-        title: context.tr(
+        genericTitle: context.tr(
           en: 'Staple add failed',
           sk: 'Pridanie základnej potraviny zlyhalo',
         ),
@@ -147,15 +156,23 @@ class _StapleFoodsScreenState extends State<StapleFoodsScreen> {
           sk: 'Základná potravina bola pridaná.',
         ),
       );
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      showErrorFeedback(
-        context,
-        context.tr(
+      _showStaplesActionError(
+        error,
+        signInMessage: context.tr(
+          en: 'Sign in to add staple foods.',
+          sk: 'Prihlás sa, aby si mohol pridať základné potraviny.',
+        ),
+        setupMessage: context.tr(
+          en: 'Safo still needs backend configuration before staple foods can be added here.',
+          sk: 'Safo ešte potrebuje nastaviť backend, aby sa tu dali pridávať základné potraviny.',
+        ),
+        genericMessage: context.tr(
           en: 'Safo could not add this staple food right now.',
           sk: 'Safo teraz nedokázalo pridať túto základnú potravinu.',
         ),
-        title: context.tr(
+        genericTitle: context.tr(
           en: 'Staple add failed',
           sk: 'Pridanie základnej potraviny zlyhalo',
         ),
@@ -188,15 +205,23 @@ class _StapleFoodsScreenState extends State<StapleFoodsScreen> {
           sk: 'Základná potravina bola upravená.',
         ),
       );
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      showErrorFeedback(
-        context,
-        context.tr(
+      _showStaplesActionError(
+        error,
+        signInMessage: context.tr(
+          en: 'Sign in to update staple foods.',
+          sk: 'Prihlás sa, aby si mohol upravovať základné potraviny.',
+        ),
+        setupMessage: context.tr(
+          en: 'Safo still needs backend configuration before staple foods can be updated here.',
+          sk: 'Safo ešte potrebuje nastaviť backend, aby sa tu dali upravovať základné potraviny.',
+        ),
+        genericMessage: context.tr(
           en: 'Safo could not update this staple food right now.',
           sk: 'Základnú potravinu sa nepodarilo upraviť.',
         ),
-        title: context.tr(
+        genericTitle: context.tr(
           en: 'Staple update failed',
           sk: 'Úprava základnej potraviny zlyhala',
         ),
@@ -248,15 +273,23 @@ class _StapleFoodsScreenState extends State<StapleFoodsScreen> {
           sk: 'Základná potravina bola zmazaná.',
         ),
       );
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      showErrorFeedback(
-        context,
-        context.tr(
+      _showStaplesActionError(
+        error,
+        signInMessage: context.tr(
+          en: 'Sign in to remove staple foods.',
+          sk: 'Prihlás sa, aby si mohol odstraňovať základné potraviny.',
+        ),
+        setupMessage: context.tr(
+          en: 'Safo still needs backend configuration before staple foods can be removed here.',
+          sk: 'Safo ešte potrebuje nastaviť backend, aby sa tu dali odstraňovať základné potraviny.',
+        ),
+        genericMessage: context.tr(
           en: 'Safo could not remove this staple food right now.',
           sk: 'Safo teraz nedokázalo odstrániť túto základnú potravinu.',
         ),
-        title: context.tr(
+        genericTitle: context.tr(
           en: 'Staple delete failed',
           sk: 'Odstránenie základnej potraviny zlyhalo',
         ),
@@ -320,20 +353,120 @@ class _StapleFoodsScreenState extends State<StapleFoodsScreen> {
           ),
         );
       }
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      showErrorFeedback(
-        context,
-        context.tr(
+      _showStaplesActionError(
+        error,
+        signInMessage: context.tr(
+          en: 'Sign in to update shopping from your staple foods.',
+          sk: 'Prihlás sa, aby si mohol aktualizovať nákup podľa základných potravín.',
+        ),
+        setupMessage: context.tr(
+          en: 'Safo still needs backend configuration before shopping can update from staple foods here.',
+          sk: 'Safo ešte potrebuje nastaviť backend, aby sa tu dal nákup aktualizovať podľa základných potravín.',
+        ),
+        genericMessage: context.tr(
           en: 'Safo could not update shopping from your staple foods right now.',
           sk: 'Safo teraz nedokázalo aktualizovať nákup podľa tvojich základných potravín.',
         ),
-        title: context.tr(
+        genericTitle: context.tr(
           en: 'Shopping update failed',
           sk: 'Aktualizácia nákupu zlyhala',
         ),
       );
     }
+  }
+
+  void _showStaplesActionError(
+    Object error, {
+    required String signInMessage,
+    required String setupMessage,
+    required String genericMessage,
+    required String genericTitle,
+  }) {
+    if (isSignInRequiredError(error)) {
+      showSignInRequiredFeedback(context, signInMessage);
+      return;
+    }
+    if (isSupabaseSetupError(error)) {
+      showErrorFeedback(
+        context,
+        setupMessage,
+        title: context.tr(
+          en: 'Staple foods setup is unavailable',
+          sk: 'Nastavenie základných potravín nie je pripravené',
+        ),
+      );
+      return;
+    }
+    showErrorFeedback(context, genericMessage, title: genericTitle);
+  }
+
+  AppErrorKind _staplesErrorKind(Object? error) {
+    if (isSignInRequiredError(error)) {
+      return AppErrorKind.permission;
+    }
+    if (isSupabaseSetupError(error)) {
+      return AppErrorKind.setup;
+    }
+    return inferAppErrorKind(error, fallback: AppErrorKind.sync);
+  }
+
+  String _staplesErrorTitle(Object? error) {
+    if (isSignInRequiredError(error)) {
+      return context.tr(
+        en: 'Sign in to view staple foods',
+        sk: 'Prihlás sa, aby si videl základné potraviny',
+      );
+    }
+    if (isSupabaseSetupError(error)) {
+      return context.tr(
+        en: 'Staple foods setup is unavailable',
+        sk: 'Nastavenie základných potravín nie je pripravené',
+      );
+    }
+    return context.tr(
+      en: 'Staple foods are unavailable',
+      sk: 'Základné potraviny nie sú k dispozícii',
+    );
+  }
+
+  String _staplesErrorMessage(Object? error) {
+    if (isSignInRequiredError(error)) {
+      return context.tr(
+        en: 'Sign in again so Safo can load the staple foods your household tracks regularly.',
+        sk: 'Prihlás sa znova, aby Safo mohlo načítať základné potraviny, ktoré si domácnosť sleduje pravidelne.',
+      );
+    }
+    if (isSupabaseSetupError(error)) {
+      return context.tr(
+        en: 'Safo still needs backend configuration before staple foods can be loaded here.',
+        sk: 'Safo ešte potrebuje nastaviť backend, aby tu vedelo načítať základné potraviny.',
+      );
+    }
+    return context.tr(
+      en: 'Safo could not load your staple foods right now.',
+      sk: 'Safo teraz nedokázalo načítať tvoje základné potraviny.',
+    );
+  }
+
+  String _staplesErrorHint(Object? error) {
+    if (isSignInRequiredError(error)) {
+      return context.tr(
+        en: 'Once you are signed in again, your household staples will appear here.',
+        sk: 'Keď sa znova prihlásiš, základné potraviny tvojej domácnosti sa zobrazia práve tu.',
+      );
+    }
+    if (isSupabaseSetupError(error)) {
+      return context.tr(
+        en: 'Finish the Safo backend setup and then refresh this screen.',
+        sk: 'Dokonči nastavenie backendu pre Safo a potom túto obrazovku obnov.',
+      );
+    }
+    return context.tr(
+      en: 'Safo could not refresh staple foods right now.',
+      sk: 'Safo teraz nedokázalo obnoviť základné potraviny.',
+    );
   }
 
   double _sumAvailableQuantity(StapleFood staple, List<FoodItem> pantryItems) {
@@ -515,14 +648,10 @@ class _StapleFoodsScreenState extends State<StapleFoodsScreen> {
                 ],
               ),
               child: AppErrorState(
-                kind: inferAppErrorKind(
-                  snapshot.error,
-                  fallback: AppErrorKind.sync,
-                ),
-                message: context.tr(
-                  en: 'Safo could not load your staple foods right now.',
-                  sk: 'Safo teraz nedokázalo načítať tvoje základné potraviny.',
-                ),
+                kind: _staplesErrorKind(snapshot.error),
+                title: _staplesErrorTitle(snapshot.error),
+                message: _staplesErrorMessage(snapshot.error),
+                hint: _staplesErrorHint(snapshot.error),
                 onRetry: _reload,
               ),
             );
