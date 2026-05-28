@@ -266,22 +266,10 @@ class _RecipesScreenState extends State<RecipesScreen> {
                 onRefresh: _reload,
                 header: _RecipesHeader(onOpenCreateRecipe: _openCreateRecipe),
                 child: AppErrorState(
-                  kind: inferAppErrorKind(
-                    snapshot.error,
-                    fallback: AppErrorKind.sync,
-                  ),
-                  title: context.tr(
-                    en: 'Recipes are unavailable',
-                    sk: 'Recepty nie sú k dispozícii',
-                  ),
-                  message: context.tr(
-                    en: 'Safo could not load recipes or pantry matches right now.',
-                    sk: 'Recepty alebo pantry položky sa nepodarilo načítať.',
-                  ),
-                  hint: context.tr(
-                    en: 'Safo could not compare recipes with your pantry right now.',
-                    sk: 'Safo teraz nedokázalo porovnať recepty s tvojou špajzou.',
-                  ),
+                  kind: _recipesErrorKind(snapshot.error),
+                  title: _recipesErrorTitle(snapshot.error),
+                  message: _recipesErrorMessage(snapshot.error),
+                  hint: _recipesErrorHint(snapshot.error),
                   onRetry: _reload,
                 ),
               );
@@ -913,17 +901,21 @@ class _RecipesScreenState extends State<RecipesScreen> {
         context,
         context.tr(en: 'Recipe added.', sk: 'Recept bol pridaný.'),
       );
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      showErrorFeedback(
-        context,
-        context.tr(
+      _showRecipeActionError(
+        error: error,
+        genericMessage: context.tr(
           en: 'Safo could not add this recipe right now.',
           sk: 'Recept sa nepodarilo pridať.',
         ),
-        title: context.tr(
+        genericTitle: context.tr(
           en: 'Recipe add failed',
           sk: 'Pridanie receptu zlyhalo',
+        ),
+        signInMessage: context.tr(
+          en: 'Sign in to add recipes for your household.',
+          sk: 'Prihlás sa, aby si mohol pridávať recepty pre svoju domácnosť.',
         ),
       );
     }
@@ -951,17 +943,21 @@ class _RecipesScreenState extends State<RecipesScreen> {
         context,
         context.tr(en: 'Recipe updated.', sk: 'Recept bol upravený.'),
       );
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      showErrorFeedback(
-        context,
-        context.tr(
+      _showRecipeActionError(
+        error: error,
+        genericMessage: context.tr(
           en: 'Safo could not update this recipe right now.',
           sk: 'Recept sa nepodarilo upraviť.',
         ),
-        title: context.tr(
+        genericTitle: context.tr(
           en: 'Recipe update failed',
           sk: 'Úprava receptu zlyhala',
+        ),
+        signInMessage: context.tr(
+          en: 'Sign in to update recipes for your household.',
+          sk: 'Prihlás sa, aby si mohol upravovať recepty pre svoju domácnosť.',
         ),
       );
     }
@@ -1005,17 +1001,21 @@ class _RecipesScreenState extends State<RecipesScreen> {
         context,
         context.tr(en: 'Recipe deleted.', sk: 'Recept bol zmazaný.'),
       );
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      showErrorFeedback(
-        context,
-        context.tr(
+      _showRecipeActionError(
+        error: error,
+        genericMessage: context.tr(
           en: 'Safo could not remove this recipe right now.',
           sk: 'Recept sa nepodarilo zmazať.',
         ),
-        title: context.tr(
+        genericTitle: context.tr(
           en: 'Recipe delete failed',
           sk: 'Odstránenie receptu zlyhalo',
+        ),
+        signInMessage: context.tr(
+          en: 'Sign in to delete recipes in your household.',
+          sk: 'Prihlás sa, aby si mohol mazať recepty v domácnosti.',
         ),
       );
     }
@@ -1110,17 +1110,21 @@ class _RecipesScreenState extends State<RecipesScreen> {
           sk: 'Recept bol pridaný do jedálnička.',
         ),
       );
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      showErrorFeedback(
-        context,
-        context.tr(
+      _showRecipeActionError(
+        error: error,
+        genericMessage: context.tr(
           en: 'Safo could not add this recipe to your meal plan right now.',
           sk: 'Recept sa nepodarilo pridať do jedálnička.',
         ),
-        title: context.tr(
+        genericTitle: context.tr(
           en: 'Meal plan update failed',
           sk: 'Úprava jedálnička zlyhala',
+        ),
+        signInMessage: context.tr(
+          en: 'Sign in to add recipes to your meal plan.',
+          sk: 'Prihlás sa, aby si mohol pridávať recepty do jedálnička.',
         ),
       );
     }
@@ -1476,17 +1480,21 @@ class _RecipesScreenState extends State<RecipesScreen> {
           ),
         );
       }
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      showErrorFeedback(
-        context,
-        context.tr(
+      _showRecipeActionError(
+        error: error,
+        genericMessage: context.tr(
           en: 'Safo could not add the missing ingredients to your shopping list right now.',
           sk: 'Chýbajúce položky sa nepodarilo pridať.',
         ),
-        title: context.tr(
+        genericTitle: context.tr(
           en: 'Shopping update failed',
           sk: 'Aktualizácia nákupu zlyhala',
+        ),
+        signInMessage: context.tr(
+          en: 'Sign in to update your shopping list from a recipe.',
+          sk: 'Prihlás sa, aby si mohol upraviť nákupný zoznam z receptu.',
         ),
       );
     }
@@ -1572,17 +1580,21 @@ class _RecipesScreenState extends State<RecipesScreen> {
           ),
         );
       }
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      showErrorFeedback(
-        context,
-        context.tr(
+      _showRecipeActionError(
+        error: error,
+        genericMessage: context.tr(
           en: 'Safo could not update your pantry from this recipe right now.',
           sk: 'Špajzu sa nepodarilo upraviť podľa receptu.',
         ),
-        title: context.tr(
+        genericTitle: context.tr(
           en: 'Pantry update failed',
           sk: 'Úprava špajze zlyhala',
+        ),
+        signInMessage: context.tr(
+          en: 'Sign in to update your pantry from a recipe.',
+          sk: 'Prihlás sa, aby si mohol upraviť svoju špajzu podľa receptu.',
         ),
       );
     }
@@ -1739,20 +1751,118 @@ class _RecipesScreenState extends State<RecipesScreen> {
                 sk: 'Recept bol spracovaný a ${parts.join(', ')}.',
               ),
       );
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      showErrorFeedback(
-        context,
-        context.tr(
+      _showRecipeActionError(
+        error: error,
+        genericMessage: context.tr(
           en: 'Safo could not finish this recipe flow right now.',
           sk: 'Recept sa nepodarilo spracovať.',
         ),
-        title: context.tr(
+        genericTitle: context.tr(
           en: 'Recipe flow failed',
           sk: 'Práca s receptom zlyhala',
         ),
+        signInMessage: context.tr(
+          en: 'Sign in to finish recipe actions in your household.',
+          sk: 'Prihlás sa, aby si mohol dokončiť prácu s receptami vo svojej domácnosti.',
+        ),
       );
     }
+  }
+
+  AppErrorKind _recipesErrorKind(Object? error) {
+    if (isSignInRequiredError(error)) {
+      return AppErrorKind.permission;
+    }
+    if (isSupabaseSetupError(error)) {
+      return AppErrorKind.setup;
+    }
+    return inferAppErrorKind(error, fallback: AppErrorKind.sync);
+  }
+
+  String _recipesErrorTitle(Object? error) {
+    if (isSignInRequiredError(error)) {
+      return context.tr(
+        en: 'Sign in to view recipes',
+        sk: 'Prihlás sa, aby si videl recepty',
+      );
+    }
+    if (isSupabaseSetupError(error)) {
+      return context.tr(
+        en: 'Recipes setup is unavailable',
+        sk: 'Nastavenie receptov nie je pripravené',
+      );
+    }
+    return context.tr(
+      en: 'Recipes are unavailable',
+      sk: 'Recepty nie sú k dispozícii',
+    );
+  }
+
+  String _recipesErrorMessage(Object? error) {
+    if (isSignInRequiredError(error)) {
+      return context.tr(
+        en: 'Sign in again so Safo can load your household recipes and pantry matches.',
+        sk: 'Prihlás sa znova, aby Safo mohlo načítať recepty tvojej domácnosti a porovnanie so špajzou.',
+      );
+    }
+    if (isSupabaseSetupError(error)) {
+      return context.tr(
+        en: 'Safo still needs backend configuration before recipes can be loaded here.',
+        sk: 'Safo ešte potrebuje nastaviť backend, aby tu vedelo načítať recepty.',
+      );
+    }
+    return context.tr(
+      en: 'Safo could not load recipes or pantry matches right now.',
+      sk: 'Safo teraz nedokázalo načítať recepty ani porovnanie so špajzou.',
+    );
+  }
+
+  String _recipesErrorHint(Object? error) {
+    if (isSignInRequiredError(error)) {
+      return context.tr(
+        en: 'Once you are signed in again, your recipe suggestions and pantry matches will appear here.',
+        sk: 'Keď sa znova prihlásiš, tvoje receptové návrhy a zhody so špajzou sa zobrazia práve tu.',
+      );
+    }
+    if (isSupabaseSetupError(error)) {
+      return context.tr(
+        en: 'Finish the Safo backend setup and then refresh this recipes screen.',
+        sk: 'Dokonči nastavenie backendu pre Safo a potom túto obrazovku receptov obnov.',
+      );
+    }
+    return context.tr(
+      en: 'Safo could not compare recipes with your pantry right now.',
+      sk: 'Safo teraz nedokázalo porovnať recepty s tvojou špajzou.',
+    );
+  }
+
+  void _showRecipeActionError({
+    required Object error,
+    required String genericMessage,
+    required String genericTitle,
+    required String signInMessage,
+  }) {
+    if (isSignInRequiredError(error)) {
+      showSignInRequiredFeedback(context, signInMessage);
+      return;
+    }
+    if (isSupabaseSetupError(error)) {
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Safo recipe features are not ready on this build yet.',
+          sk: 'Funkcie receptov v Safo ešte nie sú na tomto build-e pripravené.',
+        ),
+        title: context.tr(
+          en: 'Recipe setup is unavailable',
+          sk: 'Nastavenie receptov nie je pripravené',
+        ),
+      );
+      return;
+    }
+    showErrorFeedback(context, genericMessage, title: genericTitle);
   }
 
   Future<int> _consumeAvailableFromPantry(RecipeMatchResult result) async {

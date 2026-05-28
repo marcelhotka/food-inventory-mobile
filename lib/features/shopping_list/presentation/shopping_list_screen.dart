@@ -1096,34 +1096,10 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                 onSignOut: _handleSignOut,
               ),
               child: AppErrorState(
-                kind:
-                    error is ShoppingListConfigException ||
-                        error is ShoppingListAuthException
-                    ? AppErrorKind.setup
-                    : inferAppErrorKind(error, fallback: AppErrorKind.sync),
-                title:
-                    error is ShoppingListConfigException ||
-                        error is ShoppingListAuthException
-                    ? context.tr(
-                        en: 'Shopping list needs setup',
-                        sk: 'Nákupný zoznam potrebuje nastavenie',
-                      )
-                    : context.tr(
-                        en: 'Shopping list is unavailable',
-                        sk: 'Nákupný zoznam nie je k dispozícii',
-                      ),
+                kind: _errorKind(error),
+                title: _errorTitle(error),
                 message: _errorMessage(error),
-                hint:
-                    error is ShoppingListConfigException ||
-                        error is ShoppingListAuthException
-                    ? context.tr(
-                        en: 'Safo needs account or backend setup before shopping data can load.',
-                        sk: 'Safo potrebuje účet alebo backend nastavenie, aby sa načítali nákupné dáta.',
-                      )
-                    : context.tr(
-                        en: 'Safo could not load the latest shopping items right now.',
-                        sk: 'Safo teraz nedokázalo načítať najnovšie nákupné položky.',
-                      ),
+                hint: _errorHint(error),
                 onRetry: _reload,
               ),
             );
@@ -1414,6 +1390,54 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     return context.tr(
       en: 'Safo could not load your shopping list right now.',
       sk: 'Safo teraz nedokázalo načítať tvoj nákupný zoznam.',
+    );
+  }
+
+  AppErrorKind _errorKind(Object? error) {
+    if (isSignInRequiredError(error) || error is ShoppingListAuthException) {
+      return AppErrorKind.permission;
+    }
+    if (isSupabaseSetupError(error) || error is ShoppingListConfigException) {
+      return AppErrorKind.setup;
+    }
+    return inferAppErrorKind(error, fallback: AppErrorKind.sync);
+  }
+
+  String _errorTitle(Object? error) {
+    if (isSignInRequiredError(error) || error is ShoppingListAuthException) {
+      return context.tr(
+        en: 'Sign in to view your shopping list',
+        sk: 'Prihlás sa, aby si videl svoj nákupný zoznam',
+      );
+    }
+    if (isSupabaseSetupError(error) || error is ShoppingListConfigException) {
+      return context.tr(
+        en: 'Shopping list setup is unavailable',
+        sk: 'Nastavenie nákupného zoznamu nie je pripravené',
+      );
+    }
+    return context.tr(
+      en: 'Shopping list is unavailable',
+      sk: 'Nákupný zoznam nie je k dispozícii',
+    );
+  }
+
+  String _errorHint(Object? error) {
+    if (isSignInRequiredError(error) || error is ShoppingListAuthException) {
+      return context.tr(
+        en: 'Once you are signed in again, Safo will load your household shopping items here.',
+        sk: 'Keď sa znova prihlásiš, Safo tu načíta nákupné položky tvojej domácnosti.',
+      );
+    }
+    if (isSupabaseSetupError(error) || error is ShoppingListConfigException) {
+      return context.tr(
+        en: 'Finish the Safo backend setup and then refresh this shopping screen.',
+        sk: 'Dokonči nastavenie backendu pre Safo a potom túto nákupnú obrazovku obnov.',
+      );
+    }
+    return context.tr(
+      en: 'Safo could not refresh shopping items right now.',
+      sk: 'Safo teraz nedokázalo obnoviť nákupné položky.',
     );
   }
 

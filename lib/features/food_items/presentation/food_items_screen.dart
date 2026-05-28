@@ -1492,34 +1492,10 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
                 onSignOut: _handleSignOut,
               ),
               child: AppErrorState(
-                kind:
-                    error is FoodItemsConfigException ||
-                        error is FoodItemsAuthException
-                    ? AppErrorKind.setup
-                    : inferAppErrorKind(error, fallback: AppErrorKind.sync),
-                title:
-                    error is FoodItemsConfigException ||
-                        error is FoodItemsAuthException
-                    ? context.tr(
-                        en: 'Pantry needs setup',
-                        sk: 'Špajza potrebuje nastavenie',
-                      )
-                    : context.tr(
-                        en: 'Pantry is unavailable',
-                        sk: 'Špajza nie je k dispozícii',
-                      ),
+                kind: _errorKind(error),
+                title: _errorTitle(error),
                 message: _errorMessage(error),
-                hint:
-                    error is FoodItemsConfigException ||
-                        error is FoodItemsAuthException
-                    ? context.tr(
-                        en: 'Safo needs account or backend setup before pantry data can load.',
-                        sk: 'Safo potrebuje účet alebo backend nastavenie, aby sa načítali dáta špajze.',
-                      )
-                    : context.tr(
-                        en: 'Safo could not load pantry items right now.',
-                        sk: 'Safo teraz nedokázalo načítať položky v špajzi.',
-                      ),
+                hint: _errorHint(error),
                 onRetry: _reload,
               ),
             );
@@ -2295,6 +2271,54 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
     return context.tr(
       en: 'Safo could not load your pantry items right now.',
       sk: 'Safo teraz nedokázalo načítať tvoje pantry položky.',
+    );
+  }
+
+  AppErrorKind _errorKind(Object? error) {
+    if (isSignInRequiredError(error) || error is FoodItemsAuthException) {
+      return AppErrorKind.permission;
+    }
+    if (isSupabaseSetupError(error) || error is FoodItemsConfigException) {
+      return AppErrorKind.setup;
+    }
+    return inferAppErrorKind(error, fallback: AppErrorKind.sync);
+  }
+
+  String _errorTitle(Object? error) {
+    if (isSignInRequiredError(error) || error is FoodItemsAuthException) {
+      return context.tr(
+        en: 'Sign in to view your pantry',
+        sk: 'Prihlás sa, aby si videl svoju špajzu',
+      );
+    }
+    if (isSupabaseSetupError(error) || error is FoodItemsConfigException) {
+      return context.tr(
+        en: 'Pantry setup is unavailable',
+        sk: 'Nastavenie špajze nie je pripravené',
+      );
+    }
+    return context.tr(
+      en: 'Pantry is unavailable',
+      sk: 'Špajza nie je k dispozícii',
+    );
+  }
+
+  String _errorHint(Object? error) {
+    if (isSignInRequiredError(error) || error is FoodItemsAuthException) {
+      return context.tr(
+        en: 'Once you are signed in again, Safo will load the pantry items your household tracks here.',
+        sk: 'Keď sa znova prihlásiš, Safo tu načíta položky špajze, ktoré si vaša domácnosť sleduje.',
+      );
+    }
+    if (isSupabaseSetupError(error) || error is FoodItemsConfigException) {
+      return context.tr(
+        en: 'Finish the Safo backend setup and then refresh this pantry screen.',
+        sk: 'Dokonči nastavenie backendu pre Safo a potom túto obrazovku špajze obnov.',
+      );
+    }
+    return context.tr(
+      en: 'Safo could not refresh pantry items right now.',
+      sk: 'Safo teraz nedokázalo obnoviť položky v špajzi.',
     );
   }
 
