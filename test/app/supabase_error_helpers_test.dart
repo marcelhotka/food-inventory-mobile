@@ -25,6 +25,15 @@ void main() {
       );
     });
 
+    test('detects generic backend configured messages', () {
+      expect(
+        isSupabaseSetupError(
+          Exception('Feature is not configured for this build yet.'),
+        ),
+        isTrue,
+      );
+    });
+
     test('returns false for unrelated errors', () {
       expect(
         isSupabaseSetupError(Exception('Network request timed out.')),

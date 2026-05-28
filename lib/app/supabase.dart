@@ -51,6 +51,8 @@ bool isSupabaseSetupError(Object? error) {
       message.contains(safoSupabaseSetupLogMessage.toLowerCase()) ||
       message.contains('supabase url is missing') ||
       message.contains('supabase anon key is missing') ||
+      message.contains('not configured for this build') ||
+      message.contains('feature is not configured') ||
       message.contains('not configured yet') ||
       message.contains('backend configuration');
 }

@@ -465,11 +465,10 @@ class _FridgeScanScreenState extends State<FridgeScanScreen> {
   }
 
   AppErrorKind _scanErrorKind(Object? error) {
-    if (error is ScanSessionsConfigException) {
-      return AppErrorKind.setup;
-    }
-    if (error is FridgeScanAiException ||
-        error.toString().toLowerCase().contains('configured')) {
+    if (isSupabaseSetupError(error) ||
+        error is ScanSessionsConfigException ||
+        error is FridgeScanAiException &&
+            error.message.toLowerCase().contains('configured')) {
       return AppErrorKind.setup;
     }
     return AppErrorKind.camera;
