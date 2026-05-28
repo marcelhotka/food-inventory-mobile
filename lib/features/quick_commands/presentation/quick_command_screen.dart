@@ -98,6 +98,20 @@ class _QuickCommandScreenState extends State<QuickCommandScreen> {
         );
         return;
       }
+      if (isSupabaseSetupError(error)) {
+        showErrorFeedback(
+          context,
+          context.tr(
+            en: 'Quick commands are not ready on this build yet.',
+            sk: 'Rýchle príkazy ešte nie sú na tomto build-e pripravené.',
+          ),
+          title: context.tr(
+            en: 'Quick commands unavailable',
+            sk: 'Rýchle príkazy nie sú dostupné',
+          ),
+        );
+        return;
+      }
       showErrorFeedback(
         context,
         error.message,
@@ -106,22 +120,20 @@ class _QuickCommandScreenState extends State<QuickCommandScreen> {
           sk: 'Príkaz sa nepodarilo pochopiť',
         ),
       );
-    } catch (_) {
+    } catch (error) {
       if (!mounted) {
         return;
       }
-      showErrorFeedback(
-        context,
-        context.tr(
+      _showQuickCommandActionError(
+        error: error,
+        genericMessage: context.tr(
           en: 'Safo could not process this quick command right now.',
           sk: 'Príkaz sa nepodarilo spracovať.',
         ),
-        title: context.tr(
+        genericTitle: context.tr(
           en: 'Quick command failed',
           sk: 'Rýchly príkaz zlyhal',
         ),
-        actionLabel: context.tr(en: 'Retry', sk: 'Skúsiť znova'),
-        onAction: _submit,
       );
     } finally {
       if (mounted) {
@@ -307,6 +319,46 @@ class _QuickCommandScreenState extends State<QuickCommandScreen> {
 
   String _formatDate(DateTime date) {
     return '${date.day}.${date.month}.${date.year}';
+  }
+
+  void _showQuickCommandActionError({
+    required Object error,
+    required String genericMessage,
+    required String genericTitle,
+  }) {
+    if (isSignInRequiredError(error)) {
+      showSignInRequiredFeedback(
+        context,
+        context.tr(
+          en: 'Sign in to use quick commands in your household.',
+          sk: 'Prihlás sa, aby si mohol používať rýchle príkazy v domácnosti.',
+        ),
+      );
+      return;
+    }
+    if (isSupabaseSetupError(error)) {
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Quick commands are not ready on this build yet.',
+          sk: 'Rýchle príkazy ešte nie sú na tomto build-e pripravené.',
+        ),
+        title: context.tr(
+          en: 'Quick commands unavailable',
+          sk: 'Rýchle príkazy nie sú dostupné',
+        ),
+        actionLabel: context.tr(en: 'Retry', sk: 'Skúsiť znova'),
+        onAction: _submit,
+      );
+      return;
+    }
+    showErrorFeedback(
+      context,
+      genericMessage,
+      title: genericTitle,
+      actionLabel: context.tr(en: 'Retry', sk: 'Skúsiť znova'),
+      onAction: _submit,
+    );
   }
 
   void _fillExample(String value) {
