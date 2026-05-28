@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../app/localization/app_locale.dart';
+import '../../../app/supabase.dart';
 import '../../../app/theme/safo_tokens.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/app_feedback.dart';
@@ -227,23 +228,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
           sk: 'Prihlás sa, aby si mohol nahrať ukážkové dáta pre túto domácnosť.',
         ),
       );
-    } catch (_) {
+    } catch (error) {
       if (!mounted) {
         return;
       }
-      showErrorFeedback(
-        context,
-        context.tr(
-          en: 'Safo could not load sample data right now.',
-          sk: 'Safo teraz nedokázalo nahrať ukážkové dáta.',
-        ),
-        title: context.tr(
-          en: 'Sample data not loaded',
-          sk: 'Ukážkové dáta sa nenahrali',
-        ),
-        actionLabel: context.tr(en: 'Retry', sk: 'Skúsiť znova'),
-        onAction: _loadSampleDataFromDashboard,
-      );
+      if (isSupabaseSetupError(error)) {
+        showErrorFeedback(
+          context,
+          context.tr(
+            en: 'Safo still needs backend configuration before sample data can be loaded here.',
+            sk: 'Safo ešte potrebuje nastaviť backend, aby sa tu dali načítať ukážkové dáta.',
+          ),
+          title: context.tr(
+            en: 'Sample data setup unavailable',
+            sk: 'Nastavenie ukážkových dát nie je pripravené',
+          ),
+        );
+      } else {
+        showErrorFeedback(
+          context,
+          context.tr(
+            en: 'Safo could not load sample data right now.',
+            sk: 'Safo teraz nedokázalo nahrať ukážkové dáta.',
+          ),
+          title: context.tr(
+            en: 'Sample data not loaded',
+            sk: 'Ukážkové dáta sa nenahrali',
+          ),
+          actionLabel: context.tr(en: 'Retry', sk: 'Skúsiť znova'),
+          onAction: _loadSampleDataFromDashboard,
+        );
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -309,6 +324,73 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  AppErrorKind _dashboardErrorKind(Object? error) {
+    if (isSignInRequiredError(error)) {
+      return AppErrorKind.permission;
+    }
+    if (isSupabaseSetupError(error)) {
+      return AppErrorKind.setup;
+    }
+    return inferAppErrorKind(error, fallback: AppErrorKind.sync);
+  }
+
+  String _dashboardErrorTitle(Object? error) {
+    if (isSignInRequiredError(error)) {
+      return context.tr(
+        en: 'Sign in to open your dashboard',
+        sk: 'Prihlás sa, aby si otvoril svoj prehľad',
+      );
+    }
+    if (isSupabaseSetupError(error)) {
+      return context.tr(
+        en: 'Dashboard setup is unavailable',
+        sk: 'Nastavenie prehľadu nie je pripravené',
+      );
+    }
+    return context.tr(
+      en: 'Dashboard is unavailable',
+      sk: 'Prehľad nie je k dispozícii',
+    );
+  }
+
+  String _dashboardErrorMessage(Object? error) {
+    if (isSignInRequiredError(error)) {
+      return context.tr(
+        en: 'Sign in again so Safo can load your kitchen overview, alerts, and suggestions.',
+        sk: 'Prihlás sa znova, aby Safo mohlo načítať prehľad tvojej kuchyne, upozornenia a odporúčania.',
+      );
+    }
+    if (isSupabaseSetupError(error)) {
+      return context.tr(
+        en: 'Safo still needs backend configuration before the dashboard can load here.',
+        sk: 'Safo ešte potrebuje nastaviť backend, aby sa tu dal načítať prehľad.',
+      );
+    }
+    return context.tr(
+      en: 'Safo could not load your dashboard right now.',
+      sk: 'Safo teraz nedokázalo načítať tvoj prehľad.',
+    );
+  }
+
+  String _dashboardErrorHint(Object? error) {
+    if (isSignInRequiredError(error)) {
+      return context.tr(
+        en: 'Once you are signed in again, today’s overview will show up here.',
+        sk: 'Keď sa znova prihlásiš, dnešný prehľad sa zobrazí práve tu.',
+      );
+    }
+    if (isSupabaseSetupError(error)) {
+      return context.tr(
+        en: 'Finish the Safo backend setup and then refresh this screen.',
+        sk: 'Dokonči nastavenie backendu pre Safo a potom túto obrazovku obnov.',
+      );
+    }
+    return context.tr(
+      en: 'Safo could not prepare today\'s overview right now.',
+      sk: 'Safo teraz nedokázalo pripraviť dnešný prehľad.',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -346,22 +428,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 onSignOut: _handleSignOut,
               ),
               child: AppErrorState(
-                kind: inferAppErrorKind(
-                  snapshot.error,
-                  fallback: AppErrorKind.sync,
-                ),
-                title: context.tr(
-                  en: 'Dashboard is unavailable',
-                  sk: 'Prehľad nie je k dispozícii',
-                ),
-                message: context.tr(
-                  en: 'Safo could not load your dashboard right now.',
-                  sk: 'Safo teraz nedokázalo načítať tvoj prehľad.',
-                ),
-                hint: context.tr(
-                  en: 'Safo could not prepare today\'s overview right now.',
-                  sk: 'Safo teraz nedokázalo pripraviť dnešný prehľad.',
-                ),
+                kind: _dashboardErrorKind(snapshot.error),
+                title: _dashboardErrorTitle(snapshot.error),
+                message: _dashboardErrorMessage(snapshot.error),
+                hint: _dashboardErrorHint(snapshot.error),
                 onRetry: _reload,
               ),
             );

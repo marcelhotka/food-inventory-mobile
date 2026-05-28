@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/localization/app_locale.dart';
+import '../../../app/supabase.dart';
 import '../../../app/theme/safo_tokens.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/safo_logo.dart';
@@ -32,6 +33,73 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
     await _sessionsFuture;
   }
 
+  AppErrorKind _scanHistoryErrorKind(Object? error) {
+    if (isSignInRequiredError(error)) {
+      return AppErrorKind.permission;
+    }
+    if (isSupabaseSetupError(error)) {
+      return AppErrorKind.setup;
+    }
+    return inferAppErrorKind(error, fallback: AppErrorKind.sync);
+  }
+
+  String _scanHistoryErrorTitle(Object? error) {
+    if (isSignInRequiredError(error)) {
+      return context.tr(
+        en: 'Sign in to view scan history',
+        sk: 'Prihlás sa, aby si videl históriu scanov',
+      );
+    }
+    if (isSupabaseSetupError(error)) {
+      return context.tr(
+        en: 'Scan history setup is unavailable',
+        sk: 'Nastavenie histórie scanov nie je pripravené',
+      );
+    }
+    return context.tr(
+      en: 'Scan history is unavailable',
+      sk: 'História scanov nie je k dispozícii',
+    );
+  }
+
+  String _scanHistoryErrorMessage(Object? error) {
+    if (isSignInRequiredError(error)) {
+      return context.tr(
+        en: 'Sign in again so Safo can load your saved fridge scans.',
+        sk: 'Prihlás sa znova, aby Safo mohlo načítať tvoje uložené scany chladničky.',
+      );
+    }
+    if (isSupabaseSetupError(error)) {
+      return context.tr(
+        en: 'Safo still needs backend configuration before scan history can be loaded here.',
+        sk: 'Safo ešte potrebuje nastaviť backend, aby tu vedelo načítať históriu scanov.',
+      );
+    }
+    return context.tr(
+      en: 'Safo could not load your scan history right now.',
+      sk: 'Safo teraz nedokázalo načítať tvoju históriu scanov.',
+    );
+  }
+
+  String _scanHistoryErrorHint(Object? error) {
+    if (isSignInRequiredError(error)) {
+      return context.tr(
+        en: 'Once you are signed in again, your previous fridge scans will appear here.',
+        sk: 'Keď sa znova prihlásiš, tvoje predchádzajúce scany chladničky sa zobrazia práve tu.',
+      );
+    }
+    if (isSupabaseSetupError(error)) {
+      return context.tr(
+        en: 'Finish the Safo backend setup and then refresh this screen.',
+        sk: 'Dokonči nastavenie backendu pre Safo a potom túto obrazovku obnov.',
+      );
+    }
+    return context.tr(
+      en: 'Safo could not load previous fridge scans right now.',
+      sk: 'Safo teraz nedokázalo načítať predchádzajúce scany chladničky.',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -55,22 +123,10 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
                 onBack: () => Navigator.of(context).maybePop(),
               ),
               child: AppErrorState(
-                kind: inferAppErrorKind(
-                  snapshot.error,
-                  fallback: AppErrorKind.sync,
-                ),
-                title: context.tr(
-                  en: 'Scan history is unavailable',
-                  sk: 'História scanov nie je k dispozícii',
-                ),
-                message: context.tr(
-                  en: 'Safo could not load your scan history right now.',
-                  sk: 'Safo teraz nedokázalo načítať tvoju históriu scanov.',
-                ),
-                hint: context.tr(
-                  en: 'Safo could not load previous fridge scans right now.',
-                  sk: 'Safo teraz nedokázalo načítať predchádzajúce scany chladničky.',
-                ),
+                kind: _scanHistoryErrorKind(snapshot.error),
+                title: _scanHistoryErrorTitle(snapshot.error),
+                message: _scanHistoryErrorMessage(snapshot.error),
+                hint: _scanHistoryErrorHint(snapshot.error),
                 onRetry: _reload,
               ),
             );
@@ -243,6 +299,73 @@ class _ScanSessionDetailScreenState extends State<ScanSessionDetailScreen> {
     await _sessionFuture;
   }
 
+  AppErrorKind _scanDetailErrorKind(Object? error) {
+    if (isSignInRequiredError(error)) {
+      return AppErrorKind.permission;
+    }
+    if (isSupabaseSetupError(error)) {
+      return AppErrorKind.setup;
+    }
+    return inferAppErrorKind(error, fallback: AppErrorKind.sync);
+  }
+
+  String _scanDetailErrorTitle(Object? error) {
+    if (isSignInRequiredError(error)) {
+      return context.tr(
+        en: 'Sign in to reopen this scan',
+        sk: 'Prihlás sa, aby si znovu otvoril tento scan',
+      );
+    }
+    if (isSupabaseSetupError(error)) {
+      return context.tr(
+        en: 'Scan detail setup is unavailable',
+        sk: 'Nastavenie detailu scanu nie je pripravené',
+      );
+    }
+    return context.tr(
+      en: 'Scan detail is unavailable',
+      sk: 'Detail scanu nie je k dispozícii',
+    );
+  }
+
+  String _scanDetailErrorMessage(Object? error) {
+    if (isSignInRequiredError(error)) {
+      return context.tr(
+        en: 'Sign in again so Safo can reopen this saved fridge scan.',
+        sk: 'Prihlás sa znova, aby Safo mohlo znovu otvoriť tento uložený scan chladničky.',
+      );
+    }
+    if (isSupabaseSetupError(error)) {
+      return context.tr(
+        en: 'Safo still needs backend configuration before this scan detail can be loaded here.',
+        sk: 'Safo ešte potrebuje nastaviť backend, aby tu vedelo načítať detail tohto scanu.',
+      );
+    }
+    return context.tr(
+      en: 'Safo could not load this scan detail right now.',
+      sk: 'Detail scanu sa nepodarilo načítať.',
+    );
+  }
+
+  String _scanDetailErrorHint(Object? error) {
+    if (isSignInRequiredError(error)) {
+      return context.tr(
+        en: 'Once you are signed in again, this saved fridge scan will open here.',
+        sk: 'Keď sa znova prihlásiš, tento uložený scan chladničky sa otvorí práve tu.',
+      );
+    }
+    if (isSupabaseSetupError(error)) {
+      return context.tr(
+        en: 'Finish the Safo backend setup and then refresh this scan detail.',
+        sk: 'Dokonči nastavenie backendu pre Safo a potom obnov detail tohto scanu.',
+      );
+    }
+    return context.tr(
+      en: 'Safo could not reopen this saved fridge scan right now.',
+      sk: 'Safo teraz nedokázalo znovu otvoriť tento uložený scan chladničky.',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -266,18 +389,10 @@ class _ScanSessionDetailScreenState extends State<ScanSessionDetailScreen> {
                 onBack: () => Navigator.of(context).maybePop(),
               ),
               child: AppErrorState(
-                kind: inferAppErrorKind(
-                  snapshot.error,
-                  fallback: AppErrorKind.sync,
-                ),
-                message: context.tr(
-                  en: 'Safo could not load this scan detail right now.',
-                  sk: 'Detail scanu sa nepodarilo načítať.',
-                ),
-                hint: context.tr(
-                  en: 'Safo could not reopen this saved fridge scan right now.',
-                  sk: 'Safo teraz nedokázalo znovu otvoriť tento uložený scan chladničky.',
-                ),
+                kind: _scanDetailErrorKind(snapshot.error),
+                title: _scanDetailErrorTitle(snapshot.error),
+                message: _scanDetailErrorMessage(snapshot.error),
+                hint: _scanDetailErrorHint(snapshot.error),
                 onRetry: _reload,
               ),
             );

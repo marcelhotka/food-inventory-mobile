@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../../app/app_metadata.dart';
 import '../../../app/localization/app_locale.dart';
+import '../../../app/supabase.dart';
 import '../../../app/theme/safo_tokens.dart';
 import '../../../core/widgets/app_feedback.dart';
 import '../../../core/widgets/safo_alert_dialog.dart';
@@ -131,20 +132,27 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
           sk: 'Prihlás sa, aby si mohol nahrať ukážkové dáta pre túto domácnosť.',
         ),
       );
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      showErrorFeedback(
-        context,
-        context.tr(
+      _showTesterActionError(
+        error,
+        signInMessage: context.tr(
+          en: 'Sign in to load sample data for this household.',
+          sk: 'Prihlás sa, aby si mohol nahrať ukážkové dáta pre túto domácnosť.',
+        ),
+        setupMessage: context.tr(
+          en: 'Safo still needs backend configuration before sample data can be loaded here.',
+          sk: 'Safo ešte potrebuje nastaviť backend, aby sa tu dali načítať ukážkové dáta.',
+        ),
+        genericMessage: context.tr(
           en: 'Safo could not load sample data right now.',
           sk: 'Safo teraz nedokázalo nahrať ukážkové dáta.',
         ),
-        title: context.tr(
+        genericTitle: context.tr(
           en: 'Sample data not loaded',
           sk: 'Ukážkové dáta sa nenahrali',
         ),
-        actionLabel: context.tr(en: 'Retry', sk: 'Skúsiť znova'),
-        onAction: _loadSampleData,
+        onRetry: _loadSampleData,
       );
     } finally {
       if (mounted) {
@@ -201,15 +209,23 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
           sk: 'Ukážkové dáta odstránené: $removedPantry špajza, $removedShopping nákup, $removedMeals jedálniček.',
         ),
       );
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      showErrorFeedback(
-        context,
-        context.tr(
+      _showTesterActionError(
+        error,
+        signInMessage: context.tr(
+          en: 'Sign in to clear sample data for this household.',
+          sk: 'Prihlás sa, aby si mohol vymazať ukážkové dáta tejto domácnosti.',
+        ),
+        setupMessage: context.tr(
+          en: 'Safo still needs backend configuration before sample data can be cleared here.',
+          sk: 'Safo ešte potrebuje nastaviť backend, aby sa tu dali vymazať ukážkové dáta.',
+        ),
+        genericMessage: context.tr(
           en: 'Safo could not clear sample data right now.',
           sk: 'Safo teraz nedokázalo vymazať ukážkové dáta.',
         ),
-        title: context.tr(
+        genericTitle: context.tr(
           en: 'Sample data not cleared',
           sk: 'Ukážkové dáta sa nevymazali',
         ),
@@ -368,17 +384,27 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
           sk: 'Onboarding flag bol resetovaný. Odhlás sa alebo reštartuj flow a môžeš znovu testovať first-run obrazovky.',
         ),
       );
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      showErrorFeedback(
-        context,
-        context.tr(
+      _showTesterActionError(
+        error,
+        signInMessage: context.tr(
+          en: 'Sign in to reset the onboarding flag for this account.',
+          sk: 'Prihlás sa, aby si mohol resetovať onboarding flag pre tento účet.',
+        ),
+        setupMessage: context.tr(
+          en: 'Safo still needs backend configuration before the onboarding flag can be reset here.',
+          sk: 'Safo ešte potrebuje nastaviť backend, aby sa tu dal resetovať onboarding flag.',
+        ),
+        genericMessage: context.tr(
           en: 'Safo could not reset the onboarding flag right now.',
           sk: 'Safo teraz nedokázalo resetovať onboarding flag.',
         ),
-        title: context.tr(en: 'Reset not completed', sk: 'Reset sa nedokončil'),
-        actionLabel: context.tr(en: 'Retry', sk: 'Skúsiť znova'),
-        onAction: _resetOnboardingFlag,
+        genericTitle: context.tr(
+          en: 'Reset not completed',
+          sk: 'Reset sa nedokončil',
+        ),
+        onRetry: _resetOnboardingFlag,
       );
     } finally {
       if (mounted) {
@@ -499,11 +525,27 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
           sk: 'Nový first-run priechod je pripravený. Odstránilo sa ${counts.removedPantry} položiek zo špajze, ${counts.removedShopping} z nákupu a ${counts.removedMeals} z jedálnička. Odhlás sa a onboarding si môžeš prejsť znova.',
         ),
       );
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      showErrorFeedback(
-        context,
-        context.tr(
+      _showTesterActionError(
+        error,
+        signInMessage: context.tr(
+          en: signOutAfterPreparation
+              ? 'Sign in to prepare and restart the first-run flow for this account.'
+              : 'Sign in to prepare a fresh first-run pass for this account.',
+          sk: signOutAfterPreparation
+              ? 'Prihlás sa, aby si mohol pripraviť a reštartovať first-run flow pre tento účet.'
+              : 'Prihlás sa, aby si mohol pripraviť nový first-run priechod pre tento účet.',
+        ),
+        setupMessage: context.tr(
+          en: signOutAfterPreparation
+              ? 'Safo still needs backend configuration before the first-run flow can be prepared and restarted here.'
+              : 'Safo still needs backend configuration before a fresh first-run pass can be prepared here.',
+          sk: signOutAfterPreparation
+              ? 'Safo ešte potrebuje nastaviť backend, aby sa tu dal pripraviť a reštartovať first-run flow.'
+              : 'Safo ešte potrebuje nastaviť backend, aby sa tu dal pripraviť nový first-run priechod.',
+        ),
+        genericMessage: context.tr(
           en: signOutAfterPreparation
               ? 'Safo could not prepare and restart the first-run flow right now.'
               : 'Safo could not prepare a fresh first-run pass right now.',
@@ -511,7 +553,7 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
               ? 'Safo teraz nedokázalo pripraviť a reštartovať first-run flow.'
               : 'Safo teraz nedokázalo pripraviť nový first-run priechod.',
         ),
-        title: context.tr(
+        genericTitle: context.tr(
           en: signOutAfterPreparation
               ? 'Restart not completed'
               : 'Preparation not completed',
@@ -519,8 +561,7 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
               ? 'Reštart sa nedokončil'
               : 'Príprava sa nedokončila',
         ),
-        actionLabel: context.tr(en: 'Retry', sk: 'Skúsiť znova'),
-        onAction: signOutAfterPreparation
+        onRetry: signOutAfterPreparation
             ? _restartFreshFirstRunPass
             : _prepareFreshFirstRunPass,
       );
@@ -535,6 +576,40 @@ class _TesterInfoScreenState extends State<TesterInfoScreen> {
         });
       }
     }
+  }
+
+  void _showTesterActionError(
+    Object error, {
+    required String signInMessage,
+    required String setupMessage,
+    required String genericMessage,
+    required String genericTitle,
+    Future<void> Function()? onRetry,
+  }) {
+    if (isSignInRequiredError(error)) {
+      showSignInRequiredFeedback(context, signInMessage);
+      return;
+    }
+    if (isSupabaseSetupError(error)) {
+      showErrorFeedback(
+        context,
+        setupMessage,
+        title: context.tr(
+          en: 'Tester setup is unavailable',
+          sk: 'Nastavenie tester režimu nie je pripravené',
+        ),
+      );
+      return;
+    }
+    showErrorFeedback(
+      context,
+      genericMessage,
+      title: genericTitle,
+      actionLabel: onRetry == null
+          ? null
+          : context.tr(en: 'Retry', sk: 'Skúsiť znova'),
+      onAction: onRetry == null ? null : () => onRetry(),
+    );
   }
 
   @override
