@@ -18,6 +18,7 @@ import '../../meal_plan/domain/meal_plan_entry.dart';
 import '../../recipes/presentation/recipe_display_text.dart';
 import '../../shopping_list/data/shopping_list_repository.dart';
 import '../../shopping_list/domain/shopping_list_item.dart';
+import '../data/household_remote_data_source.dart';
 import '../data/household_repository.dart';
 import '../domain/household.dart';
 import '../domain/household_member.dart';
@@ -89,6 +90,13 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
   Future<void> _addKeepAtHomeToShopping(_HabitItem item) async {
     final userId = _currentUserId;
     if (userId == null) {
+      showSignInRequiredFeedback(
+        context,
+        context.tr(
+          en: 'Sign in to turn this habit into a shopping item.',
+          sk: 'Prihlás sa, aby si mohol pridať túto vec do nákupu.',
+        ),
+      );
       return;
     }
 
@@ -106,18 +114,100 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
       updatedAt: now,
     );
 
-    await _shoppingListRepository.addShoppingListItem(shoppingItem);
-    if (!mounted) {
-      return;
+    try {
+      await _shoppingListRepository.addShoppingListItem(shoppingItem);
+      if (!mounted) {
+        return;
+      }
+      showSuccessFeedback(
+        context,
+        context.tr(
+          en: 'Added to shopping list.',
+          sk: 'Pridané do nákupného zoznamu.',
+        ),
+      );
+      await _reload();
+    } catch (_) {
+      if (!mounted) return;
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Safo could not add this item to shopping right now.',
+          sk: 'Safo teraz nedokázalo pridať túto položku do nákupu.',
+        ),
+        title: context.tr(
+          en: 'Shopping update failed',
+          sk: 'Úprava nákupu zlyhala',
+        ),
+      );
     }
-    showSuccessFeedback(
-      context,
-      context.tr(
-        en: 'Added to shopping list.',
-        sk: 'Pridané do nákupného zoznamu.',
-      ),
+  }
+
+  AppErrorKind _householdErrorKind(Object? error) {
+    if (isSignInRequiredError(error) || error is HouseholdAuthException) {
+      return AppErrorKind.permission;
+    }
+    if (isSupabaseSetupError(error) || error is HouseholdConfigException) {
+      return AppErrorKind.setup;
+    }
+    return inferAppErrorKind(error, fallback: AppErrorKind.sync);
+  }
+
+  String _householdErrorTitle(BuildContext context, Object? error) {
+    if (isSignInRequiredError(error) || error is HouseholdAuthException) {
+      return context.tr(
+        en: 'Sign in to continue',
+        sk: 'Prihlás sa, aby si pokračoval',
+      );
+    }
+    if (isSupabaseSetupError(error) || error is HouseholdConfigException) {
+      return context.tr(
+        en: 'Household setup needs backend setup',
+        sk: 'Nastavenie domácnosti potrebuje backend nastavenie',
+      );
+    }
+    return context.tr(
+      en: 'Household details are unavailable',
+      sk: 'Detaily domácnosti nie sú k dispozícii',
     );
-    await _reload();
+  }
+
+  String _householdErrorMessage(BuildContext context, Object? error) {
+    if (isSignInRequiredError(error) || error is HouseholdAuthException) {
+      return context.tr(
+        en: 'Sign in to open your household again.',
+        sk: 'Prihlás sa, aby si znovu otvoril svoju domácnosť.',
+      );
+    }
+    if (isSupabaseSetupError(error) || error is HouseholdConfigException) {
+      return context.tr(
+        en: 'Safo household data is not ready on this build yet.',
+        sk: 'Dáta domácnosti v Safo ešte nie sú na tomto build-e pripravené.',
+      );
+    }
+    return context.tr(
+      en: 'Safo could not load household members right now.',
+      sk: 'Nepodarilo sa načítať členov domácnosti.',
+    );
+  }
+
+  String _householdErrorHint(BuildContext context, Object? error) {
+    if (isSignInRequiredError(error) || error is HouseholdAuthException) {
+      return context.tr(
+        en: 'Your session ended or is missing, so Safo cannot refresh household details until you sign in again.',
+        sk: 'Relácia skončila alebo chýba, takže Safo nemôže obnoviť detaily domácnosti, kým sa znovu neprihlásiš.',
+      );
+    }
+    if (isSupabaseSetupError(error) || error is HouseholdConfigException) {
+      return context.tr(
+        en: 'Safo still needs backend configuration before household data can be loaded here.',
+        sk: 'Safo ešte potrebuje backend nastavenie, aby sa tu dali načítať dáta domácnosti.',
+      );
+    }
+    return context.tr(
+      en: 'Safo could not refresh the latest household details right now.',
+      sk: 'Safo teraz nedokázalo obnoviť najnovšie údaje o domácnosti.',
+    );
   }
 
   @override
@@ -145,18 +235,10 @@ class _HouseholdScreenState extends State<HouseholdScreen> {
                 onBack: () => Navigator.of(context).maybePop(),
               ),
               child: AppErrorState(
-                kind: inferAppErrorKind(
-                  snapshot.error,
-                  fallback: AppErrorKind.sync,
-                ),
-                message: context.tr(
-                  en: 'Safo could not load household members right now.',
-                  sk: 'Nepodarilo sa načítať členov domácnosti.',
-                ),
-                hint: context.tr(
-                  en: 'Safo could not refresh the latest household details right now.',
-                  sk: 'Safo teraz nedokázalo obnoviť najnovšie údaje o domácnosti.',
-                ),
+                kind: _householdErrorKind(snapshot.error),
+                title: _householdErrorTitle(context, snapshot.error),
+                message: _householdErrorMessage(context, snapshot.error),
+                hint: _householdErrorHint(context, snapshot.error),
                 onRetry: _reload,
               ),
             );
