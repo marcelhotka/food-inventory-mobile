@@ -773,24 +773,62 @@ class _FridgeScanReviewState extends State<_FridgeScanReview> {
       Navigator.of(
         context,
       ).pop(selectedCandidates.map((item) => item.prefill).toList());
-    } catch (_) {
+    } catch (error) {
       if (!mounted) {
         return;
       }
-      showErrorFeedback(
-        context,
-        context.tr(
+      _showScanSaveError(
+        error: error,
+        genericMessage: context.tr(
           en: 'Safo could not save this fridge scan right now.',
           sk: 'Scan sa nepodarilo uložiť.',
         ),
-        title: context.tr(en: 'Scan not saved', sk: 'Scan sa neuložil'),
-        actionLabel: context.tr(en: 'Retry', sk: 'Skúsiť znova'),
-        onAction: _finish,
+        genericTitle: context.tr(en: 'Scan not saved', sk: 'Scan sa neuložil'),
       );
       setState(() {
         _isSaving = false;
       });
     }
+  }
+
+  void _showScanSaveError({
+    required Object error,
+    required String genericMessage,
+    required String genericTitle,
+  }) {
+    if (isSignInRequiredError(error)) {
+      showSignInRequiredFeedback(
+        context,
+        context.tr(
+          en: 'Sign in to finish and save this fridge scan.',
+          sk: 'Prihlás sa, aby si mohol dokončiť a uložiť tento scan chladničky.',
+        ),
+      );
+      return;
+    }
+    if (isSupabaseSetupError(error) || error is ScanSessionsConfigException) {
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Fridge scan saving is not ready on this build yet.',
+          sk: 'Ukladanie scanu chladničky ešte nie je na tomto build-e pripravené.',
+        ),
+        title: context.tr(
+          en: 'Scan save unavailable',
+          sk: 'Uloženie scanu nie je dostupné',
+        ),
+        actionLabel: context.tr(en: 'Retry', sk: 'Skúsiť znova'),
+        onAction: _finish,
+      );
+      return;
+    }
+    showErrorFeedback(
+      context,
+      genericMessage,
+      title: genericTitle,
+      actionLabel: context.tr(en: 'Retry', sk: 'Skúsiť znova'),
+      onAction: _finish,
+    );
   }
 
   @override
