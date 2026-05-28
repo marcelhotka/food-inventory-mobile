@@ -257,15 +257,23 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           sk: 'Presunuté do špajze a odstránené z nákupného zoznamu.',
         ),
       );
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      showErrorFeedback(
-        context,
-        context.tr(
+      _showNotificationActionError(
+        error,
+        signInMessage: context.tr(
+          en: 'Sign in to move bought items from notifications into your pantry.',
+          sk: 'Prihlás sa, aby si mohol z upozornení presúvať kúpené položky do špajze.',
+        ),
+        setupMessage: context.tr(
+          en: 'Safo still needs backend configuration before bought items can move from notifications into your pantry.',
+          sk: 'Safo ešte potrebuje nastaviť backend, aby vedelo z upozornení presúvať kúpené položky do špajze.',
+        ),
+        genericMessage: context.tr(
           en: 'Safo could not update this shopping item right now.',
           sk: 'Safo teraz nedokázalo upraviť túto nákupnú položku.',
         ),
-        title: context.tr(
+        genericTitle: context.tr(
           en: 'Shopping update failed',
           sk: 'Úprava nákupu zlyhala',
         ),
@@ -396,15 +404,23 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 sk: 'Položka v špajzi bola upravená.',
               ),
       );
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      showErrorFeedback(
-        context,
-        context.tr(
+      _showNotificationActionError(
+        error,
+        signInMessage: context.tr(
+          en: 'Sign in to update pantry items from notifications.',
+          sk: 'Prihlás sa, aby si mohol z upozornení upravovať položky v špajzi.',
+        ),
+        setupMessage: context.tr(
+          en: 'Safo still needs backend configuration before pantry updates can work from notifications.',
+          sk: 'Safo ešte potrebuje nastaviť backend, aby z upozornení fungovali úpravy špajze.',
+        ),
+        genericMessage: context.tr(
           en: 'Safo could not update this pantry item right now.',
           sk: 'Safo teraz nedokázalo upraviť túto pantry položku.',
         ),
-        title: context.tr(
+        genericTitle: context.tr(
           en: 'Pantry update failed',
           sk: 'Úprava špajze zlyhala',
         ),
@@ -476,20 +492,120 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           sk: 'Pridané do nákupného zoznamu.',
         ),
       );
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      showErrorFeedback(
-        context,
-        context.tr(
+      _showNotificationActionError(
+        error,
+        signInMessage: context.tr(
+          en: 'Sign in to add low-stock items from notifications to your shopping list.',
+          sk: 'Prihlás sa, aby si mohol z upozornení pridať dochádzajúce položky do nákupu.',
+        ),
+        setupMessage: context.tr(
+          en: 'Safo still needs backend configuration before notifications can add low-stock items to shopping.',
+          sk: 'Safo ešte potrebuje nastaviť backend, aby vedelo z upozornení pridať dochádzajúce položky do nákupu.',
+        ),
+        genericMessage: context.tr(
           en: 'Safo could not add this item to shopping right now.',
           sk: 'Safo teraz nedokázalo pridať túto položku do nákupu.',
         ),
-        title: context.tr(
+        genericTitle: context.tr(
           en: 'Shopping add failed',
           sk: 'Pridanie do nákupu zlyhalo',
         ),
       );
     }
+  }
+
+  void _showNotificationActionError(
+    Object error, {
+    required String signInMessage,
+    required String setupMessage,
+    required String genericMessage,
+    required String genericTitle,
+  }) {
+    if (isSignInRequiredError(error)) {
+      showSignInRequiredFeedback(context, signInMessage);
+      return;
+    }
+    if (isSupabaseSetupError(error)) {
+      showErrorFeedback(
+        context,
+        setupMessage,
+        title: context.tr(
+          en: 'Notifications setup is unavailable',
+          sk: 'Nastavenie upozornení nie je pripravené',
+        ),
+      );
+      return;
+    }
+    showErrorFeedback(context, genericMessage, title: genericTitle);
+  }
+
+  AppErrorKind _notificationsErrorKind(Object? error) {
+    if (isSignInRequiredError(error)) {
+      return AppErrorKind.permission;
+    }
+    if (isSupabaseSetupError(error)) {
+      return AppErrorKind.setup;
+    }
+    return inferAppErrorKind(error, fallback: AppErrorKind.sync);
+  }
+
+  String _notificationsErrorTitle(Object? error) {
+    if (isSignInRequiredError(error)) {
+      return context.tr(
+        en: 'Sign in to view notifications',
+        sk: 'Prihlás sa, aby si videl upozornenia',
+      );
+    }
+    if (isSupabaseSetupError(error)) {
+      return context.tr(
+        en: 'Notifications setup is unavailable',
+        sk: 'Nastavenie upozornení nie je pripravené',
+      );
+    }
+    return context.tr(
+      en: 'Notifications are unavailable',
+      sk: 'Upozornenia nie sú k dispozícii',
+    );
+  }
+
+  String _notificationsErrorMessage(Object? error) {
+    if (isSignInRequiredError(error)) {
+      return context.tr(
+        en: 'Sign in again so Safo can load pantry, shopping, and cooking alerts for you.',
+        sk: 'Prihlás sa znova, aby Safo mohlo načítať upozornenia zo špajze, nákupu a varenia.',
+      );
+    }
+    if (isSupabaseSetupError(error)) {
+      return context.tr(
+        en: 'Safo still needs backend configuration before notifications can be loaded here.',
+        sk: 'Safo ešte potrebuje nastaviť backend, aby tu vedelo načítať upozornenia.',
+      );
+    }
+    return context.tr(
+      en: 'Safo could not load your notifications right now.',
+      sk: 'Safo teraz nedokázalo načítať tvoje upozornenia.',
+    );
+  }
+
+  String _notificationsErrorHint(Object? error) {
+    if (isSignInRequiredError(error)) {
+      return context.tr(
+        en: 'Once you are signed in again, your urgent alerts will appear here.',
+        sk: 'Keď sa znova prihlásiš, tvoje urgentné upozornenia sa zobrazia práve tu.',
+      );
+    }
+    if (isSupabaseSetupError(error)) {
+      return context.tr(
+        en: 'Finish the Safo backend setup and then refresh this screen.',
+        sk: 'Dokonči nastavenie backendu pre Safo a potom túto obrazovku obnov.',
+      );
+    }
+    return context.tr(
+      en: 'Safo could not refresh your urgent alerts right now.',
+      sk: 'Safo teraz nedokázalo obnoviť tvoje urgentné upozornenia.',
+    );
   }
 
   Future<({String storageLocation, DateTime? expirationDate})?>
@@ -703,22 +819,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 ],
               ),
               child: AppErrorState(
-                kind: inferAppErrorKind(
-                  snapshot.error,
-                  fallback: AppErrorKind.sync,
-                ),
-                title: context.tr(
-                  en: 'Notifications are unavailable',
-                  sk: 'Upozornenia nie sú k dispozícii',
-                ),
-                message: context.tr(
-                  en: 'Safo could not load your notifications right now.',
-                  sk: 'Safo teraz nedokázalo načítať tvoje upozornenia.',
-                ),
-                hint: context.tr(
-                  en: 'Safo could not refresh your urgent alerts right now.',
-                  sk: 'Safo teraz nedokázalo obnoviť tvoje urgentné upozornenia.',
-                ),
+                kind: _notificationsErrorKind(snapshot.error),
+                title: _notificationsErrorTitle(snapshot.error),
+                message: _notificationsErrorMessage(snapshot.error),
+                hint: _notificationsErrorHint(snapshot.error),
                 onRetry: _reload,
               ),
             );

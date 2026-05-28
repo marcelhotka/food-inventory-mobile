@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../app/localization/app_locale.dart';
+import '../../../app/supabase.dart';
 import '../../../app/theme/safo_tokens.dart';
 import '../../../core/widgets/app_async_state_widgets.dart';
 import '../../../core/widgets/app_feedback.dart';
@@ -150,15 +151,23 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
           sk: 'Položka jedálnička bola pridaná.',
         ),
       );
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      showErrorFeedback(
-        context,
-        context.tr(
+      _showMealPlanActionError(
+        error,
+        signInMessage: context.tr(
+          en: 'Sign in to add meals to your plan.',
+          sk: 'Prihlás sa, aby si mohol pridávať jedlá do jedálnička.',
+        ),
+        setupMessage: context.tr(
+          en: 'Safo still needs backend configuration before meals can be added to your plan.',
+          sk: 'Safo ešte potrebuje nastaviť backend, aby bolo možné pridávať jedlá do jedálnička.',
+        ),
+        genericMessage: context.tr(
           en: 'Safo could not add this meal plan entry right now.',
           sk: 'Položku jedálnička sa nepodarilo pridať.',
         ),
-        title: context.tr(
+        genericTitle: context.tr(
           en: 'Meal plan add failed',
           sk: 'Pridanie do jedálnička zlyhalo',
         ),
@@ -215,15 +224,23 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
           sk: 'Importovaných položiek jedálnička: ${importedEntries.length}.',
         ),
       );
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      showErrorFeedback(
-        context,
-        context.tr(
+      _showMealPlanActionError(
+        error,
+        signInMessage: context.tr(
+          en: 'Sign in to import meals into your plan.',
+          sk: 'Prihlás sa, aby si mohol importovať jedlá do jedálnička.',
+        ),
+        setupMessage: context.tr(
+          en: 'Safo still needs backend configuration before meal plan import can work.',
+          sk: 'Safo ešte potrebuje nastaviť backend, aby mohol fungovať import jedálnička.',
+        ),
+        genericMessage: context.tr(
           en: 'Safo could not import this meal plan right now.',
           sk: 'Jedálniček sa nepodarilo importovať.',
         ),
-        title: context.tr(
+        genericTitle: context.tr(
           en: 'Meal plan import failed',
           sk: 'Import jedálnička zlyhal',
         ),
@@ -277,15 +294,23 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
           sk: 'Položka jedálnička bola upravená.',
         ),
       );
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      showErrorFeedback(
-        context,
-        context.tr(
+      _showMealPlanActionError(
+        error,
+        signInMessage: context.tr(
+          en: 'Sign in to update meals in your plan.',
+          sk: 'Prihlás sa, aby si mohol upravovať jedlá v jedálničku.',
+        ),
+        setupMessage: context.tr(
+          en: 'Safo still needs backend configuration before meal plan updates can work.',
+          sk: 'Safo ešte potrebuje nastaviť backend, aby fungovali úpravy jedálnička.',
+        ),
+        genericMessage: context.tr(
           en: 'Safo could not update this meal plan entry right now.',
           sk: 'Položku jedálnička sa nepodarilo upraviť.',
         ),
-        title: context.tr(
+        genericTitle: context.tr(
           en: 'Meal plan update failed',
           sk: 'Úprava jedálnička zlyhala',
         ),
@@ -337,15 +362,23 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
           sk: 'Položka jedálnička bola odstránená.',
         ),
       );
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      showErrorFeedback(
-        context,
-        context.tr(
+      _showMealPlanActionError(
+        error,
+        signInMessage: context.tr(
+          en: 'Sign in to remove meals from your plan.',
+          sk: 'Prihlás sa, aby si mohol odstraňovať jedlá z jedálnička.',
+        ),
+        setupMessage: context.tr(
+          en: 'Safo still needs backend configuration before meals can be removed from your plan.',
+          sk: 'Safo ešte potrebuje nastaviť backend, aby bolo možné odstraňovať jedlá z jedálnička.',
+        ),
+        genericMessage: context.tr(
           en: 'Safo could not remove this meal plan entry right now.',
           sk: 'Položku jedálnička sa nepodarilo odstrániť.',
         ),
-        title: context.tr(
+        genericTitle: context.tr(
           en: 'Meal plan delete failed',
           sk: 'Odstránenie z jedálnička zlyhalo',
         ),
@@ -440,15 +473,23 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                 sk: 'Varenie je priradené v domácnosti.',
               ),
       );
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      showErrorFeedback(
-        context,
-        context.tr(
+      _showMealPlanActionError(
+        error,
+        signInMessage: context.tr(
+          en: 'Sign in to update cooking assignments.',
+          sk: 'Prihlás sa, aby si mohol upravovať priradenia varenia.',
+        ),
+        setupMessage: context.tr(
+          en: 'Safo still needs backend configuration before cooking assignments can be updated.',
+          sk: 'Safo ešte potrebuje nastaviť backend, aby sa dali upravovať priradenia varenia.',
+        ),
+        genericMessage: context.tr(
           en: 'Safo could not update this cooking assignment right now.',
           sk: 'Priradenie varenia sa nepodarilo upraviť.',
         ),
-        title: context.tr(
+        genericTitle: context.tr(
           en: 'Assignment update failed',
           sk: 'Úprava priradenia zlyhala',
         ),
@@ -527,20 +568,120 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
           ),
         );
       }
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      showErrorFeedback(
-        context,
-        context.tr(
+      _showMealPlanActionError(
+        error,
+        signInMessage: context.tr(
+          en: 'Sign in to update shopping from your meal plan.',
+          sk: 'Prihlás sa, aby si mohol aktualizovať nákup z jedálnička.',
+        ),
+        setupMessage: context.tr(
+          en: 'Safo still needs backend configuration before shopping can update from your meal plan.',
+          sk: 'Safo ešte potrebuje nastaviť backend, aby sa mohol nákup aktualizovať z jedálnička.',
+        ),
+        genericMessage: context.tr(
           en: 'Safo could not update your shopping list from this meal plan right now.',
           sk: 'Nákupný zoznam sa nepodarilo aktualizovať z jedálnička.',
         ),
-        title: context.tr(
+        genericTitle: context.tr(
           en: 'Shopping update failed',
           sk: 'Aktualizácia nákupu zlyhala',
         ),
       );
     }
+  }
+
+  void _showMealPlanActionError(
+    Object error, {
+    required String signInMessage,
+    required String setupMessage,
+    required String genericMessage,
+    required String genericTitle,
+  }) {
+    if (isSignInRequiredError(error)) {
+      showSignInRequiredFeedback(context, signInMessage);
+      return;
+    }
+    if (isSupabaseSetupError(error)) {
+      showErrorFeedback(
+        context,
+        setupMessage,
+        title: context.tr(
+          en: 'Meal plan setup is unavailable',
+          sk: 'Nastavenie jedálnička nie je pripravené',
+        ),
+      );
+      return;
+    }
+    showErrorFeedback(context, genericMessage, title: genericTitle);
+  }
+
+  AppErrorKind _mealPlanErrorKind(Object? error) {
+    if (isSignInRequiredError(error)) {
+      return AppErrorKind.permission;
+    }
+    if (isSupabaseSetupError(error)) {
+      return AppErrorKind.setup;
+    }
+    return inferAppErrorKind(error, fallback: AppErrorKind.sync);
+  }
+
+  String _mealPlanErrorTitle(Object? error) {
+    if (isSignInRequiredError(error)) {
+      return context.tr(
+        en: 'Sign in to view your meal plan',
+        sk: 'Prihlás sa, aby si videl jedálniček',
+      );
+    }
+    if (isSupabaseSetupError(error)) {
+      return context.tr(
+        en: 'Meal plan setup is unavailable',
+        sk: 'Nastavenie jedálnička nie je pripravené',
+      );
+    }
+    return context.tr(
+      en: 'Meal plan is unavailable',
+      sk: 'Jedálniček nie je k dispozícii',
+    );
+  }
+
+  String _mealPlanErrorMessage(Object? error) {
+    if (isSignInRequiredError(error)) {
+      return context.tr(
+        en: 'Sign in again so Safo can load your planned meals and assignments.',
+        sk: 'Prihlás sa znova, aby Safo mohlo načítať tvoje plánované jedlá a priradenia.',
+      );
+    }
+    if (isSupabaseSetupError(error)) {
+      return context.tr(
+        en: 'Safo still needs backend configuration before the meal plan can be loaded here.',
+        sk: 'Safo ešte potrebuje nastaviť backend, aby tu vedelo načítať jedálniček.',
+      );
+    }
+    return context.tr(
+      en: 'Safo could not load your meal plan right now.',
+      sk: 'Safo teraz nedokázalo načítať tvoj jedálniček.',
+    );
+  }
+
+  String _mealPlanErrorHint(Object? error) {
+    if (isSignInRequiredError(error)) {
+      return context.tr(
+        en: 'Once you are signed in again, planned meals will appear here.',
+        sk: 'Keď sa znova prihlásiš, naplánované jedlá sa zobrazia práve tu.',
+      );
+    }
+    if (isSupabaseSetupError(error)) {
+      return context.tr(
+        en: 'Finish the Safo backend setup and then refresh this screen.',
+        sk: 'Dokonči nastavenie backendu pre Safo a potom túto obrazovku obnov.',
+      );
+    }
+    return context.tr(
+      en: 'Safo could not load planned meals right now.',
+      sk: 'Safo teraz nedokázalo načítať naplánované jedlá.',
+    );
   }
 
   double _availableQuantity(
@@ -766,22 +907,10 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
               onRefresh: _reload,
               header: _MealPlanHeader(householdName: widget.householdName),
               child: AppErrorState(
-                kind: inferAppErrorKind(
-                  snapshot.error,
-                  fallback: AppErrorKind.sync,
-                ),
-                title: context.tr(
-                  en: 'Meal plan is unavailable',
-                  sk: 'Jedálniček nie je k dispozícii',
-                ),
-                message: context.tr(
-                  en: 'Safo could not load your meal plan right now.',
-                  sk: 'Safo teraz nedokázalo načítať tvoj jedálniček.',
-                ),
-                hint: context.tr(
-                  en: 'Safo could not load planned meals right now.',
-                  sk: 'Safo teraz nedokázalo načítať naplánované jedlá.',
-                ),
+                kind: _mealPlanErrorKind(snapshot.error),
+                title: _mealPlanErrorTitle(snapshot.error),
+                message: _mealPlanErrorMessage(snapshot.error),
+                hint: _mealPlanErrorHint(snapshot.error),
                 onRetry: _reload,
               ),
             );
