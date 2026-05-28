@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/localization/app_locale.dart';
+import '../../../app/supabase.dart';
 import '../../../app/theme/safo_tokens.dart';
 import '../../../core/forms/app_input_decoration.dart';
 import '../../../core/widgets/app_feedback.dart';
@@ -97,11 +98,11 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen> {
                 sk: 'Domácnosť bola vytvorená.',
               ),
       );
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      showErrorFeedback(
-        context,
-        _isEditingExistingHousehold
+      _showHouseholdActionError(
+        error,
+        fallbackMessage: _isEditingExistingHousehold
             ? context.tr(
                 en: 'Safo could not update this household name right now.',
                 sk: 'Názov domácnosti sa nepodarilo upraviť.',
@@ -110,7 +111,7 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen> {
                 en: 'Safo could not create this household right now.',
                 sk: 'Domácnosť sa nepodarilo vytvoriť.',
               ),
-        title: context.tr(
+        fallbackTitle: context.tr(
           en: _isEditingExistingHousehold
               ? 'Household update failed'
               : 'Household creation failed',
@@ -155,15 +156,15 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen> {
     } on HouseholdJoinCodeException catch (error) {
       if (!mounted) return;
       showErrorFeedback(context, _joinCodeErrorMessage(context, error));
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      showErrorFeedback(
-        context,
-        context.tr(
+      _showHouseholdActionError(
+        error,
+        fallbackMessage: context.tr(
           en: 'Safo could not join this household right now.',
           sk: 'Do domácnosti sa nepodarilo pripojiť.',
         ),
-        title: context.tr(
+        fallbackTitle: context.tr(
           en: 'Household join failed',
           sk: 'Pripojenie do domácnosti zlyhalo',
         ),
@@ -203,6 +204,40 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen> {
         sk: 'Do domácnosti sa nepodarilo pripojiť.',
       ),
     };
+  }
+
+  void _showHouseholdActionError(
+    Object error, {
+    required String fallbackMessage,
+    required String fallbackTitle,
+  }) {
+    if (isSignInRequiredError(error) || error is HouseholdAuthException) {
+      showSignInRequiredFeedback(
+        context,
+        context.tr(
+          en: 'Sign in to continue with your household setup.',
+          sk: 'Prihlás sa, aby si mohol pokračovať v nastavení domácnosti.',
+        ),
+      );
+      return;
+    }
+
+    if (isSupabaseSetupError(error) || error is HouseholdConfigException) {
+      showErrorFeedback(
+        context,
+        context.tr(
+          en: 'Safo household setup is not ready on this build yet.',
+          sk: 'Nastavenie domácnosti v Safo ešte nie je na tomto build-e pripravené.',
+        ),
+        title: context.tr(
+          en: 'Household setup unavailable',
+          sk: 'Nastavenie domácnosti nie je dostupné',
+        ),
+      );
+      return;
+    }
+
+    showErrorFeedback(context, fallbackMessage, title: fallbackTitle);
   }
 
   void _goTo(_HouseholdSetupStep step) {
