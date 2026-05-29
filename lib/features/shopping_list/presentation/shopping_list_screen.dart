@@ -18,6 +18,7 @@ import '../../household_activity/data/household_activity_repository.dart';
 import '../../household_activity/domain/household_activity_event.dart';
 import '../../households/domain/household.dart';
 import '../../households/domain/household_member.dart';
+import '../../households/data/household_remote_data_source.dart';
 import '../../households/data/household_repository.dart';
 import '../../households/presentation/household_screen.dart';
 import '../../recipes/presentation/recipe_display_text.dart';
@@ -238,15 +239,27 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
           ),
         );
       }
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      showErrorFeedback(
-        context,
-        context.tr(
+      _showShoppingActionError(
+        error,
+        signInMessage: context.tr(
+          en: 'Sign in again to add shopping items.',
+          sk: 'Prihlás sa znova, aby si mohol pridávať položky do nákupu.',
+        ),
+        setupMessage: context.tr(
+          en: 'Safo shopping features are not ready on this build yet.',
+          sk: 'Funkcie nákupu v Safo ešte nie sú na tomto build-e pripravené.',
+        ),
+        setupTitle: context.tr(
+          en: 'Shopping setup is unavailable',
+          sk: 'Nastavenie nákupu nie je pripravené',
+        ),
+        genericMessage: context.tr(
           en: 'Safo could not add this shopping item right now.',
           sk: 'Položku sa nepodarilo pridať do nákupného zoznamu.',
         ),
-        title: context.tr(
+        genericTitle: context.tr(
           en: 'Shopping add failed',
           sk: 'Pridanie do nákupu zlyhalo',
         ),
@@ -358,15 +371,27 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
           sk: 'Položka v nákupnom zozname bola upravená.',
         ),
       );
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      showErrorFeedback(
-        context,
-        context.tr(
+      _showShoppingActionError(
+        error,
+        signInMessage: context.tr(
+          en: 'Sign in again to update shopping items.',
+          sk: 'Prihlás sa znova, aby si mohol upravovať nákupné položky.',
+        ),
+        setupMessage: context.tr(
+          en: 'Safo shopping features are not ready on this build yet.',
+          sk: 'Funkcie nákupu v Safo ešte nie sú na tomto build-e pripravené.',
+        ),
+        setupTitle: context.tr(
+          en: 'Shopping setup is unavailable',
+          sk: 'Nastavenie nákupu nie je pripravené',
+        ),
+        genericMessage: context.tr(
           en: 'Safo could not update this shopping item right now.',
           sk: 'Položku v nákupnom zozname sa nepodarilo upraviť.',
         ),
-        title: context.tr(
+        genericTitle: context.tr(
           en: 'Shopping update failed',
           sk: 'Úprava nákupu zlyhala',
         ),
@@ -503,15 +528,27 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
           sk: 'Pridané k existujúcej položke ${updatedItem.name} (+${_formatQuantity(additionalItem.quantity)} ${additionalItem.unit}). Spolu: ${_formatQuantity(updatedItem.quantity)} ${updatedItem.unit}.',
         ),
       );
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      showErrorFeedback(
-        context,
-        context.tr(
+      _showShoppingActionError(
+        error,
+        signInMessage: context.tr(
+          en: 'Sign in again to increase shopping items.',
+          sk: 'Prihlás sa znova, aby si mohol navýšiť nákupné položky.',
+        ),
+        setupMessage: context.tr(
+          en: 'Safo shopping features are not ready on this build yet.',
+          sk: 'Funkcie nákupu v Safo ešte nie sú na tomto build-e pripravené.',
+        ),
+        setupTitle: context.tr(
+          en: 'Shopping setup is unavailable',
+          sk: 'Nastavenie nákupu nie je pripravené',
+        ),
+        genericMessage: context.tr(
           en: 'Safo could not increase this shopping item right now.',
           sk: 'Nepodarilo sa pridať viac k tejto nákupnej položke.',
         ),
-        title: context.tr(
+        genericTitle: context.tr(
           en: 'Shopping update failed',
           sk: 'Úprava nákupu zlyhala',
         ),
@@ -668,15 +705,27 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
         return;
       }
       await _setAssignment(item, selectedUserId);
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      showErrorFeedback(
-        context,
-        context.tr(
+      _showShoppingActionError(
+        error,
+        signInMessage: context.tr(
+          en: 'Sign in again to load your household members.',
+          sk: 'Prihlás sa znova, aby Safo mohlo načítať členov tvojej domácnosti.',
+        ),
+        setupMessage: context.tr(
+          en: 'Safo still needs backend configuration before household members can be loaded here.',
+          sk: 'Safo ešte potrebuje backend nastavenie, aby sa tu dali načítať členovia domácnosti.',
+        ),
+        setupTitle: context.tr(
+          en: 'Household members are unavailable',
+          sk: 'Členovia domácnosti nie sú k dispozícii',
+        ),
+        genericMessage: context.tr(
           en: 'Safo could not load household members right now.',
           sk: 'Nepodarilo sa načítať členov domácnosti.',
         ),
-        title: context.tr(
+        genericTitle: context.tr(
           en: 'Household members unavailable',
           sk: 'Členovia domácnosti nie sú k dispozícii',
         ),
@@ -689,6 +738,13 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     String? assignedToUserId,
   ) async {
     if (_currentUserId == null && assignedToUserId != null) {
+      showSignInRequiredFeedback(
+        context,
+        context.tr(
+          en: 'Sign in again to assign shopping items in your household.',
+          sk: 'Prihlás sa znova, aby si mohol priraďovať nákupné položky v domácnosti.',
+        ),
+      );
       return;
     }
 
@@ -737,15 +793,27 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                 sk: 'Nákupná položka je priradená v domácnosti.',
               ),
       );
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      showErrorFeedback(
-        context,
-        context.tr(
+      _showShoppingActionError(
+        error,
+        signInMessage: context.tr(
+          en: 'Sign in again to update shopping assignments.',
+          sk: 'Prihlás sa znova, aby si mohol upraviť priradenie nákupu.',
+        ),
+        setupMessage: context.tr(
+          en: 'Safo shopping assignments are not ready on this build yet.',
+          sk: 'Priradenia nákupu v Safo ešte nie sú na tomto build-e pripravené.',
+        ),
+        setupTitle: context.tr(
+          en: 'Assignment setup is unavailable',
+          sk: 'Nastavenie priradenia nie je pripravené',
+        ),
+        genericMessage: context.tr(
           en: 'Safo could not update this shopping assignment right now.',
           sk: 'Priradenie sa nepodarilo upraviť.',
         ),
-        title: context.tr(
+        genericTitle: context.tr(
           en: 'Assignment update failed',
           sk: 'Úprava priradenia zlyhala',
         ),
@@ -803,15 +871,27 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
           sk: 'Nákupná položka bola zmazaná.',
         ),
       );
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      showErrorFeedback(
-        context,
-        context.tr(
+      _showShoppingActionError(
+        error,
+        signInMessage: context.tr(
+          en: 'Sign in again to delete shopping items.',
+          sk: 'Prihlás sa znova, aby si mohol mazať nákupné položky.',
+        ),
+        setupMessage: context.tr(
+          en: 'Safo shopping features are not ready on this build yet.',
+          sk: 'Funkcie nákupu v Safo ešte nie sú na tomto build-e pripravené.',
+        ),
+        setupTitle: context.tr(
+          en: 'Shopping setup is unavailable',
+          sk: 'Nastavenie nákupu nie je pripravené',
+        ),
+        genericMessage: context.tr(
           en: 'Safo could not remove this shopping item right now.',
           sk: 'Nákupnú položku sa nepodarilo zmazať.',
         ),
-        title: context.tr(
+        genericTitle: context.tr(
           en: 'Shopping delete failed',
           sk: 'Odstránenie z nákupu zlyhalo',
         ),
@@ -857,15 +937,27 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                 sk: 'Označené ako nekúpené.',
               ),
       );
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      showErrorFeedback(
-        context,
-        context.tr(
+      _showShoppingActionError(
+        error,
+        signInMessage: context.tr(
+          en: 'Sign in again to update shopping items.',
+          sk: 'Prihlás sa znova, aby si mohol upravovať nákupné položky.',
+        ),
+        setupMessage: context.tr(
+          en: 'Safo shopping features are not ready on this build yet.',
+          sk: 'Funkcie nákupu v Safo ešte nie sú na tomto build-e pripravené.',
+        ),
+        setupTitle: context.tr(
+          en: 'Shopping setup is unavailable',
+          sk: 'Nastavenie nákupu nie je pripravené',
+        ),
+        genericMessage: context.tr(
           en: 'Safo could not update this shopping item right now.',
           sk: 'Nákupnú položku sa nepodarilo upraviť.',
         ),
-        title: context.tr(
+        genericTitle: context.tr(
           en: 'Shopping update failed',
           sk: 'Úprava nákupu zlyhala',
         ),
@@ -1439,6 +1531,29 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       en: 'Safo could not refresh shopping items right now.',
       sk: 'Safo teraz nedokázalo obnoviť nákupné položky.',
     );
+  }
+
+  void _showShoppingActionError(
+    Object error, {
+    required String signInMessage,
+    required String setupMessage,
+    required String setupTitle,
+    required String genericMessage,
+    required String genericTitle,
+  }) {
+    if (isSignInRequiredError(error) ||
+        error is ShoppingListAuthException ||
+        error is HouseholdAuthException) {
+      showSignInRequiredFeedback(context, signInMessage);
+      return;
+    }
+    if (isSupabaseSetupError(error) ||
+        error is ShoppingListConfigException ||
+        error is HouseholdConfigException) {
+      showErrorFeedback(context, setupMessage, title: setupTitle);
+      return;
+    }
+    showErrorFeedback(context, genericMessage, title: genericTitle);
   }
 
   String _sourceLabel(String value) {
