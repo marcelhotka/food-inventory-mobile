@@ -16,6 +16,7 @@ import '../../household_activity/data/household_activity_repository.dart';
 import '../../household_activity/domain/household_activity_event.dart';
 import '../../households/domain/household.dart';
 import '../../households/presentation/household_screen.dart';
+import '../../shopping_list/data/shopping_list_remote_data_source.dart';
 import '../../shopping_list/data/shopping_list_repository.dart';
 import '../../shopping_list/domain/shopping_list_item.dart';
 import '../../recipes/presentation/recipe_display_text.dart';
@@ -224,15 +225,27 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
           ),
         );
       }
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      showErrorFeedback(
-        context,
-        context.tr(
+      _showPantryActionError(
+        error,
+        signInMessage: context.tr(
+          en: 'Sign in again to add pantry items.',
+          sk: 'Prihlás sa znova, aby si mohol pridávať položky do špajze.',
+        ),
+        setupMessage: context.tr(
+          en: 'Safo pantry features are not ready on this build yet.',
+          sk: 'Funkcie špajze v Safo ešte nie sú na tomto build-e pripravené.',
+        ),
+        setupTitle: context.tr(
+          en: 'Pantry setup is unavailable',
+          sk: 'Nastavenie špajze nie je pripravené',
+        ),
+        genericMessage: context.tr(
           en: 'Safo could not add this pantry item right now.',
           sk: 'Položku sa nepodarilo pridať do špajze.',
         ),
-        title: context.tr(
+        genericTitle: context.tr(
           en: 'Pantry add failed',
           sk: 'Pridanie do špajze zlyhalo',
         ),
@@ -346,15 +359,30 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
                 sk: 'Scan bol spracovaný: ${parts.join(', ')}.',
               ),
       );
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      showErrorFeedback(
-        context,
-        context.tr(
+      _showPantryActionError(
+        error,
+        signInMessage: context.tr(
+          en: 'Sign in again to save scanned items to your pantry.',
+          sk: 'Prihlás sa znova, aby si mohol uložiť naskenované položky do špajze.',
+        ),
+        setupMessage: context.tr(
+          en: 'Safo pantry scan features are not ready on this build yet.',
+          sk: 'Funkcie pantry scanu v Safo ešte nie sú na tomto build-e pripravené.',
+        ),
+        setupTitle: context.tr(
+          en: 'Pantry scan setup is unavailable',
+          sk: 'Nastavenie pantry scanu nie je pripravené',
+        ),
+        genericMessage: context.tr(
           en: 'Safo could not save scanned items to your pantry right now.',
           sk: 'Naskenované položky sa nepodarilo pridať.',
         ),
-        title: context.tr(en: 'Scan save failed', sk: 'Uloženie scanu zlyhalo'),
+        genericTitle: context.tr(
+          en: 'Scan save failed',
+          sk: 'Uloženie scanu zlyhalo',
+        ),
       );
     }
   }
@@ -551,15 +579,27 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
           sk: 'Položka v špajzi bola upravená.',
         ),
       );
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      showErrorFeedback(
-        context,
-        context.tr(
+      _showPantryActionError(
+        error,
+        signInMessage: context.tr(
+          en: 'Sign in again to update pantry items.',
+          sk: 'Prihlás sa znova, aby si mohol upravovať položky v špajzi.',
+        ),
+        setupMessage: context.tr(
+          en: 'Safo pantry features are not ready on this build yet.',
+          sk: 'Funkcie špajze v Safo ešte nie sú na tomto build-e pripravené.',
+        ),
+        setupTitle: context.tr(
+          en: 'Pantry setup is unavailable',
+          sk: 'Nastavenie špajze nie je pripravené',
+        ),
+        genericMessage: context.tr(
           en: 'Safo could not update this pantry item right now.',
           sk: 'Položku v špajzi sa nepodarilo upraviť.',
         ),
-        title: context.tr(
+        genericTitle: context.tr(
           en: 'Pantry update failed',
           sk: 'Úprava špajze zlyhala',
         ),
@@ -618,15 +658,27 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
           sk: 'Pridané k existujúcej položke ${updatedItem.name} (+${_formatCompactNumber(additionalItem.quantity)} ${additionalItem.unit}). Spolu: ${_formatCompactNumber(updatedItem.quantity)} ${updatedItem.unit}.',
         ),
       );
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      showErrorFeedback(
-        context,
-        context.tr(
+      _showPantryActionError(
+        error,
+        signInMessage: context.tr(
+          en: 'Sign in again to increase pantry items.',
+          sk: 'Prihlás sa znova, aby si mohol navýšiť položky v špajzi.',
+        ),
+        setupMessage: context.tr(
+          en: 'Safo pantry features are not ready on this build yet.',
+          sk: 'Funkcie špajze v Safo ešte nie sú na tomto build-e pripravené.',
+        ),
+        setupTitle: context.tr(
+          en: 'Pantry setup is unavailable',
+          sk: 'Nastavenie špajze nie je pripravené',
+        ),
+        genericMessage: context.tr(
           en: 'Safo could not increase this pantry item right now.',
           sk: 'Nepodarilo sa pridať viac k pantry položke.',
         ),
-        title: context.tr(
+        genericTitle: context.tr(
           en: 'Pantry increase failed',
           sk: 'Navýšenie v špajzi zlyhalo',
         ),
@@ -682,15 +734,27 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
           sk: 'Položka zo špajze bola zmazaná.',
         ),
       );
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      showErrorFeedback(
-        context,
-        context.tr(
+      _showPantryActionError(
+        error,
+        signInMessage: context.tr(
+          en: 'Sign in again to delete pantry items.',
+          sk: 'Prihlás sa znova, aby si mohol mazať položky zo špajze.',
+        ),
+        setupMessage: context.tr(
+          en: 'Safo pantry features are not ready on this build yet.',
+          sk: 'Funkcie špajze v Safo ešte nie sú na tomto build-e pripravené.',
+        ),
+        setupTitle: context.tr(
+          en: 'Pantry setup is unavailable',
+          sk: 'Nastavenie špajze nie je pripravené',
+        ),
+        genericMessage: context.tr(
           en: 'Safo could not remove this pantry item right now.',
           sk: 'Položku zo špajze sa nepodarilo zmazať.',
         ),
-        title: context.tr(
+        genericTitle: context.tr(
           en: 'Pantry delete failed',
           sk: 'Odstránenie zo špajze zlyhalo',
         ),
@@ -836,15 +900,27 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
       if (remainingQuantity <= 0.000001) {
         return;
       }
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      showErrorFeedback(
-        context,
-        context.tr(
+      _showPantryActionError(
+        error,
+        signInMessage: context.tr(
+          en: 'Sign in again to update pantry items.',
+          sk: 'Prihlás sa znova, aby si mohol upravovať položky v špajzi.',
+        ),
+        setupMessage: context.tr(
+          en: 'Safo pantry features are not ready on this build yet.',
+          sk: 'Funkcie špajze v Safo ešte nie sú na tomto build-e pripravené.',
+        ),
+        setupTitle: context.tr(
+          en: 'Pantry setup is unavailable',
+          sk: 'Nastavenie špajze nie je pripravené',
+        ),
+        genericMessage: context.tr(
           en: 'Safo could not update this pantry item right now.',
           sk: 'Safo teraz nedokázalo upraviť túto pantry položku.',
         ),
-        title: context.tr(
+        genericTitle: context.tr(
           en: 'Pantry update failed',
           sk: 'Úprava položky zlyhala',
         ),
@@ -1090,15 +1166,27 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
           ),
         );
       }
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      showErrorFeedback(
-        context,
-        context.tr(
+      _showPantryActionError(
+        error,
+        signInMessage: context.tr(
+          en: 'Sign in again to mark pantry items as opened.',
+          sk: 'Prihlás sa znova, aby si mohol označiť položky v špajzi ako otvorené.',
+        ),
+        setupMessage: context.tr(
+          en: 'Safo pantry features are not ready on this build yet.',
+          sk: 'Funkcie špajze v Safo ešte nie sú na tomto build-e pripravené.',
+        ),
+        setupTitle: context.tr(
+          en: 'Pantry setup is unavailable',
+          sk: 'Nastavenie špajze nie je pripravené',
+        ),
+        genericMessage: context.tr(
           en: 'Safo could not mark this pantry item as opened right now.',
           sk: 'Položku v špajzi sa nepodarilo označiť ako otvorenú.',
         ),
-        title: context.tr(
+        genericTitle: context.tr(
           en: 'Open item failed',
           sk: 'Označenie otvorenia zlyhalo',
         ),
@@ -1435,17 +1523,29 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
           ),
         );
       }
-    } catch (_) {
+    } catch (error) {
       if (!mounted) {
         return;
       }
-      showErrorFeedback(
-        context,
-        context.tr(
+      _showPantryActionError(
+        error,
+        signInMessage: context.tr(
+          en: 'Sign in again to send low-stock items to your shopping list.',
+          sk: 'Prihlás sa znova, aby si mohol pridať položky s nízkou zásobou do nákupu.',
+        ),
+        setupMessage: context.tr(
+          en: 'Safo shopping sync for pantry is not ready on this build yet.',
+          sk: 'Prepojenie špajze s nákupom v Safo ešte nie je na tomto build-e pripravené.',
+        ),
+        setupTitle: context.tr(
+          en: 'Shopping sync is unavailable',
+          sk: 'Prepojenie s nákupom nie je pripravené',
+        ),
+        genericMessage: context.tr(
           en: 'Safo could not send low-stock items to your shopping list right now.',
           sk: 'Položky s nízkou zásobou sa nepodarilo pridať.',
         ),
-        title: context.tr(
+        genericTitle: context.tr(
           en: 'Shopping update failed',
           sk: 'Aktualizácia nákupu zlyhala',
         ),
@@ -1847,15 +1947,27 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
           sk: 'Zlúčen${mergedGroups == 1 ? 'á bola' : 'é boli'} $mergedGroups duplicitn${mergedGroups == 1 ? 'á skupina' : 'é skupiny'} pantry položiek.',
         ),
       );
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      showErrorFeedback(
-        context,
-        context.tr(
+      _showPantryActionError(
+        error,
+        signInMessage: context.tr(
+          en: 'Sign in again to merge pantry duplicates.',
+          sk: 'Prihlás sa znova, aby si mohol zlúčiť duplicitné pantry položky.',
+        ),
+        setupMessage: context.tr(
+          en: 'Safo pantry features are not ready on this build yet.',
+          sk: 'Funkcie špajze v Safo ešte nie sú na tomto build-e pripravené.',
+        ),
+        setupTitle: context.tr(
+          en: 'Pantry setup is unavailable',
+          sk: 'Nastavenie špajze nie je pripravené',
+        ),
+        genericMessage: context.tr(
           en: 'Safo could not merge duplicate pantry items right now.',
           sk: 'Duplicitné položky sa nepodarilo zlúčiť.',
         ),
-        title: context.tr(
+        genericTitle: context.tr(
           en: 'Pantry merge failed',
           sk: 'Zlúčenie špajze zlyhalo',
         ),
@@ -2320,6 +2432,29 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
       en: 'Safo could not refresh pantry items right now.',
       sk: 'Safo teraz nedokázalo obnoviť položky v špajzi.',
     );
+  }
+
+  void _showPantryActionError(
+    Object error, {
+    required String signInMessage,
+    required String setupMessage,
+    required String setupTitle,
+    required String genericMessage,
+    required String genericTitle,
+  }) {
+    if (isSignInRequiredError(error) ||
+        error is FoodItemsAuthException ||
+        error is ShoppingListAuthException) {
+      showSignInRequiredFeedback(context, signInMessage);
+      return;
+    }
+    if (isSupabaseSetupError(error) ||
+        error is FoodItemsConfigException ||
+        error is ShoppingListConfigException) {
+      showErrorFeedback(context, setupMessage, title: setupTitle);
+      return;
+    }
+    showErrorFeedback(context, genericMessage, title: genericTitle);
   }
 
   String _normalizePantryName(String value) {
